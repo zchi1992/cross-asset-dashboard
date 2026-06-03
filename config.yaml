@@ -1,0 +1,41 @@
+{
+  "storage_root": "data",
+  "state_root": "state",
+  "logs_root": "logs",
+  "poll_interval_seconds": 1800,
+  "file_extensions": [
+    ".xlsx",
+    ".xls"
+  ],
+  "channel_allowlist": [],
+  "channel_blocklist": [],
+  "filename_filter": {
+    "include_patterns": [
+      "核心数据集",
+      "押注工具"
+    ],
+    "exclude_patterns": [],
+    "match_mode": "contains",
+    "case_sensitive": false
+  },
+  "dataset_rules": {
+    "core": [
+      "核心数据集"
+    ],
+    "instruments": [
+      "押注工具"
+    ]
+  },
+  "zsxq": {
+    "base_url": "https://api.zsxq.com",
+    "topics_url_template": "/v2/groups/{group_id}/topics?scope=all&count={count}",
+    "download_url_template": "/v2/files/{file_id}/download_url",
+    "topics_page_size": 20,
+    "search_page_size": 10,
+    "cookie": "",
+    "user_agent": "Mozilla/5.0",
+    "group_ids": [
+      "51112284418814"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+METRIC_NAME_MAP = {
+    "日级别趋势": "daily_trend",
+    "日级别趋势持续时间": "daily_trend_duration",
+    "周级别趋势": "weekly_trend",
+    "周级别趋势持续时间": "weekly_trend_duration",
+    "月级别趋势": "monthly_trend",
+    "月级别趋势持续时间": "monthly_trend_duration",
+    "收盘价对比60日位置": "close_position_vs_60d",
+    "相对强度": "relative_strength",
+    "强度动量": "strength_momentum",
+    "早期转折": "early_reversal",
+    "当前比价状态持续时间": "current_relative_state_duration",
+    "当前比价状态": "current_relative_state",
+    "当前比价状态涨幅": "current_relative_state_return",
+    "此前比价状态": "previous_relative_state",
+    "此前比价状态涨幅": "previous_relative_state_return",
+    "此前比价状态持续时间": "previous_relative_state_duration",
+    "当前杠杆资金状态持续时间": "current_leverage_state_duration",
+    "当前杠杆资金状态": "current_leverage_state",
+    "当前杠杆资金状态涨幅": "current_leverage_state_return",
+    "此前杠杆资金状态": "previous_leverage_state",
+    "此前杠杆资金状态涨幅": "previous_leverage_state_return",
+    "杠杆资金数值": "leverage_value",
+    "杠杆资金相比前日变动": "leverage_value_change_d1",
+}
+
+BASE_COLUMNS = ("代码", "标的名称")
