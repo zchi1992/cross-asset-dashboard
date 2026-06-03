@@ -141,6 +141,16 @@ class PipelineTests(unittest.TestCase):
         refreshed = self.pipeline.manifest_store.downloads[0]
         self.assertEqual(refreshed["status"], "downloaded")
 
+    def test_failed_download_does_not_block_next_poll(self) -> None:
+        self.pipeline.manifest_store.downloads = [
+            {
+                "file_id": "failed-file-id",
+                "status": "download_failed:ConnectionError",
+            }
+        ]
+
+        self.assertFalse(self.pipeline.manifest_store.has_file("failed-file-id"))
+
 
 if __name__ == "__main__":
     unittest.main()

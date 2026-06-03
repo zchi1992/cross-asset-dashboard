@@ -30,7 +30,10 @@ class ManifestStore:
         write_json(self.asset_registry_path, self.asset_registry)
 
     def has_file(self, file_id: str) -> bool:
-        return any(item.get("file_id") == file_id for item in self.downloads)
+        return any(
+            item.get("file_id") == file_id and item.get("status") == "downloaded"
+            for item in self.downloads
+        )
 
     def upsert_download(self, row: dict) -> None:
         existing = next((item for item in self.downloads if item.get("file_id") == row["file_id"]), None)

@@ -35,6 +35,25 @@ python3 zsxq.py poll once
 python3 zsxq.py worker run
 ```
 
+## 自动运行
+
+已提供 macOS `launchd` 配置，可在北京时间工作日每天 18:00 运行一次单次轮询：
+
+```bash
+scripts/install_launchd.sh
+```
+
+安装后会加载 `com.chizhi.zsxq.daily-poll`，实际执行 `scripts/run_daily_poll.sh`。日志写入：
+
+- `logs/daily-poll.out.log`
+- `logs/daily-poll.err.log`
+
+如需取消自动运行：
+
+```bash
+scripts/uninstall_launchd.sh
+```
+
 5. 回填历史数据（默认从 2026-05-08 开始）：
 
 ```bash
