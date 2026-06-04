@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 from .client import SessionStore
-from .config import load_config
+from .config import Config, load_config
 from .pipeline import IngestionPipeline, bootstrap_directories
 
 
@@ -53,9 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "auth" and args.auth_command == "init":
         return _auth_init(config)
     if args.command == "poll" and args.poll_command == "once":
-        result = pipeline.poll_once()
-        print(f"downloaded={result.downloaded} skipped={result.skipped} parsed={result.parsed}")
-        return 0
+        return _run_poll_once(config, pipeline)
     if args.command == "retry" and args.retry_command == "failed-downloads":
         result = pipeline.retry_failed_downloads(
             min_delay_seconds=args.min_delay_seconds,
@@ -70,8 +70,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "worker" and args.worker_command == "run":
         interval = int(config.raw.get("poll_interval_seconds", 1800))
         while True:
-            result = pipeline.poll_once()
-            print(f"downloaded={result.downloaded} skipped={result.skipped} parsed={result.parsed}")
+            try:
+                _run_poll_once(config, pipeline)
+            except Exception as exc:
+                _log_failure(config, "worker run", exc)
             time.sleep(interval)
     if args.command == "reparse":
         result = pipeline.reparse_path(Path(args.target))
@@ -87,3 +89,31 @@ def _auth_init(config) -> int:
     session_store.save(cookie, user_agent)
     print(f"会话已保存到 {session_store.path}")
     return 0
+
+
+def _run_poll_once(config: Config, pipeline: IngestionPipeline) -> int:
+    try:
+        result = pipeline.poll_once()
+        validation = pipeline.validate_daily_outputs(_today())
+        print(
+            f"downloaded={result.downloaded} skipped={result.skipped} parsed={result.parsed} "
+            f"validated_date={validation.as_of_date} raw_files={validation.raw_files} "
+            f"asset={validation.asset_code} series={validation.series_path}"
+        )
+        return 0
+    except Exception as exc:
+        _log_failure(config, "poll once", exc)
+        return 1
+
+
+def _today() -> str:
+    return datetime.now().date().isoformat()
+
+
+def _log_failure(config: Config, command: str, exc: Exception) -> None:
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message = f"{timestamp} FAIL {command}: {type(exc).__name__}: {exc}"
+    print(message, file=sys.stderr, flush=True)
+    config.logs_root.mkdir(parents=True, exist_ok=True)
+    with (config.logs_root / "zsxq.log").open("a", encoding="utf-8") as handle:
+        handle.write(f"{message}\n")

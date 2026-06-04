@@ -62,6 +62,22 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue((core_dir / "ZN1__10_year_t_note_futures.csv").exists())
         self.assertTrue((core_dir / "ZN1__zinc_futures.csv").exists())
 
+    def test_validate_daily_outputs_checks_raw_and_last_series_date(self) -> None:
+        self.pipeline.reparse_path(ROOT / "examples")
+
+        validation = self.pipeline.validate_daily_outputs("2026-05-27")
+
+        self.assertEqual(validation.as_of_date, "2026-05-27")
+        self.assertEqual(validation.last_date, "2026-05-27")
+        self.assertGreaterEqual(validation.raw_files, 1)
+        self.assertTrue(validation.series_path.exists())
+
+    def test_validate_daily_outputs_fails_when_today_is_missing(self) -> None:
+        self.pipeline.reparse_path(ROOT / "examples")
+
+        with self.assertRaisesRegex(ValueError, "no downloaded raw files found for 2026-06-04"):
+            self.pipeline.validate_daily_outputs("2026-06-04")
+
     def test_backfill_history_uses_since_filter_and_downloads_only_matching_files(self) -> None:
         candidates = [
             {

@@ -10,16 +10,23 @@
 
 ## 快速开始
 
+0. 创建虚拟环境并安装依赖：
+
+```bash
+python3 -m venv .venv
+.venv/bin/python3 -m pip install -r requirements.txt
+```
+
 1. 初始化会话配置：
 
 ```bash
-python3 zsxq.py auth init
+.venv/bin/python3 zsxq.py auth init
 ```
 
 2. 用本地样例验证解析和时序汇总：
 
 ```bash
-python3 zsxq.py reparse examples
+.venv/bin/python3 zsxq.py reparse examples
 ```
 
 3. 查看生成结果：
@@ -31,8 +38,8 @@ find data -maxdepth 3 -type f | sort
 4. 轮询知识星球：
 
 ```bash
-python3 zsxq.py poll once
-python3 zsxq.py worker run
+.venv/bin/python3 zsxq.py poll once
+.venv/bin/python3 zsxq.py worker run
 ```
 
 ## 自动运行
@@ -57,8 +64,8 @@ scripts/uninstall_launchd.sh
 5. 回填历史数据（默认从 2026-05-08 开始）：
 
 ```bash
-python3 zsxq.py backfill history
-python3 zsxq.py backfill history --since 2026-05-08 --max-pages 100
+.venv/bin/python3 zsxq.py backfill history
+.venv/bin/python3 zsxq.py backfill history --since 2026-05-08 --max-pages 100
 ```
 
 `backfill history` 会优先使用知识星球网页版的文件搜索接口，按 `filename_filter.include_patterns` 中的关键词检索历史附件，再下载符合条件的 `.xlsx/.xls` 文件。
