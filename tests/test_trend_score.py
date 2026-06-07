@@ -134,6 +134,18 @@ class RelativeStrengthScoreTests(unittest.TestCase):
         self.assertAlmostEqual(float(output[("2026-06-04", "transition_score")]), -22.07, places=2)
         self.assertAlmostEqual(float(output[("2026-06-04", "rs_score")]), 81.69, places=2)
 
+    def test_rs_score_weights_relative_strength_above_early_reversal(self) -> None:
+        rows = _relative_rows(
+            [
+                ("2026-06-04", 10, 50, 90, "Lead", "Lag", 1, 15),
+            ]
+        )
+
+        output = _rows_by_date_and_metric(calculate_rs_score_rows(rows))
+
+        self.assertEqual(output[("2026-06-04", "transition_score")], "120")
+        self.assertEqual(output[("2026-06-04", "rs_score")], "66.50")
+
     def test_same_state_is_rejected(self) -> None:
         rows = _relative_rows(
             [

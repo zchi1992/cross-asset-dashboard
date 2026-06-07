@@ -8,6 +8,12 @@ from typing import Iterable
 from .trend_score import SERIES_COLUMNS
 
 SCORE_FIELDS = ("early_reversal", "strength_momentum", "relative_strength")
+RS_SCORE_WEIGHTS = {
+    "early_reversal": 0.20,
+    "strength_momentum": 0.30,
+    "relative_strength": 0.35,
+    "transition_score": 0.15,
+}
 STATE_FIELDS = ("current_relative_state", "previous_relative_state")
 DURATION_FIELDS = ("current_state_duration", "previous_state_duration")
 INPUT_FIELD_ALIASES = {
@@ -127,10 +133,10 @@ def _calculate_date_values(values: dict[str, str]) -> dict[str, str | float]:
     previous_maturity_factor = min(previous_duration / 15, 1)
     transition_score = base_transition_score * freshness_factor * previous_maturity_factor
     rs_score = (
-        0.35 * early_reversal
-        + 0.30 * strength_momentum
-        + 0.20 * relative_strength
-        + 0.15 * transition_score
+        RS_SCORE_WEIGHTS["early_reversal"] * early_reversal
+        + RS_SCORE_WEIGHTS["strength_momentum"] * strength_momentum
+        + RS_SCORE_WEIGHTS["relative_strength"] * relative_strength
+        + RS_SCORE_WEIGHTS["transition_score"] * transition_score
     )
 
     return {
