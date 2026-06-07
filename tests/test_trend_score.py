@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from src.zsxq_pipeline.signals.processed_series import build_processed_series_with_trend_scores
+from src.zsxq_pipeline.signals.relative_strength import calculate_rs_score_rows
 from src.zsxq_pipeline.signals.trend_score import calculate_trend_score_rows
 from src.zsxq_pipeline.config import load_config
 from src.zsxq_pipeline.pipeline import IngestionPipeline, bootstrap_directories
@@ -98,6 +99,62 @@ class TrendScoreTests(unittest.TestCase):
             calculate_trend_score_rows(rows)
 
 
+class RelativeStrengthScoreTests(unittest.TestCase):
+    def test_lag_to_lead_uses_raw_inputs_and_full_maturity_bonus(self) -> None:
+        rows = _relative_rows(
+            [
+                ("2026-06-04", 100, 100, 100, "Lead", "Lag", 1, 15),
+            ]
+        )
+
+        output = _rows_by_date_and_metric(calculate_rs_score_rows(rows))
+
+        self.assertEqual(output[("2026-06-04", "state_transition")], "Lag->Lead")
+        self.assertEqual(output[("2026-06-04", "relative_signal_type")], "strong_reversal_to_lead")
+        self.assertEqual(output[("2026-06-04", "base_transition_score")], "120")
+        self.assertEqual(output[("2026-06-04", "freshness_factor")], "1")
+        self.assertEqual(output[("2026-06-04", "previous_maturity_factor")], "1")
+        self.assertEqual(output[("2026-06-04", "transition_score")], "120")
+        self.assertEqual(output[("2026-06-04", "rs_score")], "103")
+
+    def test_lead_to_lag_applies_time_adjusted_transition_score(self) -> None:
+        rows = _relative_rows(
+            [
+                ("2026-06-04", 100, 100, 100, "lag", "lead", 6, 7.5),
+            ]
+        )
+
+        output = _rows_by_date_and_metric(calculate_rs_score_rows(rows))
+
+        self.assertEqual(output[("2026-06-04", "state_transition")], "Lead->Lag")
+        self.assertEqual(output[("2026-06-04", "relative_signal_type")], "leadership_collapse")
+        self.assertEqual(output[("2026-06-04", "base_transition_score")], "-120")
+        self.assertAlmostEqual(float(output[("2026-06-04", "freshness_factor")]), 0.37, places=2)
+        self.assertEqual(output[("2026-06-04", "previous_maturity_factor")], "0.50")
+        self.assertAlmostEqual(float(output[("2026-06-04", "transition_score")]), -22.07, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "rs_score")]), 81.69, places=2)
+
+    def test_same_state_is_rejected(self) -> None:
+        rows = _relative_rows(
+            [
+                ("2026-06-04", 100, 100, 100, "Lead", "Lead", 1, 15),
+            ]
+        )
+
+        with self.assertRaisesRegex(ValueError, "must differ"):
+            calculate_rs_score_rows(rows)
+
+    def test_duration_must_be_at_least_one(self) -> None:
+        rows = _relative_rows(
+            [
+                ("2026-06-04", 100, 100, 100, "Lead", "Lag", 0, 15),
+            ]
+        )
+
+        with self.assertRaisesRegex(ValueError, "invalid current_relative_state_duration"):
+            calculate_rs_score_rows(rows)
+
+
 class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -129,6 +186,10 @@ class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
         self.assertIn("raw_final_trend_score", metric_names)
         self.assertIn("capped_final_trend_score", metric_names)
         self.assertIn("transition_label", metric_names)
+        self.assertIn("rs_score", metric_names)
+        self.assertIn("state_transition", metric_names)
+        self.assertIn("relative_signal_type", metric_names)
+        self.assertIn("base_transition_score", metric_names)
 
 
 def _trend_rows(records: list[tuple[str, str, str, str, int, int, int]]) -> list[dict[str, str]]:
@@ -142,6 +203,32 @@ def _trend_rows(records: list[tuple[str, str, str, str, int, int, int]]) -> list
                 _row(date, "monthly_trend_duration", str(monthly_bars)),
                 _row(date, "weekly_trend_duration", str(weekly_bars)),
                 _row(date, "daily_trend_duration", str(daily_bars)),
+            ]
+        )
+    return rows
+
+
+def _relative_rows(records: list[tuple[str, float, float, float, str, str, float, float]]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for (
+        date,
+        early_reversal,
+        strength_momentum,
+        relative_strength,
+        current_state,
+        previous_state,
+        current_duration,
+        previous_duration,
+    ) in records:
+        rows.extend(
+            [
+                _row(date, "early_reversal", str(early_reversal)),
+                _row(date, "strength_momentum", str(strength_momentum)),
+                _row(date, "relative_strength", str(relative_strength)),
+                _row(date, "current_relative_state", current_state),
+                _row(date, "previous_relative_state", previous_state),
+                _row(date, "current_relative_state_duration", str(current_duration)),
+                _row(date, "previous_relative_state_duration", str(previous_duration)),
             ]
         )
     return rows
