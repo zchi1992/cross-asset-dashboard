@@ -104,7 +104,8 @@ def build_market_map_figure(
     y_midline = float(quadrants.get("y_midline", 0))
     fig.add_vline(x=x_midline, line_width=1, line_dash="dash", line_color="#9aa5b1")
     fig.add_hline(y=y_midline, line_width=1, line_dash="dash", line_color="#9aa5b1")
-    _add_quadrant_labels(fig, rows, x_midline, y_midline)
+    _focus_axes_on_assets(fig, rows)
+    _add_quadrant_labels(fig, rows)
     fig.update_layout(
         title="Market Map",
         xaxis_title="RS Score",
@@ -129,7 +130,7 @@ def _should_label(row: dict[str, Any], highlighted: bool, label_mode: str) -> bo
     return highlighted or bool(row["long_candidate"]) or bool(row["short_candidate"])
 
 
-def _add_quadrant_labels(fig, rows: list[dict[str, Any]], x_midline: float, y_midline: float) -> None:
+def _focus_axes_on_assets(fig, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
     x_values = [float(row["rs_score"]) for row in rows]
@@ -138,8 +139,15 @@ def _add_quadrant_labels(fig, rows: list[dict[str, Any]], x_midline: float, y_mi
     y_min, y_max = min(y_values), max(y_values)
     x_pad = max((x_max - x_min) * 0.08, 5)
     y_pad = max((y_max - y_min) * 0.08, 5)
-    fig.update_xaxes(range=[min(x_min, x_midline) - x_pad, max(x_max, x_midline) + x_pad])
-    fig.update_yaxes(range=[min(y_min, y_midline) - y_pad, max(y_max, y_midline) + y_pad])
+    fig.update_xaxes(range=[x_min - x_pad, x_max + x_pad])
+    fig.update_yaxes(range=[y_min - y_pad, y_max + y_pad])
+
+
+def _add_quadrant_labels(fig, rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        return
+    x_values = [float(row["rs_score"]) for row in rows]
+    y_values = [float(row["trend_score"]) for row in rows]
     labels = [
         (max(x_values), max(y_values), "Long watch"),
         (min(x_values), max(y_values), "Repair watch"),
