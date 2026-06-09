@@ -33,14 +33,14 @@ def main() -> None:
         return
 
     dates = available_dates(rows)
-    selected_date = st.selectbox("Date", dates, index=len(dates) - 1)
+    selected_date = st.select_slider("Date", options=dates, value=dates[-1])
     date_rows = filter_market_map_rows(rows, date=selected_date)
 
     with st.expander("Filters", expanded=True):
         search_query = st.text_input("Search asset_id / asset_name", placeholder="ES1, gold, BTC...")
         control_left, control_right = st.columns(2)
         asset_classes = sorted({row["asset_class"] for row in date_rows})
-        selected_asset_classes = control_left.multiselect("Asset Class", asset_classes, default=asset_classes)
+        selected_asset_class = control_left.radio("Asset Class", ["All", *asset_classes], horizontal=True)
 
         flow_states = sorted({row["flow_state"] for row in date_rows})
         selected_flow_states = control_right.multiselect("Flow State", flow_states, default=flow_states)
@@ -66,7 +66,7 @@ def main() -> None:
         )
     filtered_rows = filter_market_map_rows(
         date_rows,
-        asset_classes=set(selected_asset_classes),
+        asset_classes=set(asset_classes if selected_asset_class == "All" else [selected_asset_class]),
         flow_states=set(selected_flow_states),
         trend_range=selected_trend,
         rs_range=selected_rs,
@@ -103,16 +103,69 @@ def _inject_mobile_styles(st) -> None:
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        :root {
+            --md-primary: #0b57d0;
+            --md-primary-container: #d3e3fd;
+            --md-on-primary: #ffffff;
+            --md-on-surface: #1f1f1f;
+            --md-outline: #747775;
+        }
+        html, body, [class*="css"], .stApp, button, input, textarea, select {
+            font-family: "Roboto", "Noto Sans SC", Arial, sans-serif;
+            letter-spacing: 0;
+        }
         .main .block-container {
             padding-top: 1rem;
             padding-bottom: 1.5rem;
             max-width: 1180px;
+        }
+        h1 {
+            color: var(--md-on-surface);
+            font-weight: 500;
+            letter-spacing: 0;
         }
         [data-testid="stMetric"] {
             border: 1px solid #e4e7ec;
             border-radius: 8px;
             padding: 0.6rem 0.75rem;
             background: #ffffff;
+        }
+        [data-testid="stSidebar"] [aria-selected="true"],
+        [data-testid="stSidebar"] [aria-current="page"],
+        [data-testid="stSidebarNav"] a[aria-current="page"] {
+            background: var(--md-primary-container) !important;
+            color: var(--md-primary) !important;
+        }
+        div[role="radiogroup"] {
+            gap: 0.75rem;
+        }
+        div[role="radiogroup"] label {
+            color: var(--md-on-surface);
+            font-weight: 700;
+        }
+        div[role="radiogroup"] [data-testid="stMarkdownContainer"] p {
+            font-size: 1rem;
+        }
+        div[role="radiogroup"] label > div:first-child {
+            border-color: #11131d !important;
+        }
+        div[role="radiogroup"] label:has(input:checked) > div:first-child {
+            border-color: #6750f8 !important;
+            background: #6750f8 !important;
+            box-shadow: inset 0 0 0 5px #ffffff;
+        }
+        [data-baseweb="slider"] div {
+            border-radius: 999px;
+        }
+        [data-baseweb="slider"] [role="slider"] {
+            background-color: #fbbc04 !important;
+            border-color: #fbbc04 !important;
+            box-shadow: none !important;
+        }
+        [data-baseweb="slider"] [role="slider"] + div,
+        [data-baseweb="slider"] div[style*="background-color"] {
+            background-color: #fbbc04;
         }
         @media (max-width: 760px) {
             .main .block-container {
