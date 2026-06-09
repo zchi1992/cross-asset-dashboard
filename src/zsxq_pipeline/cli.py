@@ -61,11 +61,17 @@ def main(argv: list[str] | None = None) -> int:
             min_delay_seconds=args.min_delay_seconds,
             max_delay_seconds=args.max_delay_seconds,
         )
-        print(f"downloaded={result.downloaded} skipped={result.skipped} parsed={result.parsed}")
+        print(
+            f"downloaded={result.downloaded} skipped={result.skipped} "
+            f"parsed={result.parsed} processed={result.processed}"
+        )
         return 0
     if args.command == "backfill" and args.backfill_command == "history":
         result = pipeline.backfill_history(since_date=args.since, max_pages=args.max_pages)
-        print(f"downloaded={result.downloaded} skipped={result.skipped} parsed={result.parsed}")
+        print(
+            f"downloaded={result.downloaded} skipped={result.skipped} "
+            f"parsed={result.parsed} processed={result.processed}"
+        )
         return 0
     if args.command == "worker" and args.worker_command == "run":
         interval = int(config.raw.get("poll_interval_seconds", 1800))
@@ -77,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
             time.sleep(interval)
     if args.command == "reparse":
         result = pipeline.reparse_path(Path(args.target))
-        print(f"parsed={result.parsed}")
+        print(f"parsed={result.parsed} processed={result.processed}")
         return 0
     return 1
 
@@ -97,6 +103,7 @@ def _run_poll_once(config: Config, pipeline: IngestionPipeline) -> int:
         validation = pipeline.validate_daily_outputs(_today())
         print(
             f"downloaded={result.downloaded} skipped={result.skipped} parsed={result.parsed} "
+            f"processed={result.processed} "
             f"validated_date={validation.as_of_date} raw_files={validation.raw_files} "
             f"asset={validation.asset_code} series={validation.series_path}"
         )
