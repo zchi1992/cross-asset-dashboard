@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import importlib.util
 from collections import defaultdict
 from pathlib import Path
 
@@ -47,10 +46,12 @@ class ManifestStore:
 
 
 class SeriesStore:
-    def __init__(self, storage_root: Path, manifest_store: ManifestStore) -> None:
+    def __init__(self, storage_root: Path, manifest_store: ManifestStore, *, backend: str = "csv") -> None:
+        if backend not in {"csv", "parquet"}:
+            raise ValueError(f"unsupported series backend: {backend}")
         self.storage_root = ensure_dir(storage_root)
         self.manifest_store = manifest_store
-        self.backend = "parquet" if _has_parquet_support() else "csv"
+        self.backend = backend
 
     def series_dir(self, dataset_type: str) -> Path:
         return ensure_dir(self.storage_root / "series" / dataset_type)
@@ -177,7 +178,3 @@ class SeriesStore:
             row["date"],
             row["metric_name"],
         )
-
-
-def _has_parquet_support() -> bool:
-    return bool(importlib.util.find_spec("pandas")) and bool(importlib.util.find_spec("pyarrow"))

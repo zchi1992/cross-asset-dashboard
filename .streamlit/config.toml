@@ -1,0 +1,9 @@
+[server]
+address = "100.121.35.71"
+port = 8051
+headless = true
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false

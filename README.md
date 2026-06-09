@@ -35,7 +35,26 @@ python3 -m venv .venv
 find data -maxdepth 3 -type f | sort
 ```
 
-4. 轮询知识星球：
+4. 启动 Market Map Dashboard：
+
+```bash
+scripts/run_market_map_dashboard.sh
+```
+
+手机和电脑都连接 Tailscale 后，在手机浏览器访问：
+
+```text
+http://chis-macbook-pro:8051
+```
+
+Dashboard 直接监听本机 Tailscale IP `100.121.35.71:8051`，不使用公网 Funnel。若本机代理
+已正确绕过 Tailscale 网段，也可访问：
+
+```text
+http://100.121.35.71:8051
+```
+
+5. 轮询知识星球：
 
 ```bash
 .venv/bin/python3 zsxq.py poll once
@@ -61,7 +80,7 @@ scripts/install_launchd.sh
 scripts/uninstall_launchd.sh
 ```
 
-5. 回填历史数据（默认从 2026-05-08 开始）：
+6. 回填历史数据（默认从 2026-05-08 开始）：
 
 ```bash
 .venv/bin/python3 zsxq.py backfill history
@@ -91,8 +110,8 @@ scripts/uninstall_launchd.sh
 
 ## 存储格式
 
-- 若环境可用 `pandas + pyarrow`，资产序列优先写为 `parquet`
-- 当前仓库环境未安装这些依赖，因此会自动回退为 `csv`
+- 资产序列默认写为 `csv`，避免运行环境安装额外依赖后改变输出格式
+- `SeriesStore` 仍保留显式 `backend="parquet"` 能力，供后续需要时单独接入
 
 ## 派生指标计算
 
