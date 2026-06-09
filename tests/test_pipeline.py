@@ -33,11 +33,16 @@ class PipelineTests(unittest.TestCase):
         parsed_dir = self.workdir / "data" / "parsed"
         core_dir = self.workdir / "data" / "series" / "core"
         instruments_dir = self.workdir / "data" / "series" / "instruments"
+        processed_core_dir = self.workdir / "data" / "processed" / "series" / "core"
+        processed_instruments_dir = self.workdir / "data" / "processed" / "series" / "instruments"
         self.assertFalse(parsed_dir.exists())
         self.assertTrue(core_dir.exists())
         self.assertTrue(instruments_dir.exists())
         self.assertTrue(any(core_dir.iterdir()))
         self.assertTrue(any(instruments_dir.iterdir()))
+        self.assertGreater(result.processed, 0)
+        self.assertTrue(any(processed_core_dir.iterdir()))
+        self.assertTrue(any(processed_instruments_dir.iterdir()))
 
     def test_series_output_uses_trimmed_schema_and_english_metric_names(self) -> None:
         core_file = ROOT / "examples" / "26-05-27 数据总表（趋势识别＋相对比价＋资金监控）（核心数据集）.xlsx"
@@ -121,6 +126,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result.downloaded, 1)
         self.assertEqual(result.skipped, 1)
         self.assertEqual(result.parsed, 1)
+        self.assertGreater(result.processed, 0)
         series_file = self.workdir / "data" / "series" / "core" / "10Y1.csv"
         self.assertTrue(series_file.exists())
 

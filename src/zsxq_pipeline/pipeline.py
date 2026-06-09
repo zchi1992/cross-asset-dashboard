@@ -14,6 +14,7 @@ from .filtering import classify_dataset, match_filename
 from .storage import ManifestStore, SeriesStore
 from .utils import copy_file, ensure_dir, normalize_date, parse_date_from_filename, sha256_file
 from .xlsx_parser import parse_metrics_from_workbook
+from .signals import build_processed_series_with_trend_scores
 
 
 @dataclass
@@ -21,6 +22,7 @@ class PipelineResult:
     downloaded: int = 0
     skipped: int = 0
     parsed: int = 0
+    processed: int = 0
 
 
 @dataclass
@@ -55,6 +57,7 @@ class IngestionPipeline:
             )
             self._ingest_local_file(path, metadata)
             result.parsed += 1
+        result.processed = self.refresh_processed_series()
         return result
 
     def poll_once(self) -> PipelineResult:
@@ -79,6 +82,7 @@ class IngestionPipeline:
                     self._record_skip(candidate, f"download_failed:{type(exc).__name__}")
                     self._log_failure("poll once candidate", exc, candidate)
                     result.skipped += 1
+        result.processed = self.refresh_processed_series()
         self.manifest_store.save()
         return result
 
@@ -118,6 +122,7 @@ class IngestionPipeline:
                     self._record_skip(candidate, f"download_failed:{type(exc).__name__}")
                     self._log_failure("backfill history candidate", exc, candidate)
                     result.skipped += 1
+        result.processed = self.refresh_processed_series()
         self.manifest_store.save()
         return result
 
@@ -159,8 +164,12 @@ class IngestionPipeline:
                 self._log_failure("retry failed-downloads candidate", exc, candidate)
                 result.skipped += 1
 
+        result.processed = self.refresh_processed_series()
         self.manifest_store.save()
         return result
+
+    def refresh_processed_series(self) -> int:
+        return len(build_processed_series_with_trend_scores(self.config.storage_root))
 
     def validate_daily_outputs(self, as_of_date: str) -> ValidationResult:
         raw_rows = [
