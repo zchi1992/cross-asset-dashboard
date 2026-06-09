@@ -6,7 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.zsxq_pipeline.config import load_config
-from src.zsxq_pipeline.pipeline import IngestionPipeline, bootstrap_directories
+from src.zsxq_pipeline.cli import _run_poll_once
+from src.zsxq_pipeline.pipeline import IngestionPipeline, PipelineResult, bootstrap_directories
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,6 +83,21 @@ class PipelineTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "no downloaded raw files found for 2026-06-04"):
             self.pipeline.validate_daily_outputs("2026-06-04")
+
+    def test_poll_once_logs_pending_when_daily_file_is_not_published_yet(self) -> None:
+        class PendingPipeline:
+            def poll_once(self):
+                return PipelineResult()
+
+            def validate_daily_outputs(self, _as_of_date):
+                raise ValueError("no downloaded raw files found for 2026-06-09")
+
+        result = _run_poll_once(self.config, PendingPipeline())
+
+        self.assertEqual(result, 0)
+        log_text = (self.workdir / "logs" / "zsxq.log").read_text(encoding="utf-8")
+        self.assertIn("PENDING poll once: no downloaded raw files found for 2026-06-09", log_text)
+        self.assertNotIn("FAIL poll once", log_text)
 
     def test_backfill_history_uses_since_filter_and_downloads_only_matching_files(self) -> None:
         candidates = [

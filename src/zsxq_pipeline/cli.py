@@ -109,12 +109,28 @@ def _run_poll_once(config: Config, pipeline: IngestionPipeline) -> int:
         )
         return 0
     except Exception as exc:
+        if _is_pending_daily_output(exc):
+            _log_pending(config, "poll once", exc)
+            return 0
         _log_failure(config, "poll once", exc)
         return 1
 
 
 def _today() -> str:
     return datetime.now().date().isoformat()
+
+
+def _is_pending_daily_output(exc: Exception) -> bool:
+    return isinstance(exc, ValueError) and str(exc).startswith("no downloaded raw files found for ")
+
+
+def _log_pending(config: Config, command: str, exc: Exception) -> None:
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message = f"{timestamp} PENDING {command}: {exc}"
+    print(message, file=sys.stderr, flush=True)
+    config.logs_root.mkdir(parents=True, exist_ok=True)
+    with (config.logs_root / "zsxq.log").open("a", encoding="utf-8") as handle:
+        handle.write(f"{message}\n")
 
 
 def _log_failure(config: Config, command: str, exc: Exception) -> None:
