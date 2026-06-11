@@ -5,7 +5,7 @@
 ## Git 安全
 
 - 禁止直接在 `main` 或 `master` 上修改、提交或 push。
-- 每次开始任务先执行：
+- 仅当任务需要修改文件时，开始前先执行：
 
 ```bash
 git branch --show-current
@@ -19,7 +19,8 @@ git checkout -b codex/YYYYMMDD-task-name
 git branch --show-current
 ```
 
-- 只有确认不在 `main/master` 后才允许修改代码。
+- 只有确认不在 `main/master` 后才允许修改文件。
+- 若任务不涉及修改 version control 管理的文件，例如查看信息、运行程序、执行测试、读取日志或其他不改动文件的操作，不需要执行本文件中的任何指令，也不需要新建 Git 分支。
 - 若当前分支超过 5 个，提醒用户删除不再需要的分支，尽量保持分支数不超过 5 个。
 
 ## 修改原则
@@ -27,6 +28,11 @@ git branch --show-current
 - 优先最小修改，不做无关重构。
 - 不修改无关文件，不自动升级依赖，不格式化整个项目。
 - 除非用户明确要求，否则不提交 commit、不 push。
+
+## Review 通过后
+
+- 进行 review 操作后，若用户明确同意 review 结果，则将当前改动提交为 commit，并将当前分支 merge 到 `main`。
+- commit 和 merge 前仍需确认当前分支不是 `main/master`，且只包含本次应提交的改动。
 
 ## 失败处理
 

@@ -12,7 +12,7 @@ from dashboard.data_loader import (
     load_market_map_rows,
     matching_asset_ids,
 )
-from dashboard.plotting.market_map_plot import _focus_axes_on_assets
+from dashboard.plotting.market_map_plot import _score_axis_ranges
 from dashboard.scoring_rules import normalized_marker_sizes
 
 
@@ -132,21 +132,19 @@ class MarketMapDashboardTests(unittest.TestCase):
         self.assertEqual(sizes[2], 42)
         self.assertTrue(all(size > 0 for size in sizes))
 
-    def test_market_map_axes_focus_on_visible_assets(self) -> None:
+    def test_market_map_axis_ranges_use_dataset_scale(self) -> None:
         rows = [
-            _market_map_row("AAA", trend_score=80.0, rs_score=90.0),
-            _market_map_row("BBB", trend_score=84.0, rs_score=96.0),
+            _market_map_row("AAA", trend_score=80.0, rs_score=90.0, flow_score=-10.0),
+            _market_map_row("BBB", trend_score=84.0, rs_score=120.0, flow_score=20.0),
         ]
 
-        figure = _FakeFigure()
-        _focus_axes_on_assets(figure, rows)
+        ranges = _score_axis_ranges(rows)
 
-        self.assertIsNotNone(figure.xaxis_range)
-        self.assertIsNotNone(figure.yaxis_range)
-        self.assertGreater(figure.xaxis_range[0], 0)
-        self.assertGreater(figure.yaxis_range[0], 0)
-        self.assertLessEqual(figure.xaxis_range[0], 85)
-        self.assertGreaterEqual(figure.xaxis_range[1], 101)
+        self.assertLess(ranges["rs_score"][0], 90)
+        self.assertGreater(ranges["rs_score"][1], 120)
+        self.assertLess(ranges["flow_score"][0], -10)
+        self.assertGreater(ranges["flow_score"][1], 20)
+        self.assertEqual(ranges["trend_score"], [-100, 100])
 
 
 def _write_processed_asset(
@@ -176,7 +174,13 @@ def _write_processed_asset(
             )
 
 
-def _market_map_row(asset_id: str, *, trend_score: float, rs_score: float) -> dict:
+def _market_map_row(
+    asset_id: str,
+    *,
+    trend_score: float,
+    rs_score: float,
+    flow_score: float = 55.0,
+) -> dict:
     return {
         "date": "2026-06-04",
         "asset_id": asset_id,
@@ -184,25 +188,13 @@ def _market_map_row(asset_id: str, *, trend_score: float, rs_score: float) -> di
         "asset_class": "core",
         "trend_score": trend_score,
         "rs_score": rs_score,
-        "flow_score": 55.0,
+        "flow_score": flow_score,
         "trend_state": "主升浪",
         "rs_state": "Lead",
         "flow_state": "Leveraging",
         "long_candidate": True,
         "short_candidate": False,
     }
-
-
-class _FakeFigure:
-    def __init__(self) -> None:
-        self.xaxis_range: list[float] | None = None
-        self.yaxis_range: list[float] | None = None
-
-    def update_xaxes(self, *, range: list[float]) -> None:
-        self.xaxis_range = range
-
-    def update_yaxes(self, *, range: list[float]) -> None:
-        self.yaxis_range = range
 
 
 if __name__ == "__main__":

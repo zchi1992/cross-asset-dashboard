@@ -35,23 +35,24 @@ python3 -m venv .venv
 find data -maxdepth 3 -type f | sort
 ```
 
-4. 启动 Market Map Dashboard：
+4. 启动 Local Asset Terminal：
 
 ```bash
+cd frontend && npm install && npm run build && cd ..
 scripts/run_market_map_dashboard.sh
 ```
 
-手机和电脑都连接 Tailscale 后，在手机浏览器访问：
+本机浏览器访问：
 
 ```text
-http://chis-macbook-pro:8051
+http://127.0.0.1:8000
 ```
 
-Dashboard 直接监听本机 Tailscale IP `100.121.35.71:8051`，不使用公网 Funnel。若本机代理
-已正确绕过 Tailscale 网段，也可访问：
+如需开发模式，可分别启动后端和 Vite 前端：
 
-```text
-http://100.121.35.71:8051
+```bash
+.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+cd frontend && npm run dev
 ```
 
 5. 轮询知识星球：
