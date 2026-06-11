@@ -1,0 +1,45 @@
+import { describe, expect, it } from "vitest";
+import type { SnapshotItem } from "../services/contracts";
+import { filterItems, matchesSearch, trajectoryForSymbol } from "./filtering";
+
+const item: SnapshotItem = {
+  symbol: "GLD",
+  asset_name: "SPDR Gold Shares",
+  asset_class: "core",
+  trend_score: 74,
+  rs_score: 38,
+  rs_state: "Lead",
+  funding_score: 51,
+  funding_state: "Leveraging",
+  long_candidate: true,
+  short_candidate: false,
+};
+
+describe("filtering utilities", () => {
+  it("matches symbol and asset name search text", () => {
+    expect(matchesSearch(item, "gld")).toBe(true);
+    expect(matchesSearch(item, "gold")).toBe(true);
+    expect(matchesSearch(item, "oil")).toBe(false);
+  });
+
+  it("combines filter groups with AND semantics", () => {
+    expect(filterItems([item], "core", ["Leveraging"], ["Lead"])).toHaveLength(1);
+    expect(filterItems([item], "Core", ["leveraging"], ["lead"])).toHaveLength(1);
+    expect(filterItems([item], "instruments", ["Leveraging"], ["Lead"])).toHaveLength(0);
+    expect(filterItems([item], "core", ["Deleveraging"], ["Lead"])).toHaveLength(0);
+    expect(filterItems([item], "core", ["Leveraging"], ["Lag"])).toHaveLength(0);
+    expect(filterItems([item], "core", [], ["Lead"])).toHaveLength(0);
+    expect(filterItems([item], "core", ["Leveraging"], [])).toHaveLength(0);
+  });
+
+  it("returns the trailing 30 available frame points for a symbol", () => {
+    const dates = Array.from({ length: 35 }, (_, index) => `2026-05-${String(index + 1).padStart(2, "0")}`);
+    const frames = Object.fromEntries(dates.map((date) => [date, [{ ...item, rs_score: dates.indexOf(date), funding_score: 1 }]]));
+
+    const trajectory = trajectoryForSymbol(frames, dates, 34, "GLD");
+
+    expect(trajectory).toHaveLength(30);
+    expect(trajectory[0].date).toBe("2026-05-06");
+    expect(trajectory[29].date).toBe("2026-05-35");
+  });
+});

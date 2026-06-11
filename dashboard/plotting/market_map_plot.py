@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from dashboard.scoring_rules import normalized_marker_sizes
+
+TREND_COLOR_SCALE = [
+    [0.0, "#dc2626"],
+    [0.5, "#facc15"],
+    [1.0, "#16a34a"],
+]
 
 
 def build_market_map_figure(
@@ -10,149 +15,253 @@ def build_market_map_figure(
     market_map_config: dict[str, Any],
     *,
     highlighted_asset_ids: set[str] | None = None,
-    label_mode: str = "candidates_and_matches",
-    height: int = 720,
-    show_legend: bool = True,
+    selected_asset_id: str | None = None,
+    axis_ranges: dict[str, list[float]] | None = None,
+    height: int = 620,
+    show_colorbar: bool = True,
 ):
     import plotly.graph_objects as go
 
     highlighted_asset_ids = highlighted_asset_ids or set()
-    size_config = market_map_config.get("size", {})
-    sizes = normalized_marker_sizes(
-        [float(row["flow_score"]) for row in rows],
-        min_size=float(size_config.get("min", 8)),
-        max_size=float(size_config.get("max", 42)),
-    )
-    colors = market_map_config.get("colors", {})
-    symbols = market_map_config.get("symbols", {})
-
-    enriched: list[dict[str, Any]] = []
-    for row, size in zip(rows, sizes):
-        highlighted = str(row["asset_id"]) in highlighted_asset_ids
-        should_label = _should_label(row, highlighted, label_mode)
-        enriched.append(
-            {
-                **row,
-                "_size": size * (1.35 if highlighted else 1),
-                "_highlighted": highlighted,
-                "_opacity": 1.0 if not highlighted_asset_ids or highlighted else 0.18,
-                "_line_width": 2.5 if highlighted else 0.5,
-                "_label": row["asset_id"] if should_label else "",
-            }
-        )
+    selected_asset_id = str(selected_asset_id) if selected_asset_id else None
+    axis_ranges = axis_ranges or _score_axis_ranges(rows)
+    trend_range = axis_ranges.get("trend_score", [-100, 100])
 
     fig = go.Figure()
-    groups = sorted({(row["flow_state"], row["asset_class"]) for row in enriched})
-    for flow_state, asset_class in groups:
-        group_rows = [row for row in enriched if row["flow_state"] == flow_state and row["asset_class"] == asset_class]
+    fig.add_trace(
+        go.Scatter(
+            x=[row["rs_score"] for row in rows],
+            y=[row["flow_score"] for row in rows],
+            mode="markers+text",
+            text=[
+                _label_text(row, rows, highlighted_asset_ids, selected_asset_id)
+                for row in rows
+            ],
+            textposition="top center",
+            textfont={"size": 10, "color": "#334155"},
+            marker={
+                "size": [
+                    18 if str(row["asset_id"]) == selected_asset_id else 13
+                    for row in rows
+                ],
+                "color": [row["trend_score"] for row in rows],
+                "colorscale": TREND_COLOR_SCALE,
+                "cmin": trend_range[0],
+                "cmax": trend_range[1],
+                "showscale": show_colorbar,
+                "colorbar": {
+                    "title": {"text": "Trend Strength", "side": "top"},
+                    "tickmode": "array",
+                    "tickvals": [
+                        trend_range[0],
+                        (trend_range[0] + trend_range[1]) / 2,
+                        trend_range[1],
+                    ],
+                    "ticktext": ["Weak", "Neutral", "Strong"],
+                    "len": 0.32,
+                    "thickness": 12,
+                    "x": 0.98,
+                    "y": 0.96,
+                    "xanchor": "right",
+                    "yanchor": "top",
+                    "outlinewidth": 0,
+                },
+                "opacity": [_marker_opacity(row, highlighted_asset_ids, selected_asset_id) for row in rows],
+                "line": {
+                    "color": [
+                        _marker_line_color(row, highlighted_asset_ids, selected_asset_id)
+                        for row in rows
+                    ],
+                    "width": [
+                        _marker_line_width(row, highlighted_asset_ids, selected_asset_id)
+                        for row in rows
+                    ],
+                },
+            },
+            customdata=[
+                [
+                    row["asset_name"],
+                    row["asset_id"],
+                    asset_category_label(row["asset_class"]),
+                    row["date"],
+                    row["rs_score"],
+                    row["flow_score"],
+                    row["trend_score"],
+                    row["flow_state"],
+                    row["rs_state"],
+                ]
+                for row in rows
+            ],
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                "Symbol: %{customdata[1]}<br>"
+                "Asset Category: %{customdata[2]}<br>"
+                "Date: %{customdata[3]}<br>"
+                "Relative Strength: %{customdata[4]:.2f}<br>"
+                "Leverage Score: %{customdata[5]:.2f}<br>"
+                "Trend Score: %{customdata[6]:.2f}<br>"
+                "Funding Status: %{customdata[7]}<br>"
+                "Relative Strength Status: %{customdata[8]}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    _apply_axis_ranges(fig, axis_ranges)
+    _add_reference_lines(fig, axis_ranges)
+    fig.update_layout(
+        template="plotly_white",
+        height=height,
+        margin={"l": 54, "r": 20, "t": 12, "b": 48},
+        showlegend=False,
+        dragmode="pan",
+        xaxis_title="Relative Strength",
+        yaxis_title="Leverage Score",
+        hovermode="closest",
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb", zeroline=False, fixedrange=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", zeroline=False, fixedrange=False)
+    return fig
+
+
+def build_trajectory_figure(
+    rows: list[dict[str, Any]],
+    *,
+    axis_ranges: dict[str, list[float]] | None = None,
+    height: int = 280,
+):
+    import plotly.graph_objects as go
+
+    axis_ranges = axis_ranges or _score_axis_ranges(rows)
+    fig = go.Figure()
+    if rows:
         fig.add_trace(
             go.Scatter(
-                x=[row["rs_score"] for row in group_rows],
-                y=[row["trend_score"] for row in group_rows],
-                mode="markers+text",
-                name=f"{flow_state} / {asset_class}",
-                text=[row["_label"] for row in group_rows],
-                textposition="top center",
-                textfont={"size": 11, "color": "#22313f"},
+                x=[row["rs_score"] for row in rows],
+                y=[row["flow_score"] for row in rows],
+                mode="lines+markers",
+                line={"color": "#2563eb", "width": 2},
                 marker={
-                    "size": [row["_size"] for row in group_rows],
-                    "color": colors.get(flow_state, colors.get("Neutral", "#7a869a")),
-                    "symbol": symbols.get(asset_class, "circle"),
-                    "opacity": [row["_opacity"] for row in group_rows],
-                    "line": {
-                        "color": ["#111827" if row["_highlighted"] else "#ffffff" for row in group_rows],
-                        "width": [row["_line_width"] for row in group_rows],
-                    },
+                    "size": [8 if index not in {0, len(rows) - 1} else 12 for index, _ in enumerate(rows)],
+                    "color": [
+                        "#94a3b8" if index == 0 else "#16a34a" if index == len(rows) - 1 else "#2563eb"
+                        for index, _ in enumerate(rows)
+                    ],
+                    "line": {"color": "#ffffff", "width": 1},
                 },
                 customdata=[
-                    [
-                        row["asset_name"],
-                        row["asset_id"],
-                        row["asset_class"],
-                        row["date"],
-                        row["trend_score"],
-                        row["trend_state"],
-                        row["rs_score"],
-                        row["rs_state"],
-                        row["flow_score"],
-                        row["flow_state"],
-                        "Yes" if row["long_candidate"] else "No",
-                        "Yes" if row["short_candidate"] else "No",
-                    ]
-                    for row in group_rows
+                    [row["date"], row["rs_score"], row["flow_score"], row["trend_score"]]
+                    for row in rows
                 ],
                 hovertemplate=(
-                    "<b>%{customdata[0]}</b><br>"
-                    "Asset ID: %{customdata[1]}<br>"
-                    "Asset Class: %{customdata[2]}<br>"
-                    "Date: %{customdata[3]}<br><br>"
-                    "Trend Score: %{customdata[4]:.2f}<br>"
-                    "Trend State: %{customdata[5]}<br>"
-                    "RS Score: %{customdata[6]:.2f}<br>"
-                    "RS State: %{customdata[7]}<br>"
-                    "Flow Score: %{customdata[8]:.2f}<br>"
-                    "Flow State: %{customdata[9]}<br><br>"
-                    "Long Candidate: %{customdata[10]}<br>"
-                    "Short Candidate: %{customdata[11]}"
+                    "Date: %{customdata[0]}<br>"
+                    "Relative Strength: %{customdata[1]:.2f}<br>"
+                    "Leverage Score: %{customdata[2]:.2f}<br>"
+                    "Trend Score: %{customdata[3]:.2f}"
                     "<extra></extra>"
                 ),
             )
         )
 
-    quadrants = market_map_config.get("quadrants", {})
-    x_midline = float(quadrants.get("x_midline", 0))
-    y_midline = float(quadrants.get("y_midline", 0))
-    fig.add_vline(x=x_midline, line_width=1, line_dash="dash", line_color="#9aa5b1")
-    fig.add_hline(y=y_midline, line_width=1, line_dash="dash", line_color="#9aa5b1")
-    _focus_axes_on_assets(fig, rows)
-    _add_quadrant_labels(fig, rows)
+    _apply_axis_ranges(fig, axis_ranges)
     fig.update_layout(
-        title="Market Map",
-        xaxis_title="RS Score",
-        yaxis_title="Trend Score",
         template="plotly_white",
         height=height,
-        margin={"l": 34, "r": 12, "t": 44, "b": 36},
-        legend_title_text="Flow / Asset Class",
-        showlegend=show_legend,
-        dragmode="pan",
+        margin={"l": 40, "r": 10, "t": 8, "b": 38},
+        showlegend=False,
+        xaxis_title="Relative Strength",
+        yaxis_title="Leverage Score",
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
     )
-    fig.update_xaxes(fixedrange=False)
-    fig.update_yaxes(fixedrange=False)
+    fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", zeroline=False)
     return fig
 
 
-def _should_label(row: dict[str, Any], highlighted: bool, label_mode: str) -> bool:
-    if label_mode == "none":
-        return False
-    if label_mode == "matches_only":
-        return highlighted
-    return highlighted or bool(row["long_candidate"]) or bool(row["short_candidate"])
+def asset_category_label(value: str) -> str:
+    if value == "core":
+        return "Core"
+    if value == "instruments":
+        return "Instruments"
+    return str(value).strip().title()
 
 
-def _focus_axes_on_assets(fig, rows: list[dict[str, Any]]) -> None:
-    if not rows:
-        return
-    x_values = [float(row["rs_score"]) for row in rows]
-    y_values = [float(row["trend_score"]) for row in rows]
-    x_min, x_max = min(x_values), max(x_values)
-    y_min, y_max = min(y_values), max(y_values)
-    x_pad = max((x_max - x_min) * 0.08, 5)
-    y_pad = max((y_max - y_min) * 0.08, 5)
-    fig.update_xaxes(range=[x_min - x_pad, x_max + x_pad])
-    fig.update_yaxes(range=[y_min - y_pad, y_max + y_pad])
+def _score_axis_ranges(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
+    return {
+        "rs_score": _score_range([float(row["rs_score"]) for row in rows], default=[0, 100]),
+        "flow_score": _score_range([float(row["flow_score"]) for row in rows], default=[0, 100]),
+        "trend_score": _score_range([float(row["trend_score"]) for row in rows], default=[-100, 100]),
+    }
 
 
-def _add_quadrant_labels(fig, rows: list[dict[str, Any]]) -> None:
-    if not rows:
-        return
-    x_values = [float(row["rs_score"]) for row in rows]
-    y_values = [float(row["trend_score"]) for row in rows]
-    labels = [
-        (max(x_values), max(y_values), "Long watch"),
-        (min(x_values), max(y_values), "Repair watch"),
-        (min(x_values), min(y_values), "Short watch"),
-        (max(x_values), min(y_values), "Early strength"),
-    ]
-    for x, y, text in labels:
-        fig.add_annotation(x=x, y=y, text=text, showarrow=False, font={"size": 11, "color": "#667085"})
+def _score_range(values: list[float], *, default: list[float]) -> list[float]:
+    if not values:
+        return list(default)
+    low = min(values)
+    high = max(values)
+    if default == [-100, 100] and -100 <= low and high <= 100:
+        return [-100, 100]
+    if 0 <= low and high <= 100:
+        return [0, 100]
+    if low == high:
+        return [low - 1, high + 1]
+    padding = max((high - low) * 0.08, 1)
+    return [low - padding, high + padding]
+
+
+def _apply_axis_ranges(fig: Any, axis_ranges: dict[str, list[float]]) -> None:
+    fig.update_xaxes(range=axis_ranges.get("rs_score", [0, 100]))
+    fig.update_yaxes(range=axis_ranges.get("flow_score", [0, 100]))
+
+
+def _add_reference_lines(fig: Any, axis_ranges: dict[str, list[float]]) -> None:
+    x_range = axis_ranges.get("rs_score", [0, 100])
+    y_range = axis_ranges.get("flow_score", [0, 100])
+    x_mid = 50 if x_range == [0, 100] else (x_range[0] + x_range[1]) / 2
+    y_mid = 50 if y_range == [0, 100] else (y_range[0] + y_range[1]) / 2
+    fig.add_vline(x=x_mid, line_width=1, line_dash="dot", line_color="#cbd5e1")
+    fig.add_hline(y=y_mid, line_width=1, line_dash="dot", line_color="#cbd5e1")
+
+
+def _marker_opacity(row: dict[str, Any], highlighted_asset_ids: set[str], selected_asset_id: str | None) -> float:
+    asset_id = str(row["asset_id"])
+    if asset_id == selected_asset_id:
+        return 1.0
+    if highlighted_asset_ids:
+        return 1.0 if asset_id in highlighted_asset_ids else 0.28
+    return 0.9
+
+
+def _label_text(
+    row: dict[str, Any],
+    rows: list[dict[str, Any]],
+    highlighted_asset_ids: set[str],
+    selected_asset_id: str | None,
+) -> str:
+    asset_id = str(row["asset_id"])
+    if asset_id == selected_asset_id or asset_id in highlighted_asset_ids:
+        return asset_id
+    if len(rows) <= 80:
+        return asset_id
+    return ""
+
+
+def _marker_line_color(row: dict[str, Any], highlighted_asset_ids: set[str], selected_asset_id: str | None) -> str:
+    asset_id = str(row["asset_id"])
+    if asset_id == selected_asset_id:
+        return "#1d4ed8"
+    if asset_id in highlighted_asset_ids:
+        return "#0f172a"
+    return "#ffffff"
+
+
+def _marker_line_width(row: dict[str, Any], highlighted_asset_ids: set[str], selected_asset_id: str | None) -> float:
+    asset_id = str(row["asset_id"])
+    if asset_id == selected_asset_id:
+        return 4
+    if asset_id in highlighted_asset_ids:
+        return 3
+    return 0.8
