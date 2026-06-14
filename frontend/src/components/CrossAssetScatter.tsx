@@ -1,46 +1,64 @@
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts";
 import type { ECharts, EChartsOption } from "echarts";
 import type { SnapshotItem } from "../services/contracts";
-import { matchesSearch, trajectoryForSymbol } from "../utils/filtering";
+import { trajectoryForSymbol } from "../utils/filtering";
 
 type Props = {
   items: SnapshotItem[];
   frames: Record<string, SnapshotItem[]>;
   dates: string[];
   currentIndex: number;
-  searchText: string;
   selectedSymbol: string | null;
   scoreRanges: {
     rs_score: number[];
     funding_score: number[];
     trend_score: number[];
   };
+  attentionTags: Map<string, string>;
   onSelect: (symbol: string) => void;
   onClear: () => void;
 };
 
-export function CrossAssetScatter({
+export const CrossAssetScatter = memo(function CrossAssetScatter({
   items,
   frames,
   dates,
   currentIndex,
-  searchText,
   selectedSymbol,
   scoreRanges,
+  attentionTags,
   onSelect,
   onClear,
 }: Props) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
+  const yRange = scoreRanges.funding_score;
 
-  const option = useMemo<EChartsOption>(() => {
-    const selectedTrajectory =
-      selectedSymbol && dates.length ? trajectoryForSymbol(frames, dates, currentIndex, selectedSymbol) : [];
-    const hasSearch = Boolean(searchText.trim());
-    const itemBySymbol = new Map(items.map((item) => [item.symbol, item]));
+  const assetData = useMemo(() => {
+    return items.map((item) => ({
+      name: item.symbol,
+      value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
+      label: {
+        show: attentionTags.has(item.symbol),
+        color: "#ffc247",
+        fontSize: 12,
+        fontWeight: 700,
+      },
+      itemStyle: {
+        opacity: selectedSymbol && item.symbol !== selectedSymbol ? 0.24 : 1,
+        borderColor: "#f4f4ee",
+        borderWidth: 1.8,
+        shadowBlur: 12,
+        shadowColor: trendGlow(item.trend_score),
+      },
+    }));
+  }, [attentionTags, items, selectedSymbol, yRange]);
+
+  const itemBySymbol = useMemo(() => new Map(items.map((item) => [item.symbol, item])), [items]);
+
+  const baseOption = useMemo<EChartsOption>(() => {
     const xRange = scoreRanges.rs_score;
-    const yRange = scoreRanges.funding_score;
 
     return {
       backgroundColor: "#000000",
@@ -112,28 +130,10 @@ export function CrossAssetScatter({
       },
       series: [
         {
-          id: "trajectory",
-          type: "line",
-          data: selectedTrajectory.map(({ date, item }) => [item.rs_score, clamp(item.funding_score, yRange), date]),
-          symbol: "circle",
-          symbolSize: (value, params) => (params.dataIndex === selectedTrajectory.length - 1 ? 15 : 7),
-          lineStyle: { color: "#ffcc45", width: 2.4, opacity: 0.96 },
-          itemStyle: { color: "#ffcc45", borderColor: "#ffffff", borderWidth: 1.5, shadowBlur: 8, shadowColor: "#ffcc45" },
-          emphasis: { disabled: true },
-          tooltip: { show: false },
-          z: 2,
-        },
-        {
           id: "assets",
           type: "scatter",
           symbol: "circle",
-          symbolSize: (_value, params) => {
-            const name = String(params.name ?? "");
-            if (name === selectedSymbol) return 24;
-            const item = itemBySymbol.get(name);
-            if (item && hasSearch && matchesSearch(item, searchText)) return 20;
-            return 16;
-          },
+          symbolSize: 16,
           itemStyle: {
             color: (params) => {
               const value = Array.isArray(params.value) ? params.value : [];
@@ -146,8 +146,12 @@ export function CrossAssetScatter({
             shadowColor: "rgba(255, 176, 0, 0.48)",
           },
           label: {
-            show: true,
-            formatter: "{b}",
+            show: false,
+            formatter: (params) => {
+              const symbol = String(params.name ?? "");
+              const tag = attentionTags.get(symbol);
+              return tag ? `${symbol} ${tag}` : symbol;
+            },
             color: "#ffc247",
             position: "top",
             distance: 7,
@@ -158,28 +162,7 @@ export function CrossAssetScatter({
             textShadowBlur: 7,
             textShadowColor: "#000000",
           },
-          data: items.map((item) => {
-            const isSelected = item.symbol === selectedSymbol;
-            const isDimmedBySelection = Boolean(selectedSymbol && !isSelected);
-            const isDimmedBySearch = hasSearch && !matchesSearch(item, searchText);
-            return {
-              name: item.symbol,
-              value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
-              label: {
-                color: isSelected ? "#fff27a" : isDimmedBySelection ? "rgba(255, 194, 71, 0.18)" : "#ffc247",
-                fontSize: isSelected ? 14 : 12,
-                fontWeight: isSelected ? 800 : 700,
-              },
-              itemStyle: {
-                opacity:
-                  isDimmedBySearch ? 0.18 : isDimmedBySelection ? 0.16 : 1,
-                borderColor: isSelected ? "#fff27a" : isDimmedBySelection ? "rgba(244,244,238,0.24)" : "#f4f4ee",
-                borderWidth: isSelected ? 3 : 1.8,
-                shadowBlur: isSelected ? 16 : isDimmedBySelection ? 2 : 12,
-                shadowColor: isSelected ? "#ffcc45" : isDimmedBySelection ? "rgba(255,255,255,0.14)" : trendGlow(item.trend_score),
-              },
-            };
-          }),
+          data: assetData,
           encode: { x: 0, y: 1 },
           labelLayout: { hideOverlap: true },
           emphasis: {
@@ -197,14 +180,84 @@ export function CrossAssetScatter({
         },
       ],
     };
-  }, [currentIndex, dates, frames, items, scoreRanges, searchText, selectedSymbol]);
+  }, [assetData, attentionTags, itemBySymbol, scoreRanges.rs_score, yRange]);
+
+  const selectedTrajectory = useMemo(
+    () => (selectedSymbol && dates.length ? trajectoryForSymbol(frames, dates, currentIndex, selectedSymbol) : []),
+    [currentIndex, dates, frames, selectedSymbol],
+  );
+
+  const dynamicOption = useMemo<EChartsOption>(() => {
+    const selectedItem =
+      selectedTrajectory.length > 0
+        ? selectedTrajectory[selectedTrajectory.length - 1].item
+        : selectedSymbol
+          ? itemBySymbol.get(selectedSymbol)
+          : null;
+    return {
+      series: [
+        {
+          id: "trajectory",
+          type: "line",
+          data: selectedTrajectory.map(({ date, item }) => [item.rs_score, clamp(item.funding_score, yRange), date]),
+          symbol: "circle",
+          symbolSize: (_value, params) => (params.dataIndex === selectedTrajectory.length - 1 ? 15 : 7),
+          lineStyle: { color: "#ffcc45", width: 2.4, opacity: selectedTrajectory.length ? 0.96 : 0 },
+          itemStyle: { color: "#ffcc45", borderColor: "#ffffff", borderWidth: 1.5, shadowBlur: 8, shadowColor: "#ffcc45" },
+          emphasis: { disabled: true },
+          tooltip: { show: false },
+          z: 4,
+        },
+        {
+          id: "selectedAsset",
+          type: "scatter",
+          symbol: "circle",
+          symbolSize: 26,
+          data: selectedItem
+            ? [
+                {
+                  name: selectedItem.symbol,
+                  value: [selectedItem.rs_score, clamp(selectedItem.funding_score, yRange), selectedItem.trend_score],
+                  label: {
+                    show: true,
+                    color: "#fff27a",
+                    fontSize: 14,
+                    fontWeight: 800,
+                  },
+                },
+              ]
+            : [],
+          itemStyle: {
+            color: "#ffcc45",
+            borderColor: "#fff27a",
+            borderWidth: 3,
+            shadowBlur: 18,
+            shadowColor: "#ffcc45",
+          },
+          label: {
+            show: true,
+            formatter: "{b}",
+            position: "top",
+            distance: 8,
+            textBorderColor: "#000000",
+            textBorderWidth: 3,
+          },
+          tooltip: { show: false },
+          z: 5,
+        },
+      ],
+    };
+  }, [currentIndex, dates, frames, itemBySymbol, selectedSymbol, selectedTrajectory, yRange]);
 
   useEffect(() => {
     if (!elementRef.current) return;
     chartRef.current = echarts.init(elementRef.current, "dark");
     const resize = () => chartRef.current?.resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(elementRef.current);
     window.addEventListener("resize", resize);
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", resize);
       chartRef.current?.dispose();
       chartRef.current = null;
@@ -212,14 +265,18 @@ export function CrossAssetScatter({
   }, []);
 
   useEffect(() => {
-    chartRef.current?.setOption(option, { notMerge: false, lazyUpdate: true });
-  }, [option]);
+    chartRef.current?.setOption(baseOption, { notMerge: false, lazyUpdate: true });
+  }, [baseOption]);
+
+  useEffect(() => {
+    chartRef.current?.setOption(dynamicOption, { notMerge: false, lazyUpdate: true });
+  }, [dynamicOption]);
 
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
     const clickHandler = (params: echarts.ECElementEvent) => {
-      if (params.seriesId === "assets") {
+      if (params.seriesId === "assets" || params.seriesId === "selectedAsset") {
         const symbol = String(params.name ?? "");
         if (symbol) onSelect(symbol);
       }
@@ -236,7 +293,7 @@ export function CrossAssetScatter({
   }, [onClear, onSelect]);
 
   return <div ref={elementRef} className="scatter-chart" />;
-}
+});
 
 function trendColor(score: number) {
   if (score >= 40) return "#ffb000";

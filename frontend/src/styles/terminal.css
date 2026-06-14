@@ -369,13 +369,181 @@ button:disabled:hover {
   background: linear-gradient(#090909, #010101);
 }
 
+.workspace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.workspace-body.with-detail {
+  grid-template-columns: minmax(0, 1fr) 8px minmax(300px, var(--detail-panel-width, 360px));
+}
+
 .chart-frame {
   position: relative;
   width: 100%;
+  min-width: 0;
   height: calc(100vh - var(--playback-height) - 94px);
   min-height: 540px;
+  overflow: hidden;
   border: 1px solid #161616;
   background: var(--bg-panel);
+}
+
+.detail-panel {
+  position: relative;
+  z-index: 20;
+  min-width: 0;
+  height: calc(100vh - var(--playback-height) - 94px);
+  min-height: 540px;
+  overflow: auto;
+  border: 1px solid #242424;
+  background: #030303;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-resizer {
+  position: relative;
+  z-index: 25;
+  width: 8px;
+  min-width: 8px;
+  height: calc(100vh - var(--playback-height) - 94px);
+  min-height: 540px;
+  padding: 0;
+  cursor: col-resize;
+  border: 0;
+  background: transparent;
+}
+
+.panel-resizer::before {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  background: #242424;
+}
+
+.panel-resizer:hover::before,
+.is-resizing-panel .panel-resizer::before {
+  background: var(--terminal-amber);
+}
+
+.is-resizing-panel {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.detail-panel header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.detail-panel header div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.detail-panel header span {
+  color: var(--terminal-amber);
+  font-family: var(--font-numeric);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.detail-panel header strong {
+  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1.18;
+}
+
+.detail-panel header button {
+  width: 64px;
+  flex: 0 0 auto;
+  padding: 0 8px;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-row span {
+  border: 1px solid #315b4f;
+  background: #071512;
+  color: #65d6b2;
+  padding: 5px 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.detail-grid,
+.trend-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.trend-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric-cell {
+  min-height: 54px;
+  border: 1px solid #1d1d1d;
+  background: #070707;
+  padding: 8px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+}
+
+.metric-cell span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.metric-cell strong {
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.mini-chart {
+  border: 1px solid #1d1d1d;
+  background: #060606;
+  padding: 8px;
+}
+
+.mini-chart h2 {
+  margin: 0 0 6px;
+  color: var(--terminal-amber);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.mini-chart svg {
+  display: block;
+  width: 100%;
+  height: 160px;
+  overflow: visible;
+}
+
+.mini-chart line {
+  stroke: #2d2d2d;
+  stroke-width: 1;
+}
+
+.mini-chart circle {
+  fill: #5bd2b0;
 }
 
 .scatter-chart {
@@ -459,5 +627,18 @@ button:disabled:hover {
   .chart-frame {
     min-height: 430px;
     height: 58vh;
+  }
+
+  .workspace-body.with-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel-resizer {
+    display: none;
+  }
+
+  .detail-panel {
+    height: auto;
+    min-height: 0;
   }
 }

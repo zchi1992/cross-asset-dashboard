@@ -35,11 +35,35 @@ def load_config_response() -> ConfigResponse:
     )
 
 
-@lru_cache(maxsize=1)
 def load_rows() -> tuple[dict, ...]:
+    dashboard_config = load_dashboard_config(REPO_ROOT / "config.yaml")
+    signature = _data_signature(dashboard_config.storage_root, dashboard_config.market_map)
+    return _load_rows_cached(signature)
+
+
+@lru_cache(maxsize=4)
+def _load_rows_cached(_signature: tuple) -> tuple[dict, ...]:
     dashboard_config = load_dashboard_config(REPO_ROOT / "config.yaml")
     rows = load_market_map_rows(dashboard_config.storage_root, dashboard_config.market_map)
     return tuple(rows)
+
+
+def _data_signature(storage_root: str | Path, market_map_config: dict) -> tuple:
+    root = Path(storage_root)
+    dataset_types = market_map_config.get("dataset_types", ["core", "instruments"])
+    parts: list[tuple[str, int, int]] = []
+    for dataset_type in dataset_types:
+        source_dir = root / "processed" / "series" / str(dataset_type)
+        if not source_dir.exists():
+            parts.append((str(source_dir), -1, -1))
+            continue
+        for source_path in sorted(source_dir.glob("*.csv")):
+            try:
+                stat = source_path.stat()
+            except FileNotFoundError:
+                continue
+            parts.append((str(source_path), stat.st_mtime_ns, stat.st_size))
+    return tuple(parts)
 
 
 def get_dates() -> list[str]:
@@ -83,6 +107,9 @@ def _to_snapshot_item(row: dict) -> SnapshotItem:
         funding_score=float(row["flow_score"]),
         funding_state=str(row["flow_state"]),
         trend_state=str(row.get("trend_state") or ""),
+        monthly_trend=str(row.get("monthly_trend") or ""),
+        weekly_trend=str(row.get("weekly_trend") or ""),
+        daily_trend=str(row.get("daily_trend") or ""),
         long_candidate=bool(row.get("long_candidate")),
         short_candidate=bool(row.get("short_candidate")),
     )

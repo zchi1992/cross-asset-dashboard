@@ -25,12 +25,18 @@ export const usePlaybackStore = create<PlaybackState>()(
       isPlaying: false,
       speed: 1,
       setDates: (availableDates) =>
-        set((state) => ({
-          availableDates,
-          currentIndex: availableDates.length
-            ? Math.min(state.currentIndex || availableDates.length - 1, availableDates.length - 1)
-            : 0,
-        })),
+        set((state) => {
+          const previousLastIndex = state.availableDates.length - 1;
+          const wasLatest = previousLastIndex < 0 || state.currentIndex >= previousLastIndex;
+          return {
+            availableDates,
+            currentIndex: availableDates.length
+              ? wasLatest
+                ? availableDates.length - 1
+                : Math.min(state.currentIndex, availableDates.length - 1)
+              : 0,
+          };
+        }),
       setIndex: (currentIndex) =>
         set((state) => ({
           currentIndex: Math.max(0, Math.min(currentIndex, state.availableDates.length - 1)),

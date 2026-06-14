@@ -16,6 +16,9 @@ MARKET_MAP_COLUMNS = [
     "rs_score",
     "flow_score",
     "trend_state",
+    "monthly_trend",
+    "weekly_trend",
+    "daily_trend",
     "rs_state",
     "flow_state",
     "long_candidate",
@@ -37,6 +40,9 @@ def load_market_map_rows(
     required_metrics = {
         fields["trend_score"],
         fields["trend_state"],
+        "monthly_trend",
+        "weekly_trend",
+        "daily_trend",
         fields["rs_score"],
         fields["rs_state"],
         fields["flow_score"],
@@ -88,6 +94,9 @@ def load_market_map_rows(
                 "rs_score": _parse_float(metrics[fields["rs_score"]]),
                 "flow_score": _parse_float(metrics[fields["flow_score"]]),
                 "trend_state": metrics[fields["trend_state"]],
+                "monthly_trend": metrics["monthly_trend"],
+                "weekly_trend": metrics["weekly_trend"],
+                "daily_trend": metrics["daily_trend"],
                 "rs_state": metrics[fields["rs_state"]],
                 "flow_state": normalize_flow_state(metrics[fields["flow_state"]]),
             }
@@ -149,4 +158,3 @@ def _read_csv_rows(path: Path) -> list[dict[str, str]]:
 
 def _parse_float(value: str) -> float:
     return float(str(value).strip())
-

@@ -27,6 +27,9 @@ class MarketMapDashboardTests(unittest.TestCase):
                 [
                     ("2026-06-04", "AAA", "Asset A", "capped_final_trend_score", "75"),
                     ("2026-06-04", "AAA", "Asset A", "state_name", "主升浪"),
+                    ("2026-06-04", "AAA", "Asset A", "monthly_trend", "up"),
+                    ("2026-06-04", "AAA", "Asset A", "weekly_trend", "up"),
+                    ("2026-06-04", "AAA", "Asset A", "daily_trend", "up"),
                     ("2026-06-04", "AAA", "Asset A", "rs_score", "82"),
                     ("2026-06-04", "AAA", "Asset A", "current_relative_state", "Lead"),
                     ("2026-06-04", "AAA", "Asset A", "funding_signal_strength", "55"),
@@ -42,6 +45,9 @@ class MarketMapDashboardTests(unittest.TestCase):
         self.assertEqual(row["asset_id"], "AAA")
         self.assertEqual(row["asset_class"], "core")
         self.assertEqual(row["trend_score"], 75)
+        self.assertEqual(row["monthly_trend"], "up")
+        self.assertEqual(row["weekly_trend"], "up")
+        self.assertEqual(row["daily_trend"], "up")
         self.assertEqual(row["rs_score"], 82)
         self.assertEqual(row["flow_score"], 55)
         self.assertEqual(row["flow_state"], "Leveraging")
@@ -58,6 +64,9 @@ class MarketMapDashboardTests(unittest.TestCase):
                 [
                     ("2026-06-04", "BAD", "Bad Asset", "capped_final_trend_score", "not-a-number"),
                     ("2026-06-04", "BAD", "Bad Asset", "state_name", "静默"),
+                    ("2026-06-04", "BAD", "Bad Asset", "monthly_trend", "neutral"),
+                    ("2026-06-04", "BAD", "Bad Asset", "weekly_trend", "neutral"),
+                    ("2026-06-04", "BAD", "Bad Asset", "daily_trend", "neutral"),
                     ("2026-06-04", "BAD", "Bad Asset", "rs_score", "10"),
                     ("2026-06-04", "BAD", "Bad Asset", "current_relative_state", "Lag"),
                     ("2026-06-04", "BAD", "Bad Asset", "funding_signal_strength", "1"),
@@ -146,6 +155,35 @@ class MarketMapDashboardTests(unittest.TestCase):
         self.assertGreater(ranges["flow_score"][1], 20)
         self.assertEqual(ranges["trend_score"], [-100, 100])
 
+    def test_frequency_trend_states_match_processed_table_values(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            storage_root = Path(temp_dir)
+            _write_processed_asset(
+                storage_root,
+                "core",
+                "TTF1.csv",
+                [
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "capped_final_trend_score", "42.7"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "state_name", "上行中继震荡"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "monthly_trend", "up"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "weekly_trend", "neutral"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "daily_trend", "neutral"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "rs_score", "93.2"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "current_relative_state", "Lead"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "funding_signal_strength", "2"),
+                    ("2026-06-12", "TTF1!", "Dutch TTF Natural Gas Calendar Month Futures", "funding_signal_direction", "long_candidate"),
+                ],
+            )
+
+            rows = load_market_map_rows(storage_root, DEFAULT_MARKET_MAP_CONFIG)
+
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["asset_id"], "TTF1!")
+        self.assertEqual(row["daily_trend"], "neutral")
+        self.assertEqual(row["weekly_trend"], "neutral")
+        self.assertEqual(row["monthly_trend"], "up")
+
 
 def _write_processed_asset(
     storage_root: Path,
@@ -190,6 +228,9 @@ def _market_map_row(
         "rs_score": rs_score,
         "flow_score": flow_score,
         "trend_state": "主升浪",
+        "monthly_trend": "up",
+        "weekly_trend": "up",
+        "daily_trend": "up",
         "rs_state": "Lead",
         "flow_state": "Leveraging",
         "long_candidate": True,

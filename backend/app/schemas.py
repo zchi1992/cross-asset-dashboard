@@ -59,6 +59,9 @@ class SnapshotItem(BaseModel):
     funding_score: float
     funding_state: str
     trend_state: str | None = None
+    monthly_trend: str | None = None
+    weekly_trend: str | None = None
+    daily_trend: str | None = None
     long_candidate: bool = False
     short_candidate: bool = False
 
@@ -71,4 +74,3 @@ class SnapshotResponse(BaseModel):
 class PlaybackResponse(BaseModel):
     dates: list[str]
     frames: dict[str, list[SnapshotItem]]
-
