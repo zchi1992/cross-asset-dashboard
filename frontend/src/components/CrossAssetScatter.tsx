@@ -4,6 +4,10 @@ import type { ECharts, EChartsOption } from "echarts";
 import type { SnapshotItem } from "../services/contracts";
 import { trajectoryForSymbol } from "../utils/filtering";
 
+const DENSE_ASSET_THRESHOLD = 250;
+const DENSE_SYMBOL_SIZE = 10;
+const NORMAL_SYMBOL_SIZE = 16;
+
 type Props = {
   items: SnapshotItem[];
   frames: Record<string, SnapshotItem[]>;
@@ -34,13 +38,14 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   const elementRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
   const yRange = scoreRanges.funding_score;
+  const isDense = items.length >= DENSE_ASSET_THRESHOLD;
 
   const assetData = useMemo(() => {
     return items.map((item) => ({
       name: item.symbol,
       value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
       label: {
-        show: attentionTags.has(item.symbol),
+        show: item.symbol !== selectedSymbol && attentionTags.has(item.symbol),
         color: "#ffc247",
         fontSize: 12,
         fontWeight: 700,
@@ -48,12 +53,12 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       itemStyle: {
         opacity: selectedSymbol && item.symbol !== selectedSymbol ? 0.24 : 1,
         borderColor: "#f4f4ee",
-        borderWidth: 1.8,
-        shadowBlur: 12,
+        borderWidth: isDense ? 1 : 1.8,
+        shadowBlur: isDense ? 0 : 12,
         shadowColor: trendGlow(item.trend_score),
       },
     }));
-  }, [attentionTags, items, selectedSymbol, yRange]);
+  }, [attentionTags, isDense, items, selectedSymbol, yRange]);
 
   const itemBySymbol = useMemo(() => new Map(items.map((item) => [item.symbol, item])), [items]);
 
@@ -62,7 +67,8 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
 
     return {
       backgroundColor: "#000000",
-      animationDurationUpdate: 140,
+      animation: !isDense,
+      animationDurationUpdate: isDense ? 0 : 140,
       grid: { left: 66, right: 122, top: 34, bottom: 58 },
       toolbox: {
         right: 18,
@@ -79,11 +85,26 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       },
       dataZoom: [
-        { type: "inside", xAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true },
-        { type: "inside", yAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true },
+        {
+          type: "inside",
+          xAxisIndex: 0,
+          filterMode: "filter",
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          throttle: isDense ? 80 : 30,
+        },
+        {
+          type: "inside",
+          yAxisIndex: 0,
+          filterMode: "filter",
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          throttle: isDense ? 80 : 30,
+        },
       ],
       tooltip: {
         trigger: "item",
+        triggerOn: isDense ? "click" : "mousemove|click",
         backgroundColor: "#050505",
         borderColor: "#b37a22",
         padding: [8, 10],
@@ -133,7 +154,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           id: "assets",
           type: "scatter",
           symbol: "circle",
-          symbolSize: 16,
+          symbolSize: isDense ? DENSE_SYMBOL_SIZE : NORMAL_SYMBOL_SIZE,
+          progressive: isDense ? 600 : 0,
+          progressiveThreshold: DENSE_ASSET_THRESHOLD,
+          progressiveChunkMode: "mod",
           itemStyle: {
             color: (params) => {
               const value = Array.isArray(params.value) ? params.value : [];
@@ -141,8 +165,8 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             },
             opacity: 1,
             borderColor: "#f4f4ee",
-            borderWidth: 1.8,
-            shadowBlur: 12,
+            borderWidth: isDense ? 1 : 1.8,
+            shadowBlur: isDense ? 0 : 12,
             shadowColor: "rgba(255, 176, 0, 0.48)",
           },
           label: {
@@ -167,7 +191,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           labelLayout: { hideOverlap: true },
           emphasis: {
             focus: "self",
-            scale: true,
+            scale: !isDense,
             label: {
               show: true,
               color: "#ffffff",
@@ -180,7 +204,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [assetData, attentionTags, itemBySymbol, scoreRanges.rs_score, yRange]);
+  }, [assetData, attentionTags, isDense, itemBySymbol, scoreRanges.rs_score, yRange]);
 
   const selectedTrajectory = useMemo(
     () => (selectedSymbol && dates.length ? trajectoryForSymbol(frames, dates, currentIndex, selectedSymbol) : []),
@@ -251,7 +275,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
 
   useEffect(() => {
     if (!elementRef.current) return;
-    chartRef.current = echarts.init(elementRef.current, "dark");
+    chartRef.current = echarts.init(elementRef.current, "dark", {
+      renderer: "canvas",
+      useDirtyRect: true,
+    });
     const resize = () => chartRef.current?.resize();
     const observer = new ResizeObserver(resize);
     observer.observe(elementRef.current);
