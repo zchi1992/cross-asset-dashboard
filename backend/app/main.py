@@ -23,6 +23,15 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def disable_local_cache(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse()

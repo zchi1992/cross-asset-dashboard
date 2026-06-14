@@ -38,6 +38,9 @@ export type SnapshotItem = {
   funding_score: number;
   funding_state: FundingState;
   trend_state?: string | null;
+  monthly_trend?: string | null;
+  weekly_trend?: string | null;
+  daily_trend?: string | null;
   long_candidate: boolean;
   short_candidate: boolean;
 };
