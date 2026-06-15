@@ -298,11 +298,11 @@ rs_score =
 
 实现位置：`src/zsxq_pipeline/signals/funding_lead_score.py`
 
-资金模块输出的是“资金方向 + 资金信号强度”，不是单纯的“杠杆资金水平”。这一点很重要：
+资金模块 V1 输出的是“资金方向 + 资金信号强度”，不是单纯的“杠杆资金水平”。这一版不再使用比价状态回报，也不再用比价回报变化参与资金分计算；资金分只来自杠杆资金自身：
 
-- `funding_leverage_value` 表示杠杆资金数值或水平。
-- `funding_signal_strength` 表示当前方向上的资金信号强度。
-- `funding_signal_direction` 表示这份强度属于加杠杆方向还是去杠杆方向。
+- `Position`：当前 `杠杆资金数值` 在同一日期全资产池中的横截面位置。
+- `Velocity`：`杠杆资金数值` 的 1D、5D、10D 变化速度。
+- `Maturity`：当前 `加杠杆` 或 `去杠杆` 状态已经持续的时间。
 
 因此，一个资产即使处于 `去杠杆`，`funding_signal_strength` 也可以很高；这表示“去杠杆/偏空资金信号很强”，不是“杠杆水平很高”。
 
@@ -310,27 +310,23 @@ rs_score =
 
 | 派生指标 | 含义 |
 |---|---|
-| `funding_current_leverage_state` | 当前杠杆资金状态，原始取值通常为 `加杠杆` 或 `去杠杆` |
+| `funding_current_leverage_state` | 当前杠杆资金状态，必须为 `加杠杆` 或 `去杠杆` |
 | `funding_current_leverage_state_duration` | 当前杠杆资金状态持续时间 |
-| `funding_current_leverage_state_return` | 当前杠杆资金状态期间的涨幅/回报 |
-| `funding_previous_leverage_state` | 此前杠杆资金状态 |
-| `funding_previous_leverage_state_return` | 此前杠杆资金状态期间的涨幅/回报 |
-| `funding_current_relative_state` | 当前资金模块使用的比价状态 |
-| `funding_current_relative_state_duration` | 当前资金模块比价状态持续时间 |
-| `funding_current_relative_state_return` | 当前资金模块比价状态期间涨幅/回报 |
-| `funding_previous_relative_state` | 此前资金模块比价状态 |
-| `funding_previous_relative_state_duration` | 此前资金模块比价状态持续时间 |
-| `funding_previous_relative_state_return` | 此前资金模块比价状态期间涨幅/回报 |
-| `funding_leverage_value` | 杠杆资金数值，即资金水平本身 |
-| `funding_leverage_value_change` | 杠杆资金日变化，来自 `leverage_value_change_d1` |
-| `funding_relative_return_change` | 当前比价状态回报相对上一日期的变化 |
-| `funding_leverage_change_z` | 同一日期、同一数据集内，杠杆资金日变化的 z-score |
-| `funding_return_change_z` | 同一日期、同一数据集内，比价回报变化的 z-score |
-| `long_funding_lead_score` | 偏多资金领先分，公式为 `funding_leverage_change_z - funding_return_change_z` |
-| `short_funding_lead_score` | 偏空资金领先分，公式为 `-funding_leverage_change_z + funding_return_change_z` |
+| `funding_leverage_value` | 原始杠杆资金数值 |
+| `position_score` | 同一日期全资产横截面 percentile rank，范围 `0~100` |
+| `velocity_1d` / `velocity_5d` / `velocity_10d` | 当前杠杆资金数值相对 1/5/10 个历史观测日前的变化 |
+| `long_velocity_*_score` | 对 velocity 做横截面 percentile rank；velocity 越高，long 分越高 |
+| `short_velocity_*_score` | 对 `-velocity` 做横截面 percentile rank；velocity 越负，short 分越高 |
+| `long_velocity_score` | 1D/5D/10D long velocity 综合分，权重 `0.2/0.5/0.3`，缺失窗口会重归一 |
+| `short_velocity_score` | 1D/5D/10D short velocity 综合分，权重同上 |
+| `velocity_window_count` | 当前资金分实际使用的 velocity 窗口数量 |
+| `maturity_score` | 状态持续时间得分；`5~10` 天为 `100`，过短或过长都会降低 |
+| `long_funding_score` | 当前为 `加杠杆` 时的做多资金分，否则为空 |
+| `short_funding_score` | 当前为 `去杠杆` 时的做空资金分，否则为空 |
+| `funding_direction` | 新资金方向；`加杠杆 -> long`，`去杠杆 -> short` |
+| `funding_score` | 当前方向上的资金机会强度，范围 `0~100` |
 | `funding_signal_direction` | 资金信号方向；`加杠杆 -> long_candidate`，`去杠杆 -> short_candidate` |
-| `funding_signal_strength` | 当前方向上的资金信号强度；若方向为 `long_candidate` 取 `long_funding_lead_score`，否则取 `short_funding_lead_score` |
-| `funding_duration_priority` | 持续时间优先级；当前杠杆状态持续 `5` 到 `15` 天时为 `1`，否则为 `0` |
+| `funding_signal_strength` | 兼容旧 dashboard 的强度字段，等于 `funding_score` |
 | `funding_signal_rank` | 同一日期、同一数据集、同一方向内的排名 |
 | `funding_signal_rank_pct` | 排名百分位，`rank / 同方向资产数` |
 | `funding_signal_bucket` | 分层标签，取值 `strong/watch/neutral/weak` |
@@ -342,29 +338,31 @@ rs_score =
 | `加杠杆` | `long_candidate` | 偏多资金信号 |
 | `去杠杆` | `short_candidate` | 偏空资金信号 |
 
-资金强度公式：
+资金分公式：
 
 ```text
-long_funding_lead_score = funding_leverage_change_z - funding_return_change_z
-short_funding_lead_score = -funding_leverage_change_z + funding_return_change_z
+long_funding_score =
+  0.4 * long_velocity_score
+  + 0.4 * maturity_score
+  + 0.2 * (100 - position_score)
 
-if funding_signal_direction == "long_candidate":
-    funding_signal_strength = long_funding_lead_score
-else:
-    funding_signal_strength = short_funding_lead_score
+short_funding_score =
+  0.4 * short_velocity_score
+  + 0.4 * maturity_score
+  + 0.2 * position_score
+
+funding_signal_strength = funding_score =
+  long_funding_score  if funding_direction == "long"
+  short_funding_score if funding_direction == "short"
 ```
 
 资金排名逻辑：
 
-1. 同一 `dataset_type`、同一日期内计算 z-score。
-2. 按 `funding_signal_direction` 分组，分别排名。
-3. 排名优先级依次为：
-   - `funding_duration_priority` 高者优先
-   - `funding_signal_strength` 高者优先
-   - `funding_current_leverage_state_duration` 高者优先
-   - `asset_code` 字典序
+1. 同一 `dataset_type`、同一日期内计算横截面 percentile rank。
+2. 按 `funding_direction` 分组，分别排名。
+3. 排名优先级依次为 `funding_score` 高者优先、`velocity_window_count` 多者优先、`asset_code` 字典序。
 4. `funding_signal_bucket`：
-   - `signal_strength <= 0` 或 `rank_pct > 0.70`：`weak`
+   - `funding_score <= 0` 或 `rank_pct > 0.70`：`weak`
    - `rank_pct <= 0.10`：`strong`
    - `rank_pct <= 0.30`：`watch`
    - 其他：`neutral`

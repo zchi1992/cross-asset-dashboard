@@ -7,7 +7,7 @@ import { CrossAssetScatter } from "./components/CrossAssetScatter";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
-import { filterItems, matchesSearch } from "./utils/filtering";
+import { assetKey, filterItems, matchesSearch } from "./utils/filtering";
 
 export function App() {
   const refreshPolicy = {
@@ -100,7 +100,7 @@ export function App() {
       }
       if (event.key === "Enter" && searchText.trim()) {
         const match = currentItems.find((item) => matchesSearch(item, searchText));
-        if (match) selectSymbol(match.symbol);
+        if (match) selectSymbol(assetKey(match));
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -110,7 +110,7 @@ export function App() {
   const currentDate = availableDates[currentIndex] ?? "";
   const frames = playbackQuery.data?.frames ?? {};
   const currentItems = frames[currentDate] ?? [];
-  const currentItemBySymbol = useMemo(() => new Map(currentItems.map((item) => [item.symbol, item])), [currentItems]);
+  const currentItemBySymbol = useMemo(() => new Map(currentItems.map((item) => [assetKey(item), item])), [currentItems]);
   const historyBySymbol = useMemo(
     () => buildHistoryBySymbol(frames, availableDates),
     [availableDates, frames],
@@ -376,12 +376,13 @@ function buildHistoryBySymbol(frames: Record<string, SnapshotItem[]>, dates: str
   const historyBySymbol = new Map<string, IndexedHistoryPoint[]>();
   dates.forEach((date, index) => {
     for (const item of frames[date] ?? []) {
-      const history = historyBySymbol.get(item.symbol);
+      const key = assetKey(item);
+      const history = historyBySymbol.get(key);
       const entry = { date, index, item };
       if (history) {
         history.push(entry);
       } else {
-        historyBySymbol.set(item.symbol, [entry]);
+        historyBySymbol.set(key, [entry]);
       }
     }
   });
@@ -396,16 +397,16 @@ function buildAttentionTags(
 ) {
   const previousDate = dates[currentIndex - 1];
   const previousItems = previousDate ? frames[previousDate] ?? [] : [];
-  const previousBySymbol = new Map(previousItems.map((item) => [item.symbol, item]));
+  const previousBySymbol = new Map(previousItems.map((item) => [assetKey(item), item]));
   const tags = new Map<string, string>();
 
   const strongest = [...currentItems]
     .sort((a, b) => compositeLongScore(b) - compositeLongScore(a))
     .slice(0, 5);
-  strongest.forEach((item) => tags.set(item.symbol, "三强"));
+  strongest.forEach((item) => tags.set(assetKey(item), "三强"));
 
   const improving = currentItems
-    .map((item) => ({ item, previous: previousBySymbol.get(item.symbol) }))
+    .map((item) => ({ item, previous: previousBySymbol.get(assetKey(item)) }))
     .filter(({ item, previous }) => {
       return (
         previous?.funding_state === "Deleveraging" &&
@@ -416,10 +417,13 @@ function buildAttentionTags(
     })
     .sort((a, b) => transitionScore(b.item, b.previous) - transitionScore(a.item, a.previous))
     .slice(0, 5);
-  improving.forEach(({ item }) => tags.set(item.symbol, tags.has(item.symbol) ? `${tags.get(item.symbol)} 转强` : "转强"));
+  improving.forEach(({ item }) => {
+    const key = assetKey(item);
+    tags.set(key, tags.has(key) ? `${tags.get(key)} 转强` : "转强");
+  });
 
   const deteriorating = currentItems
-    .map((item) => ({ item, previous: previousBySymbol.get(item.symbol) }))
+    .map((item) => ({ item, previous: previousBySymbol.get(assetKey(item)) }))
     .filter(({ item, previous }) => {
       return (
         previous?.funding_state === "Leveraging" &&
@@ -430,7 +434,10 @@ function buildAttentionTags(
     })
     .sort((a, b) => transitionScore(b.previous, b.item) - transitionScore(a.previous, a.item))
     .slice(0, 5);
-  deteriorating.forEach(({ item }) => tags.set(item.symbol, tags.has(item.symbol) ? `${tags.get(item.symbol)} 转弱` : "转弱"));
+  deteriorating.forEach(({ item }) => {
+    const key = assetKey(item);
+    tags.set(key, tags.has(key) ? `${tags.get(key)} 转弱` : "转弱");
+  });
 
   return tags;
 }

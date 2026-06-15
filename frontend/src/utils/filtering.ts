@@ -6,6 +6,10 @@ export function matchesSearch(item: SnapshotItem, query: string) {
   return `${item.symbol} ${item.asset_name}`.toLowerCase().includes(normalized);
 }
 
+export function assetKey(item: SnapshotItem) {
+  return `${item.asset_class}::${item.symbol}`;
+}
+
 export function filterItems(
   items: SnapshotItem[],
   assetClass: string,
@@ -24,9 +28,9 @@ export function filterItems(
   });
 }
 
-export function trajectoryForSymbol(frames: Record<string, SnapshotItem[]>, dates: string[], currentIndex: number, symbol: string) {
+export function trajectoryForAssetKey(frames: Record<string, SnapshotItem[]>, dates: string[], currentIndex: number, selectedAssetKey: string) {
   return dates
     .slice(Math.max(0, currentIndex - 29), currentIndex + 1)
-    .map((date) => ({ date, item: frames[date]?.find((entry) => entry.symbol === symbol) }))
+    .map((date) => ({ date, item: frames[date]?.find((entry) => assetKey(entry) === selectedAssetKey) }))
     .filter((entry): entry is { date: string; item: SnapshotItem } => Boolean(entry.item));
 }

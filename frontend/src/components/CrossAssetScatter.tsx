@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts";
 import type { ECharts, EChartsOption } from "echarts";
 import type { SnapshotItem } from "../services/contracts";
-import { trajectoryForSymbol } from "../utils/filtering";
+import { assetKey, trajectoryForAssetKey } from "../utils/filtering";
 
 const DENSE_ASSET_THRESHOLD = 250;
 const DENSE_SYMBOL_SIZE = 10;
@@ -42,16 +42,16 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
 
   const assetData = useMemo(() => {
     return items.map((item) => ({
-      name: item.symbol,
+      name: assetKey(item),
       value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
       label: {
-        show: item.symbol !== selectedSymbol && attentionTags.has(item.symbol),
+        show: assetKey(item) !== selectedSymbol && attentionTags.has(assetKey(item)),
         color: "#ffc247",
         fontSize: 12,
         fontWeight: 700,
       },
       itemStyle: {
-        opacity: selectedSymbol && item.symbol !== selectedSymbol ? 0.24 : 1,
+        opacity: selectedSymbol && assetKey(item) !== selectedSymbol ? 0.24 : 1,
         borderColor: "#f4f4ee",
         borderWidth: isDense ? 1 : 1.8,
         shadowBlur: isDense ? 0 : 12,
@@ -60,7 +60,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     }));
   }, [attentionTags, isDense, items, selectedSymbol, yRange]);
 
-  const itemBySymbol = useMemo(() => new Map(items.map((item) => [item.symbol, item])), [items]);
+  const itemBySymbol = useMemo(() => new Map(items.map((item) => [assetKey(item), item])), [items]);
 
   const baseOption = useMemo<EChartsOption>(() => {
     const xRange = scoreRanges.rs_score;
@@ -111,8 +111,8 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         textStyle: { color: "#f1f3f0", fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" },
         formatter: (params) => {
           const point = Array.isArray(params) ? params[0] : params;
-          const symbol = String(point.name ?? "");
-          const item = itemBySymbol.get(symbol);
+          const key = String(point.name ?? "");
+          const item = itemBySymbol.get(key);
           if (!item) return "";
           return [
             `<b>${item.symbol}</b> ${item.asset_name}`,
@@ -173,8 +173,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             show: false,
             formatter: (params) => {
               const symbol = String(params.name ?? "");
+              const item = itemBySymbol.get(symbol);
+              const label = item?.symbol ?? symbol;
               const tag = attentionTags.get(symbol);
-              return tag ? `${symbol} ${tag}` : symbol;
+              return tag ? `${label} ${tag}` : label;
             },
             color: "#ffc247",
             position: "top",
@@ -207,7 +209,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   }, [assetData, attentionTags, isDense, itemBySymbol, scoreRanges.rs_score, yRange]);
 
   const selectedTrajectory = useMemo(
-    () => (selectedSymbol && dates.length ? trajectoryForSymbol(frames, dates, currentIndex, selectedSymbol) : []),
+    () => (selectedSymbol && dates.length ? trajectoryForAssetKey(frames, dates, currentIndex, selectedSymbol) : []),
     [currentIndex, dates, frames, selectedSymbol],
   );
 
@@ -240,7 +242,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           data: selectedItem
             ? [
                 {
-                  name: selectedItem.symbol,
+                  name: assetKey(selectedItem),
                   value: [selectedItem.rs_score, clamp(selectedItem.funding_score, yRange), selectedItem.trend_score],
                   label: {
                     show: true,
@@ -260,7 +262,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           },
           label: {
             show: true,
-            formatter: "{b}",
+            formatter: (params) => itemBySymbol.get(String(params.name ?? ""))?.symbol ?? String(params.name ?? ""),
             position: "top",
             distance: 8,
             textBorderColor: "#000000",
@@ -277,7 +279,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     if (!elementRef.current) return;
     chartRef.current = echarts.init(elementRef.current, "dark", {
       renderer: "canvas",
-      useDirtyRect: true,
+      useDirtyRect: false,
     });
     const resize = () => chartRef.current?.resize();
     const observer = new ResizeObserver(resize);
