@@ -169,7 +169,7 @@ class RelativeStrengthScoreTests(unittest.TestCase):
 
 
 class FundingLeadScoreTests(unittest.TestCase):
-    def test_long_and_short_scores_identify_funding_lead_candidates(self) -> None:
+    def test_long_and_short_scores_use_directional_velocity(self) -> None:
         rows = (
             _funding_rows("LONG_A", "Long A", [("2026-06-03", "加杠杆", 5, 100, 0, 0), ("2026-06-04", "加杠杆", 6, 110, 10, 0)])
             + _funding_rows("LONG_B", "Long B", [("2026-06-03", "加杠杆", 5, 100, 0, 0), ("2026-06-04", "加杠杆", 7, 105, 5, 5)])
@@ -180,17 +180,24 @@ class FundingLeadScoreTests(unittest.TestCase):
         output = _rows_by_asset_date_and_metric(calculate_funding_lead_score_rows(rows))
 
         self.assertGreater(
-            float(output[("LONG_A", "2026-06-04", "long_funding_lead_score")]),
-            float(output[("LONG_B", "2026-06-04", "long_funding_lead_score")]),
+            float(output[("LONG_A", "2026-06-04", "long_funding_score")]),
+            float(output[("LONG_B", "2026-06-04", "long_funding_score")]),
         )
         self.assertGreater(
-            float(output[("SHORT_A", "2026-06-04", "short_funding_lead_score")]),
-            float(output[("SHORT_B", "2026-06-04", "short_funding_lead_score")]),
+            float(output[("SHORT_A", "2026-06-04", "short_funding_score")]),
+            float(output[("SHORT_B", "2026-06-04", "short_funding_score")]),
         )
+        self.assertEqual(output[("LONG_A", "2026-06-04", "funding_direction")], "long")
+        self.assertEqual(output[("SHORT_A", "2026-06-04", "funding_direction")], "short")
         self.assertEqual(output[("LONG_A", "2026-06-04", "funding_signal_direction")], "long_candidate")
         self.assertEqual(output[("SHORT_A", "2026-06-04", "funding_signal_direction")], "short_candidate")
+        self.assertEqual(output[("LONG_A", "2026-06-04", "velocity_window_count")], "1")
+        self.assertEqual(
+            output[("LONG_A", "2026-06-04", "funding_signal_strength")],
+            output[("LONG_A", "2026-06-04", "funding_score")],
+        )
 
-    def test_duration_priority_ranks_in_range_assets_before_higher_scores(self) -> None:
+    def test_maturity_score_prefers_confirmed_middle_duration(self) -> None:
         rows = (
             _funding_rows("IN_RANGE", "In Range", [("2026-06-03", "加杠杆", 5, 100, 0, 0), ("2026-06-04", "加杠杆", 6, 101, 1, 0)])
             + _funding_rows("OUT_RANGE", "Out Range", [("2026-06-03", "加杠杆", 5, 100, 0, 0), ("2026-06-04", "加杠杆", 20, 110, 10, -5)])
@@ -198,8 +205,8 @@ class FundingLeadScoreTests(unittest.TestCase):
 
         output = _rows_by_asset_date_and_metric(calculate_funding_lead_score_rows(rows))
 
-        self.assertEqual(output[("IN_RANGE", "2026-06-04", "funding_duration_priority")], "1")
-        self.assertEqual(output[("OUT_RANGE", "2026-06-04", "funding_duration_priority")], "0")
+        self.assertEqual(output[("IN_RANGE", "2026-06-04", "maturity_score")], "100")
+        self.assertEqual(output[("OUT_RANGE", "2026-06-04", "maturity_score")], "50")
         self.assertEqual(output[("IN_RANGE", "2026-06-04", "funding_signal_rank")], "1")
         self.assertEqual(output[("OUT_RANGE", "2026-06-04", "funding_signal_rank")], "2")
 
@@ -220,7 +227,7 @@ class FundingLeadScoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "leverage_value_change_d1 mismatch"):
             calculate_funding_lead_score_rows(rows)
 
-    def test_zero_cross_section_stddev_outputs_zero_zscores(self) -> None:
+    def test_equal_cross_section_values_get_middle_percentile_scores(self) -> None:
         rows = (
             _funding_rows("A", "A", [("2026-06-03", "加杠杆", 5, 100, 0, 1), ("2026-06-04", "加杠杆", 6, 101, 1, 2)])
             + _funding_rows("B", "B", [("2026-06-03", "去杠杆", 5, 100, 0, 1), ("2026-06-04", "去杠杆", 6, 101, 1, 2)])
@@ -228,10 +235,10 @@ class FundingLeadScoreTests(unittest.TestCase):
 
         output = _rows_by_asset_date_and_metric(calculate_funding_lead_score_rows(rows))
 
-        self.assertEqual(output[("A", "2026-06-04", "funding_leverage_change_z")], "0")
-        self.assertEqual(output[("A", "2026-06-04", "funding_return_change_z")], "0")
-        self.assertEqual(output[("B", "2026-06-04", "funding_leverage_change_z")], "0")
-        self.assertEqual(output[("B", "2026-06-04", "funding_return_change_z")], "0")
+        self.assertEqual(output[("A", "2026-06-04", "position_score")], "50")
+        self.assertEqual(output[("A", "2026-06-04", "long_velocity_1d_score")], "50")
+        self.assertEqual(output[("B", "2026-06-04", "position_score")], "50")
+        self.assertEqual(output[("B", "2026-06-04", "short_velocity_1d_score")], "50")
 
 
 class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
@@ -274,8 +281,10 @@ class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
         self.assertIn("base_transition_score", metric_names)
         self.assertIn("funding_signal_strength", metric_names)
         self.assertIn("funding_signal_rank", metric_names)
-        self.assertIn("funding_duration_priority", metric_names)
-        self.assertIn("funding_previous_relative_state_duration", metric_names)
+        self.assertIn("funding_score", metric_names)
+        self.assertIn("funding_direction", metric_names)
+        self.assertIn("position_score", metric_names)
+        self.assertIn("maturity_score", metric_names)
 
 
 def _trend_rows(records: list[tuple[str, str, str, str, int, int, int]]) -> list[dict[str, str]]:

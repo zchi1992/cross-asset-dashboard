@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SnapshotItem } from "../services/contracts";
-import { filterItems, matchesSearch, trajectoryForSymbol } from "./filtering";
+import { assetKey, filterItems, matchesSearch, trajectoryForAssetKey } from "./filtering";
 
 const item: SnapshotItem = {
   symbol: "GLD",
@@ -36,10 +36,23 @@ describe("filtering utilities", () => {
     const dates = Array.from({ length: 35 }, (_, index) => `2026-05-${String(index + 1).padStart(2, "0")}`);
     const frames = Object.fromEntries(dates.map((date) => [date, [{ ...item, rs_score: dates.indexOf(date), funding_score: 1 }]]));
 
-    const trajectory = trajectoryForSymbol(frames, dates, 34, "GLD");
+    const trajectory = trajectoryForAssetKey(frames, dates, 34, assetKey(item));
 
     expect(trajectory).toHaveLength(30);
     expect(trajectory[0].date).toBe("2026-05-06");
     expect(trajectory[29].date).toBe("2026-05-35");
+  });
+
+  it("keeps trajectories separate for duplicate symbols in different asset classes", () => {
+    const instrumentItem = { ...item, asset_class: "instruments", asset_name: "Gold Futures", rs_score: 99 };
+    const frames = {
+      "2026-05-01": [item, instrumentItem],
+    };
+
+    const trajectory = trajectoryForAssetKey(frames, ["2026-05-01"], 0, assetKey(instrumentItem));
+
+    expect(trajectory).toHaveLength(1);
+    expect(trajectory[0].item.asset_class).toBe("instruments");
+    expect(trajectory[0].item.asset_name).toBe("Gold Futures");
   });
 });
