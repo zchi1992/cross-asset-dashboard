@@ -83,17 +83,32 @@ def get_assets() -> list[AssetMetadata]:
 
 
 def get_snapshot(date: str) -> list[SnapshotItem]:
-    return [_to_snapshot_item(row) for row in load_rows() if row["date"] == date]
+    return list(_load_frames()[1].get(date, []))
 
 
 def get_playback(start: str | None, end: str | None) -> tuple[list[str], dict[str, list[SnapshotItem]]]:
-    dates = get_dates()
+    dates, all_frames = _load_frames()
     if start is not None:
         dates = [date for date in dates if date >= start]
     if end is not None:
         dates = [date for date in dates if date <= end]
-    frames = {date: get_snapshot(date) for date in dates}
+    frames = {date: all_frames.get(date, []) for date in dates}
     return dates, frames
+
+
+def _load_frames() -> tuple[list[str], dict[str, list[SnapshotItem]]]:
+    dashboard_config = load_dashboard_config(REPO_ROOT / "config.yaml")
+    signature = _data_signature(dashboard_config.storage_root, dashboard_config.market_map)
+    return _load_frames_cached(signature)
+
+
+@lru_cache(maxsize=4)
+def _load_frames_cached(_signature: tuple) -> tuple[list[str], dict[str, list[SnapshotItem]]]:
+    frames: dict[str, list[SnapshotItem]] = {}
+    for row in load_rows():
+        date = str(row["date"])
+        frames.setdefault(date, []).append(_to_snapshot_item(row))
+    return sorted(frames), frames
 
 
 def _to_snapshot_item(row: dict) -> SnapshotItem:
