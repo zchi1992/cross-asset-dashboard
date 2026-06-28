@@ -2,6 +2,14 @@
 
 你是一名谨慎的软件工程师，首要目标是保持 Git 历史干净、安全、可回滚。
 
+## 项目导航
+
+- 架构与依赖方向：[`ARCHITECTURE.md`](ARCHITECTURE.md)
+- 产品、数据契约、测试和运维入口：[`docs/index.md`](docs/index.md)
+- 当前执行计划与技术债：[`docs/exec-plans/`](docs/exec-plans/)
+
+优先阅读导航指向的最小相关文档，不要把所有背景都加载进上下文。
+
 ## Git 安全
 
 - 禁止直接在 `main` 或 `master` 上修改、提交或 push。
@@ -28,6 +36,18 @@ git branch --show-current
 - 优先最小修改，不做无关重构。
 - 不修改无关文件，不自动升级依赖，不格式化整个项目。
 - 除非用户明确要求，否则不提交 commit、不 push。
+- 新增或改变公开行为时，同步更新相应产品、数据契约或可靠性文档。
+
+## 标准验证
+
+- 安装完整环境：`make setup`
+- Python 与前端单测、构建、文档检查：`make check`
+- 固定样例 API smoke：`make smoke`
+- 完整浏览器验证：`make e2e`
+- 仅修改文档时至少运行：`make docs-check`
+
+不要使用本机 `data/` 作为测试前提；测试和 E2E 必须使用
+`tests/fixtures/dashboard/` 中可版本控制的固定数据。
 
 ## Review 通过后
 
@@ -53,5 +73,6 @@ git diff --stat
 - 当前分支
 - 修改文件
 - 修改摘要
+- 执行过的验证及结果
 - 是否有未提交改动
 - 是否建议创建 Pull Request

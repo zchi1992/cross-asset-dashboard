@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Dashboard"
+  short_description: "Run reproducible API and browser checks"
+  default_prompt: "Use $verify-dashboard to validate this dashboard change with reproducible evidence."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare PR Handoff"
+  short_description: "Review scope and collect validation evidence"
+  default_prompt: "Use $prepare-pr-handoff to prepare this branch for human review without merging it."
