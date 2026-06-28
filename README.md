@@ -304,6 +304,8 @@ rs_score =
 - `Velocity`：`杠杆资金数值` 的 1D、5D、10D 变化速度。
 - `Maturity`：当前 `加杠杆` 或 `去杠杆` 状态已经持续的时间。
 
+计算输入必须包含 `current_leverage_state`、`current_leverage_state_duration`、`leverage_value`。如果输入同时提供 `leverage_value_change_d1`，会校验它是否等于当前 `leverage_value` 减去上一个历史观测日的 `leverage_value`；不一致时直接报错。没有任何历史观测日的首个日期不会输出资金分，因为至少需要 1D velocity。
+
 因此，一个资产即使处于 `去杠杆`，`funding_signal_strength` 也可以很高；这表示“去杠杆/偏空资金信号很强”，不是“杠杆水平很高”。
 
 输出字段：
@@ -320,7 +322,7 @@ rs_score =
 | `long_velocity_score` | 1D/5D/10D long velocity 综合分，权重 `0.2/0.5/0.3`，缺失窗口会重归一 |
 | `short_velocity_score` | 1D/5D/10D short velocity 综合分，权重同上 |
 | `velocity_window_count` | 当前资金分实际使用的 velocity 窗口数量 |
-| `maturity_score` | 状态持续时间得分；`5~10` 天为 `100`，过短或过长都会降低 |
+| `maturity_score` | 状态持续时间得分；第 `4~10` 天为 `100`，过短或过长都会降低 |
 | `long_funding_score` | 当前为 `加杠杆` 时的做多资金分，否则为空 |
 | `short_funding_score` | 当前为 `去杠杆` 时的做空资金分，否则为空 |
 | `funding_direction` | 新资金方向；`加杠杆 -> long`，`去杠杆 -> short` |
@@ -356,12 +358,24 @@ funding_signal_strength = funding_score =
   short_funding_score if funding_direction == "short"
 ```
 
+`maturity_score` 分段：
+
+```text
+duration <= 1   -> 20
+1 < duration <= 4   -> 从 20 线性升至 100
+4 < duration <= 10  -> 100
+10 < duration <= 20 -> 从 100 线性降至 50
+20 < duration <= 30 -> 从 50 线性降至 10
+duration > 30       -> 10
+```
+
 资金排名逻辑：
 
 1. 同一 `dataset_type`、同一日期内计算横截面 percentile rank。
-2. 按 `funding_direction` 分组，分别排名。
-3. 排名优先级依次为 `funding_score` 高者优先、`velocity_window_count` 多者优先、`asset_code` 字典序。
-4. `funding_signal_bucket`：
+2. Percentile rank 使用同值平均排名；同一横截面只有一个有效值时，该分数为 `50`。
+3. 按 `funding_direction` 分组，分别排名。
+4. 排名优先级依次为 `funding_score` 高者优先、`velocity_window_count` 多者优先、`asset_code` 字典序。
+5. `funding_signal_bucket`：
    - `funding_score <= 0` 或 `rank_pct > 0.70`：`weak`
    - `rank_pct <= 0.10`：`strong`
    - `rank_pct <= 0.30`：`watch`
