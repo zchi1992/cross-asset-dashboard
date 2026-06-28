@@ -8,6 +8,14 @@ class HealthResponse(BaseModel):
     version: str = "1.0.0"
 
 
+class ReadinessResponse(BaseModel):
+    status: str
+    reason: str | None = None
+    date_count: int = 0
+    asset_count: int = 0
+    latest_date: str | None = None
+
+
 class ScoreRanges(BaseModel):
     rs_score: list[float] = Field(default_factory=lambda: [-100, 100])
     funding_score: list[float] = Field(default_factory=lambda: [-100, 100])

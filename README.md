@@ -8,13 +8,27 @@
 - 将指标映射成英文 `metric_name`
 - 分别写入 `data/series/core/` 和 `data/series/instruments/`
 
+## 工程导航
+
+- [架构与依赖方向](ARCHITECTURE.md)
+- [产品、数据、测试、可靠性与安全文档](docs/index.md)
+- [Dashboard 产品行为](docs/product/dashboard.md)
+- [技术债清单](docs/exec-plans/tech-debt.md)
+
 ## 快速开始
 
-0. 创建虚拟环境并安装依赖：
+0. 安装 Python、前端及浏览器测试依赖：
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python3 -m pip install -r requirements.txt
+make setup
+```
+
+验证干净 clone 是否完整可用：
+
+```bash
+make check
+make smoke
+make e2e
 ```
 
 1. 初始化会话配置：
@@ -54,6 +68,9 @@ http://127.0.0.1:8000
 .venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 cd frontend && npm run dev
 ```
+
+后端默认读取根目录 `config.yaml`。测试、临时实例或独立工作区可通过
+`CROSS_ASSET_CONFIG_PATH=/absolute/path/to/config.json` 指向其他 JSON 兼容配置。
 
 5. 轮询知识星球：
 

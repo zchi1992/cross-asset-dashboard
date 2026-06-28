@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnose Data Freshness"
+  short_description: "Trace raw, series, processed, and API data"
+  default_prompt: "Use $diagnose-data-freshness to find why the dashboard is missing recent data."
