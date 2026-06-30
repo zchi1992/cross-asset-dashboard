@@ -11,6 +11,9 @@ const item: SnapshotItem = {
   rs_state: "Lead",
   funding_score: 51,
   funding_state: "Leveraging",
+  leverage_value: 51,
+  leverage_velocity: 3.4,
+  leverage_velocity_score: 82,
   long_candidate: true,
   short_candidate: false,
 };
@@ -30,6 +33,20 @@ describe("filtering utilities", () => {
     expect(filterItems([item], "core", ["Leveraging"], ["Lag"])).toHaveLength(0);
     expect(filterItems([item], "core", [], ["Lead"])).toHaveLength(0);
     expect(filterItems([item], "core", ["Leveraging"], [])).toHaveLength(0);
+  });
+
+  it("filters leverage velocity opportunities", () => {
+    const fastDeleveraging = {
+      ...item,
+      symbol: "OIL",
+      funding_state: "Deleveraging" as const,
+      leverage_velocity_score: -88,
+    };
+    const quiet = { ...item, symbol: "TLT", leverage_velocity_score: 12 };
+
+    expect(filterItems([item, fastDeleveraging, quiet], "core", ["Leveraging", "Deleveraging"], ["Lead"], "Fast Leveraging")).toEqual([item]);
+    expect(filterItems([item, fastDeleveraging, quiet], "core", ["Leveraging", "Deleveraging"], ["Lead"], "Fast Deleveraging")).toEqual([fastDeleveraging]);
+    expect(filterItems([item, fastDeleveraging, quiet], "core", ["Leveraging", "Deleveraging"], ["Lead"], "Active")).toEqual([item, fastDeleveraging]);
   });
 
   it("returns the trailing 30 available frame points for a symbol", () => {

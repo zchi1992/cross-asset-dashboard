@@ -15,6 +15,9 @@ MARKET_MAP_COLUMNS = [
     "trend_score",
     "rs_score",
     "flow_score",
+    "leverage_value",
+    "leverage_velocity",
+    "leverage_velocity_score",
     "trend_state",
     "monthly_trend",
     "weekly_trend",
@@ -47,6 +50,9 @@ def load_market_map_rows(
         fields["rs_state"],
         fields["flow_score"],
         fields["flow_state"],
+        fields["leverage_value"],
+        fields["leverage_velocity"],
+        fields["leverage_velocity_score"],
     }
 
     grouped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
@@ -93,6 +99,9 @@ def load_market_map_rows(
                 "trend_score": _parse_float(metrics[fields["trend_score"]]),
                 "rs_score": _parse_float(metrics[fields["rs_score"]]),
                 "flow_score": _parse_float(metrics[fields["flow_score"]]),
+                "leverage_value": _parse_float(metrics[fields["leverage_value"]]),
+                "leverage_velocity": _parse_float(metrics[fields["leverage_velocity"]]),
+                "leverage_velocity_score": _parse_float(metrics[fields["leverage_velocity_score"]]),
                 "trend_state": metrics[fields["trend_state"]],
                 "monthly_trend": metrics["monthly_trend"],
                 "weekly_trend": metrics["weekly_trend"],
@@ -122,6 +131,7 @@ def filter_market_map_rows(
     trend_range: tuple[float, float] | None = None,
     rs_range: tuple[float, float] | None = None,
     flow_range: tuple[float, float] | None = None,
+    velocity_range: tuple[float, float] | None = None,
 ) -> list[dict[str, Any]]:
     filtered = rows
     if date is not None:
@@ -136,6 +146,12 @@ def filter_market_map_rows(
         filtered = [row for row in filtered if rs_range[0] <= row["rs_score"] <= rs_range[1]]
     if flow_range is not None:
         filtered = [row for row in filtered if flow_range[0] <= row["flow_score"] <= flow_range[1]]
+    if velocity_range is not None:
+        filtered = [
+            row
+            for row in filtered
+            if velocity_range[0] <= row["leverage_velocity_score"] <= velocity_range[1]
+        ]
     return filtered
 
 

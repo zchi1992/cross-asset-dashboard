@@ -2,12 +2,14 @@ import { memo, useEffect, useState, useMemo } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAssets, fetchConfig, fetchDates, fetchPlayback } from "./services/api";
-import type { FundingState, RelativeStrengthState, SnapshotItem } from "./services/contracts";
+import type { FundingState, RelativeStrengthState, SnapshotItem, VelocityFilter } from "./services/contracts";
 import { CrossAssetScatter } from "./components/CrossAssetScatter";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
 import { assetKey, filterItems, matchesSearch } from "./utils/filtering";
+
+const VELOCITY_FILTERS: VelocityFilter[] = ["All", "Fast Leveraging", "Fast Deleveraging", "Active"];
 
 export function App() {
   const refreshPolicy = {
@@ -23,10 +25,12 @@ export function App() {
   const assetClass = useFilterStore((state) => state.assetClass);
   const fundingStates = useFilterStore((state) => state.fundingStates);
   const rsStates = useFilterStore((state) => state.rsStates);
+  const velocityFilter = useFilterStore((state) => state.velocityFilter);
   const searchText = useFilterStore((state) => state.searchText);
   const setAssetClass = useFilterStore((state) => state.setAssetClass);
   const setFundingStates = useFilterStore((state) => state.setFundingStates);
   const setRsStates = useFilterStore((state) => state.setRsStates);
+  const setVelocityFilter = useFilterStore((state) => state.setVelocityFilter);
   const setSearchText = useFilterStore((state) => state.setSearchText);
   const resetFilters = useFilterStore((state) => state.resetFilters);
 
@@ -120,8 +124,8 @@ export function App() {
     () =>
       hasSearch
         ? currentItems.filter((item) => matchesSearch(item, searchText))
-        : filterItems(currentItems, assetClass, fundingStates, rsStates),
-    [assetClass, currentItems, fundingStates, hasSearch, rsStates, searchText],
+        : filterItems(currentItems, assetClass, fundingStates, rsStates, velocityFilter),
+    [assetClass, currentItems, fundingStates, hasSearch, rsStates, searchText, velocityFilter],
   );
   const selectedCurrentItem = selectedSymbol ? currentItemBySymbol.get(selectedSymbol) ?? null : null;
   const chartItems = filteredItems;
@@ -187,6 +191,16 @@ export function App() {
           selected={rsStates}
           onChange={(value) => setRsStates(value as RelativeStrengthState[])}
         />
+        <label>
+          <span>Velocity</span>
+          <select value={velocityFilter} onChange={(event) => setVelocityFilter(event.target.value as VelocityFilter)}>
+            {VELOCITY_FILTERS.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           className="reset-button"
           onClick={() => {
@@ -443,13 +457,14 @@ function buildAttentionTags(
 }
 
 function compositeLongScore(item: SnapshotItem) {
-  return item.trend_score + item.rs_score + item.funding_score;
+  return item.trend_score + item.rs_score + item.leverage_velocity_score;
 }
 
 function transitionScore(current?: SnapshotItem, previous?: SnapshotItem) {
   if (!current || !previous) return -Infinity;
   return (
     Math.abs(current.funding_score - previous.funding_score) +
+    Math.abs(current.leverage_velocity_score - previous.leverage_velocity_score) +
     Math.abs(current.rs_score - previous.rs_score) +
     Math.abs(current.trend_score - previous.trend_score) * 0.5 +
     Math.abs(rsRank(current.rs_state) - rsRank(previous.rs_state)) * 20
@@ -462,8 +477,10 @@ function rsRank(state: RelativeStrengthState) {
 
 function classifyAsset(item: SnapshotItem) {
   const tags: string[] = [];
-  if (item.trend_score >= 70 && item.rs_score >= 70 && item.funding_score >= 50) tags.push("高置信多头");
-  if (item.trend_score <= -70 && item.rs_score <= -70 && item.funding_score <= -50) tags.push("高置信空头");
+  if (item.trend_score >= 70 && item.rs_score >= 70 && item.leverage_velocity_score >= 70) tags.push("高置信多头");
+  if (item.trend_score <= -70 && item.rs_score <= -70 && item.leverage_velocity_score <= -70) tags.push("高置信空头");
+  if (item.leverage_velocity_score >= 70) tags.push("快速加杠杆");
+  if (item.leverage_velocity_score <= -70) tags.push("快速去杠杆");
   if (item.funding_state === "Leveraging") tags.push("资金加杠杆");
   if (item.funding_state === "Deleveraging") tags.push("资金去杠杆");
   if (item.rs_state === "Lead") tags.push("比价领先");
@@ -504,7 +521,9 @@ function AssetDetailPanel({
       <div className="detail-grid">
         <Metric label="趋势分" value={item.trend_score} />
         <Metric label="比价强度" value={item.rs_score} />
-        <Metric label="资金杠杆" value={item.funding_score} />
+        <Metric label="杠杆资金水位" value={item.leverage_value} />
+        <Metric label="杠杆速率分" value={item.leverage_velocity_score} />
+        <Metric label="杠杆速率" value={item.leverage_velocity} />
         <Metric label="比价状态" value={item.rs_state} />
         <Metric label="资金状态" value={item.funding_state} />
         <Metric label="趋势状态" value={item.trend_state || "-"} />
@@ -516,7 +535,8 @@ function AssetDetailPanel({
       </div>
       <MiniScatter title="趋势分变化" points={latestPoints} metric="trend_score" />
       <MiniScatter title="比价强度分变化" points={latestPoints} metric="rs_score" />
-      <MiniScatter title="资金杠杆分变化" points={latestPoints} metric="funding_score" />
+      <MiniScatter title="杠杆资金水位变化" points={latestPoints} metric="leverage_value" />
+      <MiniScatter title="杠杆速率分变化" points={latestPoints} metric="leverage_velocity_score" />
     </aside>
   );
 }
