@@ -1,12 +1,12 @@
 # Cross Asset Dashboard
 
-本项目是一套本地跨资产观察终端：从知识星球附件下载每日 Excel，解析为资产级 long-format
-序列，计算趋势、相对强度和资金行为派生指标，并通过 FastAPI + React/ECharts 提供可回放的
-Local Asset Terminal。
+本项目是一套本地跨资产观察终端：同步原始数据并解析为资产级 long-format 序列，计算趋势、
+相对强度和资金行为派生指标，并通过 FastAPI + React/ECharts 提供可回放的 Local Asset
+Terminal。
 
 ## 当前能力
 
-- 知识星球数据采集：初始化 Cookie、单次轮询、后台 worker、失败下载重试、历史附件回填。
+- 原始数据同步：初始化本地会话、单次轮询、后台 worker、失败下载重试、历史数据回填。
 - Excel 解析与归档：按日期保存原始文件，解析核心数据集和押注工具数据集。
 - 标准化序列存储：生成 `data/series/{core,instruments}/` 下的资产 long-format CSV。
 - 派生指标构建：生成 `data/processed/series/{core,instruments}/`，包含趋势评分、相对比价评分和资金领先评分。
@@ -34,14 +34,13 @@ npm install
 cd ..
 ```
 
-### 3. 初始化知识星球会话
+### 3. 初始化数据会话
 
 ```bash
 .venv/bin/python3 zsxq.py auth init
 ```
 
-命令会提示输入知识星球 Cookie 和 User-Agent，并保存到 `state/session.json`。如果只粘贴
-token，建议使用 `zsxq_access_token=<value>` 这种 Cookie 形式。
+命令会提示输入本地数据会话信息，并保存到 `state/session.json`。
 
 ### 4. 生成本地数据
 
@@ -51,13 +50,13 @@ token，建议使用 `zsxq_access_token=<value>` 这种 Cookie 形式。
 .venv/bin/python3 zsxq.py reparse examples
 ```
 
-拉取线上数据：
+同步原始数据：
 
 ```bash
 .venv/bin/python3 zsxq.py poll once
 ```
 
-回填历史附件，默认从 `2026-05-08` 开始：
+回填历史原始数据，默认从 `2026-05-08` 开始：
 
 ```bash
 .venv/bin/python3 zsxq.py backfill history
@@ -95,7 +94,7 @@ cd frontend && npm run dev
 ## 数据流
 
 ```text
-知识星球附件
+原始数据
   -> data/raw/YYYY-MM-DD/*.xlsx
   -> data/series/core/*.csv
   -> data/series/instruments/*.csv
@@ -190,7 +189,7 @@ curl -s "http://127.0.0.1:8000/api/snapshot?date=2026-06-18"
 默认配置文件是 `config.yaml`。主要配置项包括：
 
 - `storage_root`：数据根目录，默认 `data`。
-- `filename_filter`：知识星球附件文件名匹配规则。
+- `filename_filter`：原始数据文件名匹配规则。
 - `market_map.dataset_types`：终端读取的数据集，默认 `core` 和 `instruments`。
 - `market_map.fields`：终端所需指标字段映射。
 - `market_map.thresholds`：多头/空头候选标签阈值。
@@ -254,7 +253,7 @@ curl -s http://127.0.0.1:8000/api/dates
 backend/                 FastAPI 服务和 API schema
 dashboard/               终端数据装载、过滤、评分规则和旧版绘图辅助
 frontend/                React + Vite + ECharts Local Asset Terminal
-src/zsxq_pipeline/       知识星球采集、解析、存储和派生指标流水线
+src/zsxq_pipeline/       原始数据同步、解析、存储和派生指标流水线
 analyses/notebooks/      版本管理的 Python 分析 notebook
 examples/                本地解析样例 Excel
 launchd/                 macOS launchd plist
@@ -264,11 +263,10 @@ tests/                   Python 单元测试与 API 合约测试
 
 ## 故障排查
 
-- `401 Unauthorized`：检查 `state/session.json` 中 Cookie 是否为空，或是否缺少
-  `zsxq_access_token=` 前缀；同时保留浏览器式 User-Agent。
+- `401 Unauthorized`：检查 `state/session.json` 中的数据会话信息是否完整、有效。
 - 终端没有数据：确认已经执行 `reparse`、`poll once` 或 `backfill history`，并存在
   `data/processed/series/{core,instruments}/*.csv`。
-- 仪表盘数据看起来不是最新：先对照知识星球最新附件，再执行 `poll once` 或 `backfill history`。
+- 仪表盘数据看起来不是最新：先对照最新原始数据，再执行 `poll once` 或 `backfill history`。
 - 移动仓库后数据异常：检查本地状态文件中是否还有旧绝对路径，必要时重新解析 raw 文件。
 - 前端显示后端离线：确认 `scripts/run_market_map_dashboard.sh` 已启动，或后端开发服务运行在
   `127.0.0.1:8000`。
