@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts";
 import type { ECharts, EChartsOption } from "echarts";
 import type { SnapshotItem } from "../services/contracts";
-import { assetKey, trajectoryForAssetKey } from "../utils/filtering";
+import { assetKeyWithCollisions, trajectoryForAssetKey } from "../utils/filtering";
 
 const DENSE_ASSET_THRESHOLD = 250;
 const DENSE_SYMBOL_SIZE = 10;
@@ -15,6 +15,7 @@ type Props = {
   dates: string[];
   currentIndex: number;
   selectedSymbol: string | null;
+  duplicateAssetKeys: Set<string>;
   scoreRanges: {
     rs_score: number[];
     funding_score: number[];
@@ -32,6 +33,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   dates,
   currentIndex,
   selectedSymbol,
+  duplicateAssetKeys,
   scoreRanges,
   attentionTags,
   onSelect,
@@ -51,27 +53,34 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   const isDense = items.length >= DENSE_ASSET_THRESHOLD;
 
   const assetData = useMemo(() => {
-    const visibleItems = selectedSymbol ? items.filter((item) => assetKey(item) === selectedSymbol) : items;
+    const visibleItems = selectedSymbol
+      ? items.filter((item) => assetKeyWithCollisions(item, duplicateAssetKeys) === selectedSymbol)
+      : items;
     return visibleItems.map((item) => ({
-      name: assetKey(item),
+      name: assetKeyWithCollisions(item, duplicateAssetKeys),
       value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
       label: {
-        show: assetKey(item) !== selectedSymbol && attentionTags.has(assetKey(item)),
+        show:
+          assetKeyWithCollisions(item, duplicateAssetKeys) !== selectedSymbol &&
+          attentionTags.has(assetKeyWithCollisions(item, duplicateAssetKeys)),
         color: "#ffc247",
         fontSize: 12,
         fontWeight: 700,
       },
       itemStyle: {
-        opacity: selectedSymbol && assetKey(item) !== selectedSymbol ? 0.24 : 1,
+        opacity: selectedSymbol && assetKeyWithCollisions(item, duplicateAssetKeys) !== selectedSymbol ? 0.24 : 1,
         borderColor: "#f4f4ee",
         borderWidth: isDense ? 1 : 1.8,
         shadowBlur: isDense ? 0 : 12,
         shadowColor: trendGlow(item.trend_score),
       },
     }));
-  }, [attentionTags, isDense, items, selectedSymbol, yRange]);
+  }, [attentionTags, duplicateAssetKeys, isDense, items, selectedSymbol, yRange]);
 
-  const itemBySymbol = useMemo(() => new Map(items.map((item) => [assetKey(item), item])), [items]);
+  const itemBySymbol = useMemo(
+    () => new Map(items.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item])),
+    [duplicateAssetKeys, items],
+  );
 
   const baseOption = useMemo<EChartsOption>(() => {
     const xRange = scoreRanges.rs_score;
@@ -200,8 +209,11 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   }, [assetData, attentionTags, isDense, itemBySymbol, scoreRanges.rs_score, yRange]);
 
   const selectedTrajectory = useMemo(
-    () => (selectedSymbol && dates.length ? trajectoryForAssetKey(frames, dates, currentIndex, selectedSymbol) : []),
-    [currentIndex, dates, frames, selectedSymbol],
+    () =>
+      selectedSymbol && dates.length
+        ? trajectoryForAssetKey(frames, dates, currentIndex, selectedSymbol, duplicateAssetKeys)
+        : [],
+    [currentIndex, dates, duplicateAssetKeys, frames, selectedSymbol],
   );
 
   useEffect(() => {
@@ -240,7 +252,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           data: selectedItem
             ? [
                 {
-                  name: assetKey(selectedItem),
+                  name: assetKeyWithCollisions(selectedItem, duplicateAssetKeys),
                   value: [selectedItem.rs_score, clamp(selectedItem.funding_score, yRange), selectedItem.trend_score],
                   label: {
                     show: true,
@@ -271,7 +283,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [currentIndex, dates, frames, itemBySymbol, selectedSymbol, selectedTrajectory, yRange]);
+  }, [currentIndex, dates, duplicateAssetKeys, frames, itemBySymbol, selectedSymbol, selectedTrajectory, yRange]);
 
   useEffect(() => {
     if (!elementRef.current) return;

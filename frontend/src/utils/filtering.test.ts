@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { SnapshotItem } from "../services/contracts";
-import { assetKey, filterItems, matchesSearch, trajectoryForAssetKey } from "./filtering";
+import {
+  assetKey,
+  assetKeyWithCollisions,
+  duplicateAssetBaseKeys,
+  filterItems,
+  matchesSearch,
+  trajectoryForAssetKey,
+} from "./filtering";
 
 const item: SnapshotItem = {
   symbol: "GLD",
@@ -71,5 +78,34 @@ describe("filtering utilities", () => {
     expect(trajectory).toHaveLength(1);
     expect(trajectory[0].item.asset_class).toBe("instruments");
     expect(trajectory[0].item.asset_name).toBe("Gold Futures");
+  });
+
+  it("uses asset names only when symbols collide inside the same asset class", () => {
+    const soybean = { ...item, symbol: "ZS1!", asset_name: "Soybean Futures" };
+    const zinc = { ...item, symbol: "ZS1!", asset_name: "Special High Grade Zinc Futures", rs_score: 99 };
+    const frames = {
+      "2026-06-29": [soybean, zinc],
+      "2026-06-30": [{ ...soybean, rs_score: 42 }, { ...zinc, rs_score: 88 }],
+    };
+    const duplicateKeys = duplicateAssetBaseKeys(frames);
+
+    expect(assetKey(soybean)).toBe("core::ZS1!");
+    expect(assetKeyWithCollisions(soybean, duplicateKeys)).toBe("core::ZS1!::Soybean Futures");
+    expect(assetKeyWithCollisions(zinc, duplicateKeys)).toBe("core::ZS1!::Special High Grade Zinc Futures");
+
+    const trajectory = trajectoryForAssetKey(
+      frames,
+      ["2026-06-29", "2026-06-30"],
+      1,
+      assetKeyWithCollisions(zinc, duplicateKeys),
+      duplicateKeys,
+    );
+
+    expect(trajectory).toHaveLength(2);
+    expect(trajectory.map((point) => point.item.asset_name)).toEqual([
+      "Special High Grade Zinc Futures",
+      "Special High Grade Zinc Futures",
+    ]);
+    expect(trajectory.map((point) => point.item.rs_score)).toEqual([99, 88]);
   });
 });

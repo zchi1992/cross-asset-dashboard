@@ -7,7 +7,7 @@ import { CrossAssetScatter } from "./components/CrossAssetScatter";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
-import { assetKey, filterItems, matchesSearch } from "./utils/filtering";
+import { assetKeyWithCollisions, duplicateAssetBaseKeys, filterItems, matchesSearch } from "./utils/filtering";
 
 const VELOCITY_FILTERS: VelocityFilter[] = ["All", "Fast Leveraging", "Fast Deleveraging", "Active"];
 
@@ -104,7 +104,7 @@ export function App() {
       }
       if (event.key === "Enter" && searchText.trim()) {
         const match = currentItems.find((item) => matchesSearch(item, searchText));
-        if (match) selectSymbol(assetKey(match));
+        if (match) selectSymbol(assetKeyWithCollisions(match, duplicateAssetKeys));
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -113,11 +113,15 @@ export function App() {
 
   const currentDate = availableDates[currentIndex] ?? "";
   const frames = playbackQuery.data?.frames ?? {};
+  const duplicateAssetKeys = useMemo(() => duplicateAssetBaseKeys(frames), [frames]);
   const currentItems = frames[currentDate] ?? [];
-  const currentItemBySymbol = useMemo(() => new Map(currentItems.map((item) => [assetKey(item), item])), [currentItems]);
+  const currentItemBySymbol = useMemo(
+    () => new Map(currentItems.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item])),
+    [currentItems, duplicateAssetKeys],
+  );
   const historyBySymbol = useMemo(
-    () => buildHistoryBySymbol(frames, availableDates),
-    [availableDates, frames],
+    () => buildHistoryBySymbol(frames, availableDates, duplicateAssetKeys),
+    [availableDates, duplicateAssetKeys, frames],
   );
   const hasSearch = Boolean(searchText.trim());
   const filteredItems = useMemo(
@@ -130,8 +134,8 @@ export function App() {
   const selectedCurrentItem = selectedSymbol ? currentItemBySymbol.get(selectedSymbol) ?? null : null;
   const chartItems = filteredItems;
   const attentionTags = useMemo(
-    () => buildAttentionTags(currentItems, frames, availableDates, currentIndex),
-    [availableDates, currentIndex, currentItems, frames],
+    () => buildAttentionTags(currentItems, frames, availableDates, currentIndex, duplicateAssetKeys),
+    [availableDates, currentIndex, currentItems, duplicateAssetKeys, frames],
   );
   const selectedHistory = useMemo(
     () =>
@@ -232,6 +236,7 @@ export function App() {
               dates={availableDates}
               currentIndex={currentIndex}
               selectedSymbol={selectedSymbol}
+              duplicateAssetKeys={duplicateAssetKeys}
               scoreRanges={config.score_ranges}
               attentionTags={attentionTags}
               onSelect={selectSymbol}
@@ -386,11 +391,15 @@ function formatAssetClass(value: string) {
 type HistoryPoint = { date: string; item: SnapshotItem };
 type IndexedHistoryPoint = HistoryPoint & { index: number };
 
-function buildHistoryBySymbol(frames: Record<string, SnapshotItem[]>, dates: string[]) {
+function buildHistoryBySymbol(
+  frames: Record<string, SnapshotItem[]>,
+  dates: string[],
+  duplicateAssetKeys: Set<string>,
+) {
   const historyBySymbol = new Map<string, IndexedHistoryPoint[]>();
   dates.forEach((date, index) => {
     for (const item of frames[date] ?? []) {
-      const key = assetKey(item);
+      const key = assetKeyWithCollisions(item, duplicateAssetKeys);
       const history = historyBySymbol.get(key);
       const entry = { date, index, item };
       if (history) {
@@ -408,19 +417,20 @@ function buildAttentionTags(
   frames: Record<string, SnapshotItem[]>,
   dates: string[],
   currentIndex: number,
+  duplicateAssetKeys: Set<string>,
 ) {
   const previousDate = dates[currentIndex - 1];
   const previousItems = previousDate ? frames[previousDate] ?? [] : [];
-  const previousBySymbol = new Map(previousItems.map((item) => [assetKey(item), item]));
+  const previousBySymbol = new Map(previousItems.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item]));
   const tags = new Map<string, string>();
 
   const strongest = [...currentItems]
     .sort((a, b) => compositeLongScore(b) - compositeLongScore(a))
     .slice(0, 5);
-  strongest.forEach((item) => tags.set(assetKey(item), "三强"));
+  strongest.forEach((item) => tags.set(assetKeyWithCollisions(item, duplicateAssetKeys), "三强"));
 
   const improving = currentItems
-    .map((item) => ({ item, previous: previousBySymbol.get(assetKey(item)) }))
+    .map((item) => ({ item, previous: previousBySymbol.get(assetKeyWithCollisions(item, duplicateAssetKeys)) }))
     .filter(({ item, previous }) => {
       return (
         previous?.funding_state === "Deleveraging" &&
@@ -432,12 +442,12 @@ function buildAttentionTags(
     .sort((a, b) => transitionScore(b.item, b.previous) - transitionScore(a.item, a.previous))
     .slice(0, 5);
   improving.forEach(({ item }) => {
-    const key = assetKey(item);
+    const key = assetKeyWithCollisions(item, duplicateAssetKeys);
     tags.set(key, tags.has(key) ? `${tags.get(key)} 转强` : "转强");
   });
 
   const deteriorating = currentItems
-    .map((item) => ({ item, previous: previousBySymbol.get(assetKey(item)) }))
+    .map((item) => ({ item, previous: previousBySymbol.get(assetKeyWithCollisions(item, duplicateAssetKeys)) }))
     .filter(({ item, previous }) => {
       return (
         previous?.funding_state === "Leveraging" &&
@@ -449,7 +459,7 @@ function buildAttentionTags(
     .sort((a, b) => transitionScore(b.previous, b.item) - transitionScore(a.previous, a.item))
     .slice(0, 5);
   deteriorating.forEach(({ item }) => {
-    const key = assetKey(item);
+    const key = assetKeyWithCollisions(item, duplicateAssetKeys);
     tags.set(key, tags.has(key) ? `${tags.get(key)} 转弱` : "转弱");
   });
 
