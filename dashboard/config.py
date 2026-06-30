@@ -17,8 +17,11 @@ DEFAULT_MARKET_MAP_CONFIG: dict[str, Any] = {
         "trend_state": "state_name",
         "rs_score": "rs_score",
         "rs_state": "current_relative_state",
-        "flow_score": "funding_signal_strength",
+        "flow_score": "funding_leverage_value",
         "flow_state": "funding_signal_direction",
+        "leverage_value": "funding_leverage_value",
+        "leverage_velocity": "leverage_velocity",
+        "leverage_velocity_score": "leverage_velocity_score",
     },
     "quadrants": {
         "x_midline": 0,
@@ -86,4 +89,3 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
         else:
             merged[key] = value
     return merged
-

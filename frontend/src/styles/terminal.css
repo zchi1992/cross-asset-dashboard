@@ -235,7 +235,7 @@ select {
 }
 
 .filter-bar {
-  grid-template-columns: minmax(170px, 1.2fr) minmax(122px, 0.8fr) max-content max-content 84px;
+  grid-template-columns: minmax(170px, 1.2fr) minmax(122px, 0.8fr) max-content max-content minmax(126px, 0.8fr) 84px;
 }
 
 .playback-bar {

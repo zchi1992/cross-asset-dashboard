@@ -7,7 +7,7 @@ def is_long_candidate(row: dict[str, Any], thresholds: dict[str, float]) -> bool
     return (
         float(row["trend_score"]) >= float(thresholds["long_trend_threshold"])
         and float(row["rs_score"]) >= float(thresholds["long_rs_threshold"])
-        and float(row["flow_score"]) >= float(thresholds["long_flow_threshold"])
+        and float(row["leverage_velocity_score"]) >= float(thresholds["long_flow_threshold"])
     )
 
 
@@ -15,7 +15,7 @@ def is_short_candidate(row: dict[str, Any], thresholds: dict[str, float]) -> boo
     return (
         float(row["trend_score"]) <= float(thresholds["short_trend_threshold"])
         and float(row["rs_score"]) <= float(thresholds["short_rs_threshold"])
-        and float(row["flow_score"]) <= float(thresholds["short_flow_threshold"])
+        and float(row["leverage_velocity_score"]) <= float(thresholds["short_flow_threshold"])
     )
 
 
@@ -39,4 +39,3 @@ def normalized_marker_sizes(values: list[float], *, min_size: float = 8, max_siz
         return [float(min_size) for _ in absolute_values]
     spread = float(max_size) - float(min_size)
     return [float(min_size) + (value / largest) * spread for value in absolute_values]
-

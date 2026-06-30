@@ -25,6 +25,12 @@ OUTPUT_FIELDS = [
     "velocity_1d",
     "velocity_5d",
     "velocity_10d",
+    "leverage_velocity_1d",
+    "leverage_velocity_5d",
+    "leverage_velocity_10d",
+    "leverage_velocity",
+    "leverage_velocity_score",
+    "leverage_velocity_bucket",
     "long_velocity_1d_score",
     "long_velocity_5d_score",
     "long_velocity_10d_score",
@@ -178,6 +184,10 @@ def _calculate_base_values(
         "velocity_1d": velocities.get(1, math.nan),
         "velocity_5d": velocities.get(5, math.nan),
         "velocity_10d": velocities.get(10, math.nan),
+        "leverage_velocity_1d": velocities.get(1, math.nan),
+        "leverage_velocity_5d": velocities.get(5, math.nan),
+        "leverage_velocity_10d": velocities.get(10, math.nan),
+        "leverage_velocity": _weighted_raw_velocity(velocities),
         "velocity_window_count": len(velocities),
         "maturity_score": _maturity_score(leverage_duration),
         "funding_direction": direction,
@@ -187,6 +197,7 @@ def _calculate_base_values(
 
 def _apply_percentile_scores(rows: list[dict[str, str | float]]) -> None:
     _assign_percentile(rows, "funding_leverage_value", "position_score")
+    _assign_signed_percentile(rows, "leverage_velocity", "leverage_velocity_score")
     for window in VELOCITY_WINDOWS:
         source = f"velocity_{window}d"
         _assign_percentile(rows, source, f"long_velocity_{window}d_score")
@@ -215,9 +226,22 @@ def _apply_scores(rows: list[dict[str, str | float]]) -> None:
         row["short_funding_score"] = short_funding_score if row["funding_direction"] == "short" else math.nan
         row["funding_score"] = long_funding_score if row["funding_direction"] == "long" else short_funding_score
         row["funding_signal_strength"] = row["funding_score"]
+        row["leverage_velocity_bucket"] = _velocity_bucket(float(row["leverage_velocity_score"]))
         _validate_score_range(row, "position_score")
         _validate_score_range(row, "maturity_score")
         _validate_score_range(row, "funding_score")
+
+
+def _weighted_raw_velocity(velocities: dict[int, float]) -> float:
+    available = [
+        (VELOCITY_WEIGHTS[window], value)
+        for window, value in velocities.items()
+        if window in VELOCITY_WEIGHTS and math.isfinite(value)
+    ]
+    if not available:
+        return math.nan
+    total_weight = sum(weight for weight, _value in available)
+    return sum((weight / total_weight) * value for weight, value in available)
 
 
 def _weighted_velocity_score(row: dict[str, str | float], prefix: str) -> float:
@@ -294,6 +318,44 @@ def _assign_percentile(
         rows[index][target_field] = percentile
 
 
+def _assign_signed_percentile(
+    rows: list[dict[str, str | float]],
+    source_field: str,
+    target_field: str,
+) -> None:
+    for row in rows:
+        row[target_field] = 0.0
+
+    positive = [(index, float(row[source_field])) for index, row in enumerate(rows) if float(row[source_field]) > 0]
+    negative = [(index, abs(float(row[source_field]))) for index, row in enumerate(rows) if float(row[source_field]) < 0]
+
+    for index, percentile in _percentile_ranks(positive, single_value_score=100.0).items():
+        rows[index][target_field] = percentile
+    for index, percentile in _percentile_ranks(negative, single_value_score=100.0).items():
+        rows[index][target_field] = -percentile
+
+
+def _percentile_ranks(values: list[tuple[int, float]], *, single_value_score: float) -> dict[int, float]:
+    if not values:
+        return {}
+    if len(values) == 1:
+        return {values[0][0]: single_value_score}
+
+    sorted_values = sorted(values, key=lambda item: item[1])
+    ranks: dict[int, float] = {}
+    cursor = 0
+    while cursor < len(sorted_values):
+        end = cursor + 1
+        while end < len(sorted_values) and sorted_values[end][1] == sorted_values[cursor][1]:
+            end += 1
+        average_rank = (cursor + end - 1) / 2
+        percentile = average_rank / (len(sorted_values) - 1) * 100
+        for index in range(cursor, end):
+            ranks[sorted_values[index][0]] = percentile
+        cursor = end
+    return ranks
+
+
 def _maturity_score(duration: float) -> float:
     if duration <= 1:
         return 20.0
@@ -315,6 +377,18 @@ def _bucket(funding_score: float, rank_pct: float) -> str:
         return "strong"
     if rank_pct <= 0.30:
         return "watch"
+    return "neutral"
+
+
+def _velocity_bucket(leverage_velocity_score: float) -> str:
+    if leverage_velocity_score >= 70:
+        return "fast_leveraging"
+    if leverage_velocity_score > 0:
+        return "leveraging"
+    if leverage_velocity_score <= -70:
+        return "fast_deleveraging"
+    if leverage_velocity_score < 0:
+        return "deleveraging"
     return "neutral"
 
 

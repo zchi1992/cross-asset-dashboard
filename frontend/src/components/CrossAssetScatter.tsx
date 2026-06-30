@@ -18,6 +18,7 @@ type Props = {
   scoreRanges: {
     rs_score: number[];
     funding_score: number[];
+    leverage_velocity_score: number[];
     trend_score: number[];
   };
   attentionTags: Map<string, string>;
@@ -108,7 +109,9 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             `Trend Score: ${item.trend_score.toFixed(2)}`,
             `RS Score: ${item.rs_score.toFixed(2)}`,
             `RS State: ${item.rs_state}`,
-            `Funding Score: ${item.funding_score.toFixed(2)}`,
+            `Leverage Value: ${item.leverage_value.toFixed(2)}`,
+            `Leverage Velocity: ${item.leverage_velocity.toFixed(2)}`,
+            `Velocity Score: ${item.leverage_velocity_score.toFixed(2)}`,
             `Funding State: ${item.funding_state}`,
           ].join("<br/>");
         },
@@ -127,7 +130,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         nameTextStyle: { color: "#e8a33a", fontSize: 12 },
       },
       yAxis: {
-        name: "Funding Score",
+        name: "Leverage Value",
         min: yRange[0],
         max: yRange[1],
         splitNumber: 8,

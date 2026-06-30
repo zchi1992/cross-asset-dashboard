@@ -1,10 +1,12 @@
 export type FundingState = "Leveraging" | "Deleveraging";
 export type RelativeStrengthState = "Lag" | "Weakening" | "Improving" | "Lead";
+export type VelocityFilter = "All" | "Fast Leveraging" | "Fast Deleveraging" | "Active";
 
 export type ConfigResponse = {
   score_ranges: {
     rs_score: [number, number] | number[];
     funding_score: [number, number] | number[];
+    leverage_velocity_score: [number, number] | number[];
     trend_score: [number, number] | number[];
   };
   default_filters: {
@@ -37,6 +39,9 @@ export type SnapshotItem = {
   rs_state: RelativeStrengthState;
   funding_score: number;
   funding_state: FundingState;
+  leverage_value: number;
+  leverage_velocity: number;
+  leverage_velocity_score: number;
   trend_state?: string | null;
   monthly_trend?: string | null;
   weekly_trend?: string | null;

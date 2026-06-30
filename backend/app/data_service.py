@@ -32,6 +32,7 @@ def load_config_response(config_path: str | Path | None = None) -> ConfigRespons
         score_ranges=ScoreRanges(
             rs_score=_score_range(rows, "rs_score", default=[-100, 100]),
             funding_score=_score_range(rows, "flow_score", default=[-100, 100], lower_quantile=0.005, upper_quantile=0.995),
+            leverage_velocity_score=_score_range(rows, "leverage_velocity_score", default=[-100, 100]),
             trend_score=[-100, 100],
         ),
         default_filters=DefaultFilters(
@@ -175,6 +176,9 @@ def _to_snapshot_item(row: dict) -> SnapshotItem:
         rs_state=str(row["rs_state"]),
         funding_score=float(row["flow_score"]),
         funding_state=str(row["flow_state"]),
+        leverage_value=float(row["leverage_value"]),
+        leverage_velocity=float(row["leverage_velocity"]),
+        leverage_velocity_score=float(row["leverage_velocity_score"]),
         trend_state=str(row.get("trend_state") or ""),
         monthly_trend=str(row.get("monthly_trend") or ""),
         weekly_trend=str(row.get("weekly_trend") or ""),

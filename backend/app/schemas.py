@@ -19,6 +19,7 @@ class ReadinessResponse(BaseModel):
 class ScoreRanges(BaseModel):
     rs_score: list[float] = Field(default_factory=lambda: [-100, 100])
     funding_score: list[float] = Field(default_factory=lambda: [-100, 100])
+    leverage_velocity_score: list[float] = Field(default_factory=lambda: [-100, 100])
     trend_score: list[float] = Field(default_factory=lambda: [-100, 100])
 
 
@@ -66,6 +67,9 @@ class SnapshotItem(BaseModel):
     rs_state: str
     funding_score: float
     funding_state: str
+    leverage_value: float
+    leverage_velocity: float
+    leverage_velocity_score: float
     trend_state: str | None = None
     monthly_trend: str | None = None
     weekly_trend: str | None = None
