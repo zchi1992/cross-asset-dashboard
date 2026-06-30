@@ -1,137 +1,121 @@
-# 知识星球数据采集
+# Cross Asset Dashboard
 
-本项目实现一条本地数据流水线：
+本项目是一套本地跨资产观察终端：从知识星球附件下载每日 Excel，解析为资产级 long-format
+序列，计算趋势、相对强度和资金行为派生指标，并通过 FastAPI + React/ECharts 提供可回放的
+Local Asset Terminal。
 
-- 按文件名筛选知识星球附件
-- 下载并按日期归档原始 Excel
-- 解析首个工作表
-- 将指标映射成英文 `metric_name`
-- 分别写入 `data/series/core/` 和 `data/series/instruments/`
+## 当前能力
+
+- 知识星球数据采集：初始化 Cookie、单次轮询、后台 worker、失败下载重试、历史附件回填。
+- Excel 解析与归档：按日期保存原始文件，解析核心数据集和押注工具数据集。
+- 标准化序列存储：生成 `data/series/{core,instruments}/` 下的资产 long-format CSV。
+- 派生指标构建：生成 `data/processed/series/{core,instruments}/`，包含趋势评分、相对比价评分和资金领先评分。
+- Local Asset Terminal：通过散点图查看资产强弱、资金状态、杠杆速度、候选标签、时间回放和资产详情。
+- 后端 API：提供健康检查、配置、日期、资产列表、单日快照和全历史回放接口。
+- Notebook 分析：`analyses/notebooks/` 保存可版本管理的 Python 分析 notebook。
+- macOS 自动运行：提供 `launchd` 配置，在工作日定时执行日常轮询。
 
 ## 快速开始
 
-0. 创建虚拟环境并安装依赖：
+### 1. 安装 Python 依赖
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python3 -m pip install -r requirements.txt
 ```
 
-1. 初始化会话配置：
+如本机使用 `uv` 管理 Python，也可以用项目虚拟环境中的 Python 执行后续命令。
+
+### 2. 安装前端依赖
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 3. 初始化知识星球会话
 
 ```bash
 .venv/bin/python3 zsxq.py auth init
 ```
 
-2. 用本地样例验证解析和时序汇总：
+命令会提示输入知识星球 Cookie 和 User-Agent，并保存到 `state/session.json`。如果只粘贴
+token，建议使用 `zsxq_access_token=<value>` 这种 Cookie 形式。
+
+### 4. 生成本地数据
+
+用样例文件验证解析和派生指标：
 
 ```bash
 .venv/bin/python3 zsxq.py reparse examples
 ```
 
-3. 查看生成结果：
-
-```bash
-find data -maxdepth 3 -type f | sort
-```
-
-4. 启动 Local Asset Terminal：
-
-```bash
-cd frontend && npm install && npm run build && cd ..
-scripts/run_market_map_dashboard.sh
-```
-
-本机浏览器访问：
-
-```text
-http://127.0.0.1:8000
-```
-
-如需开发模式，可分别启动后端和 Vite 前端：
-
-```bash
-.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
-cd frontend && npm run dev
-```
-
-5. 轮询知识星球：
+拉取线上数据：
 
 ```bash
 .venv/bin/python3 zsxq.py poll once
-.venv/bin/python3 zsxq.py worker run
 ```
 
-## 自动运行
-
-已提供 macOS `launchd` 配置，可在北京时间工作日每天 18:00 运行一次单次轮询：
-
-```bash
-scripts/install_launchd.sh
-```
-
-安装后会加载 `com.chizhi.zsxq.daily-poll`，实际执行 `scripts/run_daily_poll.sh`。日志写入：
-
-- `logs/daily-poll.out.log`
-- `logs/daily-poll.err.log`
-
-如需取消自动运行：
-
-```bash
-scripts/uninstall_launchd.sh
-```
-
-6. 回填历史数据（默认从 2026-05-08 开始）：
+回填历史附件，默认从 `2026-05-08` 开始：
 
 ```bash
 .venv/bin/python3 zsxq.py backfill history
 .venv/bin/python3 zsxq.py backfill history --since 2026-05-08 --max-pages 100
 ```
 
-`backfill history` 会优先使用知识星球网页版的文件搜索接口，按 `filename_filter.include_patterns` 中的关键词检索历史附件，再下载符合条件的 `.xlsx/.xls` 文件。
+重试失败下载：
 
-## 配置
+```bash
+.venv/bin/python3 zsxq.py retry failed-downloads
+```
 
-默认配置位于 `config.yaml`。当前环境未安装 YAML 解析库，因此该文件使用 JSON 兼容写法保存；文件扩展名依然是 `.yaml`，后续安装 `PyYAML` 后可无缝切换到普通 YAML 风格。
+### 5. 启动终端
 
-## 目录结构
+构建前端并启动一体化本地服务：
 
-- `data/raw/YYYY-MM-DD/`：原始 Excel 归档
-- `data/series/core/`：核心数据集资产序列
-- `data/series/instruments/`：押注工具资产序列
+```bash
+cd frontend && npm run build && cd ..
+scripts/run_market_map_dashboard.sh
+```
 
-资产序列文件只保留以下列：
+访问：
 
-- `date`
-- `dataset_type`
-- `asset_code`
-- `asset_name`
-- `metric_name`
-- `metric_value`
+```text
+http://127.0.0.1:8000
+```
 
-## 存储格式
+开发模式可以分开启动后端和 Vite：
 
-- 资产序列默认写为 `csv`，避免运行环境安装额外依赖后改变输出格式
-- `SeriesStore` 仍保留显式 `backend="parquet"` 能力，供后续需要时单独接入
+```bash
+.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+cd frontend && npm run dev
+```
 
-## 派生指标计算
+## 数据流
 
-信号计算模块放在 `src/zsxq_pipeline/signals/`。输入读取 `data/series/core/` 和
-`data/series/instruments/` 中的每资产 long format 序列，输出到：
+```text
+知识星球附件
+  -> data/raw/YYYY-MM-DD/*.xlsx
+  -> data/series/core/*.csv
+  -> data/series/instruments/*.csv
+  -> data/processed/series/core/*.csv
+  -> data/processed/series/instruments/*.csv
+  -> FastAPI API
+  -> React Local Asset Terminal
+```
 
-- `data/processed/series/core/`
-- `data/processed/series/instruments/`
+原始和加工后的资产序列都采用 long format：
 
-processed 文件仍采用现有 schema：
+```text
+date,dataset_type,asset_code,asset_name,metric_name,metric_value
+```
 
-- `date`
-- `dataset_type`
-- `asset_code`
-- `asset_name`
-- `metric_name`
-- `metric_value`
+`data/`、`state/`、`logs/` 和前端构建产物属于本地运行状态，默认不提交到 Git。
 
-批量构建入口：
+## 派生指标
+
+派生指标入口位于 `src/zsxq_pipeline/signals/processed_series.py`：
 
 ```python
 from pathlib import Path
@@ -141,254 +125,150 @@ from src.zsxq_pipeline.signals import build_processed_series_with_trend_scores
 build_processed_series_with_trend_scores(Path("data"))
 ```
 
-构建时会跳过字段不完整或为空的日期，避免单个脏日期阻断整批输出；纯计算函数会对缺失字段和无法识别的状态值抛出
-`ValueError`，便于测试和调试。
-
-### 原始字段映射
-
-Excel 中的中文指标会先映射为英文 `metric_name`。这些字段是派生计算的主要输入：
-
-| 原始中文指标 | 英文字段 | 用途 |
-|---|---|---|
-| 日级别趋势 | `daily_trend` | 趋势评分输入 |
-| 日级别趋势持续时间 | `daily_trend_duration`，计算时归一为 `daily_trend_bars` | 趋势评分输入 |
-| 周级别趋势 | `weekly_trend` | 趋势评分输入 |
-| 周级别趋势持续时间 | `weekly_trend_duration`，计算时归一为 `weekly_trend_bars` | 趋势评分输入 |
-| 月级别趋势 | `monthly_trend` | 趋势评分输入 |
-| 月级别趋势持续时间 | `monthly_trend_duration`，计算时归一为 `monthly_trend_bars` | 趋势评分输入 |
-| 相对强度 | `relative_strength` | 比价评分输入 |
-| 强度动量 | `strength_momentum` | 比价评分输入 |
-| 早期转折 | `early_reversal` | 比价评分输入 |
-| 当前比价状态 | `current_relative_state` | 比价评分输入；资金评分也会使用同名字段 |
-| 当前比价状态持续时间 | `current_relative_state_duration` | 比价评分输入；资金评分也会使用同名字段 |
-| 当前比价状态涨幅 | `current_relative_state_return` | 资金评分输入 |
-| 此前比价状态 | `previous_relative_state` | 比价评分输入；资金评分也会使用同名字段 |
-| 此前比价状态持续时间 | `previous_relative_state_duration` | 比价评分输入；资金评分也会使用同名字段 |
-| 此前比价状态涨幅 | `previous_relative_state_return` | 资金评分输入 |
-| 当前杠杆资金状态 | `current_leverage_state` | 资金评分输入 |
-| 当前杠杆资金状态持续时间 | `current_leverage_state_duration` | 资金评分输入 |
-| 当前杠杆资金状态涨幅 | `current_leverage_state_return` | 资金评分输入 |
-| 此前杠杆资金状态 | `previous_leverage_state` | 资金评分输入 |
-| 此前杠杆资金状态涨幅 | `previous_leverage_state_return` | 资金评分输入 |
-| 杠杆资金数值 | `leverage_value` | 资金评分输入，表示杠杆资金水平 |
-| 杠杆资金相比前日变动 | `leverage_value_change_d1` | 资金评分输入，表示杠杆资金日变化 |
-
-趋势状态会归一为 `up`、`neutral`、`down`。比价状态会归一为 `Lead`、`Weakening`、`Improving`、`Lag`。
-
-### 趋势派生指标
+### 趋势评分
 
 实现位置：`src/zsxq_pipeline/signals/trend_score.py`
 
-趋势评分使用月、周、日三个频率。权重为：
+- 输入：日、周、月趋势及持续时间。
+- 趋势归一：`up`、`neutral`、`down`。
+- 权重：月线 `3`、周线 `2`、日线 `1`。
+- 输出：趋势组合、中文趋势状态、持续时间成熟度、当前趋势分、变化分和总趋势分。
 
-- 月线：`3`
-- 周线：`2`
-- 日线：`1`
-
-趋势值映射为：
-
-- `up = 1`
-- `neutral = 0`
-- `down = -1`
-
-成熟周期阈值为：
-
-- 月线：`6`
-- 周线：`12`
-- 日线：`20`
-
-输出字段：
-
-| 派生指标 | 含义 |
-|---|---|
-| `monthly_trend` | 归一后的月线趋势，取值 `up/neutral/down` |
-| `weekly_trend` | 归一后的周线趋势，取值 `up/neutral/down` |
-| `daily_trend` | 归一后的日线趋势，取值 `up/neutral/down` |
-| `trend_combo` | 三频趋势组合，格式为 `monthly/weekly/daily`，例如 `up/neutral/down` |
-| `state_name` | 根据 `trend_combo` 映射出的中文趋势状态，例如 `主升浪`、`震荡下探` |
-| `monthly_trend_bars` | 当前月线趋势持续时间 |
-| `weekly_trend_bars` | 当前周线趋势持续时间 |
-| `daily_trend_bars` | 当前日线趋势持续时间 |
-| `monthly_duration_multiplier` | 月线持续时间成熟度因子 |
-| `weekly_duration_multiplier` | 周线持续时间成熟度因子 |
-| `daily_duration_multiplier` | 日线持续时间成熟度因子 |
-| `raw_current_score` | 当前三频方向原始分：`月线值*3 + 周线值*2 + 日线值*1` |
-| `current_score` | 当前三频方向百分制分：`raw_current_score / 6 * 100` |
-| `raw_duration_score` | 带持续时间成熟度的原始分 |
-| `duration_score` | 带持续时间成熟度的百分制分：`raw_duration_score / 12 * 100` |
-| `raw_transition_score` | 相比上一日期的三频变化原始分 |
-| `transition_score` | 相比上一日期的三频变化百分制分：`raw_transition_score / 12 * 100` |
-| `decayed_transition_score` | 当前等于 `transition_score`，预留给后续衰减逻辑 |
-| `raw_final_trend_score` | 趋势总分：`duration_score + 0.4 * decayed_transition_score` |
-| `capped_final_trend_score` | 截断后的趋势总分，限制在 `[-100, 100]` |
-| `transition_label` | 对本期趋势变化的中文描述，例如 `日线趋势转弱`；无变化时为空 |
-
-`state_name` 的核心映射示例：
-
-| `trend_combo` | `state_name` |
-|---|---|
-| `up/up/up` | `主升浪` |
-| `up/up/down` | `主升回调` |
-| `up/neutral/neutral` | `上行中继震荡` |
-| `neutral/neutral/neutral` | `静默` |
-| `neutral/neutral/down` | `震荡下探` |
-| `down/down/down` | `主跌浪` |
-
-完整映射见 `STATE_NAMES`。
-
-### 相对比价派生指标
+### 相对比价评分
 
 实现位置：`src/zsxq_pipeline/signals/relative_strength.py`
 
-比价评分使用四类输入：
+- 输入：`early_reversal`、`strength_momentum`、`relative_strength`、当前/此前比价状态及持续时间。
+- 状态归一：`Lead`、`Weakening`、`Improving`、`Lag`。
+- 输出：`rs_score`、状态切换、切换基础分、新鲜度因子、前状态成熟度等。
 
-- `early_reversal`
-- `strength_momentum`
-- `relative_strength`
-- 当前/此前比价状态及持续时间
-
-综合分权重：
-
-- `early_reversal`: `20%`
-- `strength_momentum`: `30%`
-- `relative_strength`: `35%`
-- `transition_score`: `15%`
-
-输出字段：
-
-| 派生指标 | 含义 |
-|---|---|
-| `rs_score` | 综合比价强度分 |
-| `early_reversal` | 原始早期转折分 |
-| `strength_momentum` | 原始强度动量分 |
-| `relative_strength` | 原始相对强度分 |
-| `current_relative_state` | 当前比价状态，取值 `Lead/Weakening/Improving/Lag` |
-| `previous_relative_state` | 此前比价状态 |
-| `current_state_duration` | 当前比价状态持续时间 |
-| `previous_state_duration` | 此前比价状态持续时间 |
-| `base_transition_score` | 由“此前状态 -> 当前状态”映射得到的基础跃迁分 |
-| `state_transition` | 状态跃迁，格式如 `Lag->Improving` |
-| `relative_signal_type` | 状态跃迁类型标签 |
-| `freshness_factor` | 当前状态新鲜度因子，公式为 `exp(-(current_duration - 1) / 5)` |
-| `previous_maturity_factor` | 此前状态成熟度因子，公式为 `min(previous_duration / 15, 1)` |
-| `transition_score` | 状态跃迁分：`base_transition_score * freshness_factor * previous_maturity_factor` |
-
-常用状态跃迁解释：
-
-| 跃迁 | `base_transition_score` | `relative_signal_type` | 解释 |
-|---|---:|---|---|
-| `Lag->Lead` | `120` | `strong_reversal_to_lead` | 从落后直接转领先，强反转 |
-| `Lag->Improving` | `100` | `low_level_improvement` | 低位改善 |
-| `Improving->Lead` | `100` | `improvement_confirmed` | 改善确认进入领先 |
-| `Lead->Improving` | `30` | `leadership_cooling_but_positive` | 领先降温但仍偏正 |
-| `Improving->Lag` | `-90` | `reversal_failed_to_lag` | 改善失败回落 |
-| `Lead->Lag` | `-120` | `leadership_collapse` | 领先坍塌 |
-
-`rs_score` 公式：
-
-```text
-rs_score =
-  0.20 * early_reversal
-  + 0.30 * strength_momentum
-  + 0.35 * relative_strength
-  + 0.15 * transition_score
-```
-
-### 资金信号派生指标
+### 资金领先评分
 
 实现位置：`src/zsxq_pipeline/signals/funding_lead_score.py`
 
-资金模块 V1 输出的是“资金方向 + 资金信号强度”，不是单纯的“杠杆资金水平”。这一版不再使用比价状态回报，也不再用比价回报变化参与资金分计算；资金分只来自杠杆资金自身：
+- 输入：当前杠杆资金状态、持续时间、杠杆资金数值及可选的日变化。
+- 计算：1/5/10 日杠杆速度、速度分位、成熟度、长短方向资金分。
+- 输出：`funding_score`、`leverage_velocity_score`、信号方向、强度、排名和分桶。
 
-- `Position`：当前 `杠杆资金数值` 在同一日期全资产池中的横截面位置。
-- `Velocity`：`杠杆资金数值` 的 1D、5D、10D 变化速度。
-- `Maturity`：当前 `加杠杆` 或 `去杠杆` 状态已经持续的时间。
+## Local Asset Terminal
 
-因此，一个资产即使处于 `去杠杆`，`funding_signal_strength` 也可以很高；这表示“去杠杆/偏空资金信号很强”，不是“杠杆水平很高”。
+终端前端位于 `frontend/src/`，后端 API 位于 `backend/app/`。主界面支持：
 
-输出字段：
+- 资产类别切换：`core` / `instruments`。
+- 资金状态筛选：`Leveraging` / `Deleveraging`。
+- 相对强度状态筛选：`Lag`、`Weakening`、`Improving`、`Lead`。
+- 杠杆速度筛选：全部、快速加杠杆、快速去杠杆、活跃。
+- 资产代码或名称搜索。
+- 时间轴回放、播放速度控制、跳到首日/前日/后日/最新日。
+- 点击资产查看详情、趋势历史、候选标签和指标轨迹。
 
-| 派生指标 | 含义 |
+后端会挂载 `frontend/dist`，因此生产式本地访问只需要启动 FastAPI 服务。
+
+## API
+
+本地服务默认运行在 `http://127.0.0.1:8000`。
+
+| Endpoint | 说明 |
 |---|---|
-| `funding_current_leverage_state` | 当前杠杆资金状态，必须为 `加杠杆` 或 `去杠杆` |
-| `funding_current_leverage_state_duration` | 当前杠杆资金状态持续时间 |
-| `funding_leverage_value` | 原始杠杆资金数值 |
-| `position_score` | 同一日期全资产横截面 percentile rank，范围 `0~100` |
-| `velocity_1d` / `velocity_5d` / `velocity_10d` | 当前杠杆资金数值相对 1/5/10 个历史观测日前的变化 |
-| `long_velocity_*_score` | 对 velocity 做横截面 percentile rank；velocity 越高，long 分越高 |
-| `short_velocity_*_score` | 对 `-velocity` 做横截面 percentile rank；velocity 越负，short 分越高 |
-| `long_velocity_score` | 1D/5D/10D long velocity 综合分，权重 `0.2/0.5/0.3`，缺失窗口会重归一 |
-| `short_velocity_score` | 1D/5D/10D short velocity 综合分，权重同上 |
-| `velocity_window_count` | 当前资金分实际使用的 velocity 窗口数量 |
-| `maturity_score` | 状态持续时间得分；`5~10` 天为 `100`，过短或过长都会降低 |
-| `long_funding_score` | 当前为 `加杠杆` 时的做多资金分，否则为空 |
-| `short_funding_score` | 当前为 `去杠杆` 时的做空资金分，否则为空 |
-| `funding_direction` | 新资金方向；`加杠杆 -> long`，`去杠杆 -> short` |
-| `funding_score` | 当前方向上的资金机会强度，范围 `0~100` |
-| `funding_signal_direction` | 资金信号方向；`加杠杆 -> long_candidate`，`去杠杆 -> short_candidate` |
-| `funding_signal_strength` | 兼容旧 dashboard 的强度字段，等于 `funding_score` |
-| `funding_signal_rank` | 同一日期、同一数据集、同一方向内的排名 |
-| `funding_signal_rank_pct` | 排名百分位，`rank / 同方向资产数` |
-| `funding_signal_bucket` | 分层标签，取值 `strong/watch/neutral/weak` |
+| `GET /api/health` | 服务健康检查 |
+| `GET /api/config` | 终端筛选、分数范围和回放配置 |
+| `GET /api/dates` | 可用交易日期 |
+| `GET /api/assets` | 最新资产元数据 |
+| `GET /api/snapshot?date=YYYY-MM-DD` | 指定日期资产快照 |
+| `GET /api/playback?start=YYYY-MM-DD&end=YYYY-MM-DD` | 日期区间回放帧 |
 
-资金信号方向：
+示例：
 
-| 原始杠杆状态 | `funding_signal_direction` | 解读 |
-|---|---|---|
-| `加杠杆` | `long_candidate` | 偏多资金信号 |
-| `去杠杆` | `short_candidate` | 偏空资金信号 |
-
-资金分公式：
-
-```text
-long_funding_score =
-  0.4 * long_velocity_score
-  + 0.4 * maturity_score
-  + 0.2 * (100 - position_score)
-
-short_funding_score =
-  0.4 * short_velocity_score
-  + 0.4 * maturity_score
-  + 0.2 * position_score
-
-funding_signal_strength = funding_score =
-  long_funding_score  if funding_direction == "long"
-  short_funding_score if funding_direction == "short"
+```bash
+curl -s http://127.0.0.1:8000/api/health
+curl -s http://127.0.0.1:8000/api/dates
+curl -s "http://127.0.0.1:8000/api/snapshot?date=2026-06-18"
 ```
 
-资金排名逻辑：
+## 配置
 
-1. 同一 `dataset_type`、同一日期内计算横截面 percentile rank。
-2. 按 `funding_direction` 分组，分别排名。
-3. 排名优先级依次为 `funding_score` 高者优先、`velocity_window_count` 多者优先、`asset_code` 字典序。
-4. `funding_signal_bucket`：
-   - `funding_score <= 0` 或 `rank_pct > 0.70`：`weak`
-   - `rank_pct <= 0.10`：`strong`
-   - `rank_pct <= 0.30`：`watch`
-   - 其他：`neutral`
+默认配置文件是 `config.yaml`。主要配置项包括：
 
-### Dashboard 字段对应关系
+- `storage_root`：数据根目录，默认 `data`。
+- `filename_filter`：知识星球附件文件名匹配规则。
+- `market_map.dataset_types`：终端读取的数据集，默认 `core` 和 `instruments`。
+- `market_map.fields`：终端所需指标字段映射。
+- `market_map.thresholds`：多头/空头候选标签阈值。
+- `poll_interval_seconds`：worker 轮询间隔。
 
-Local Asset Terminal 的 market map 从 processed 字段中取以下字段：
+## 自动运行
 
-| 页面字段 | processed 字段 | 说明 |
-|---|---|---|
-| 趋势分 | `capped_final_trend_score` | 图中颜色和 panel 趋势分 |
-| 趋势状态 | `state_name` | panel 趋势状态 |
-| 短/中/长频 | `daily_trend` / `weekly_trend` / `monthly_trend` | panel 三频趋势 |
-| 比价强度 | `rs_score` | 横轴 |
-| 比价状态 | `current_relative_state` | 过滤和 panel 状态 |
-| 资金信号强度 | `funding_signal_strength` | 纵轴；不是杠杆水平 |
-| 资金方向 | `funding_signal_direction` | `long_candidate` 映射为 `Leveraging`，`short_candidate` 映射为 `Deleveraging` |
+安装 macOS `launchd` 定时任务：
 
-后续阅读 panel 时建议同时看“资金方向”和“资金信号强度”：
-
-```text
-Leveraging + 高资金信号强度   = 加杠杆方向强信号
-Deleveraging + 高资金信号强度 = 去杠杆方向强信号
+```bash
+scripts/install_launchd.sh
 ```
 
-## 当前实现范围
+它会加载 `com.chizhi.zsxq.daily-poll`，在北京时间工作日 18:00 执行
+`scripts/run_daily_poll.sh`。日志写入：
 
-- 已实现：配置、筛选、样例 Excel 解析、英文指标映射、分目录时序汇总、下载元数据记录、会话存储、远端客户端骨架
-- 未验证：真实知识星球接口字段形状和下载 URL 细节，需要你填入有效 `cookie` 后联调
+- `logs/daily-poll.out.log`
+- `logs/daily-poll.err.log`
+
+卸载：
+
+```bash
+scripts/uninstall_launchd.sh
+```
+
+## Notebook 分析
+
+分析 notebook 放在 `analyses/notebooks/`。当前包含：
+
+- `relative_state_turning_points.ipynb`：分析早期转折、强度动量、相对强度与当前比价状态变化的关系。
+
+Notebook 读取本地 `data/processed/series/`，因此可以版本管理分析逻辑，而不提交本地数据。
+
+## 测试与构建
+
+Python 测试：
+
+```bash
+.venv/bin/python3 -m pytest
+```
+
+前端测试与构建：
+
+```bash
+cd frontend
+npm test
+npm run build
+```
+
+常用后端冒烟检查：
+
+```bash
+curl -s http://127.0.0.1:8000/api/health
+curl -s http://127.0.0.1:8000/api/config
+curl -s http://127.0.0.1:8000/api/dates
+```
+
+## 目录结构
+
+```text
+backend/                 FastAPI 服务和 API schema
+dashboard/               终端数据装载、过滤、评分规则和旧版绘图辅助
+frontend/                React + Vite + ECharts Local Asset Terminal
+src/zsxq_pipeline/       知识星球采集、解析、存储和派生指标流水线
+analyses/notebooks/      版本管理的 Python 分析 notebook
+examples/                本地解析样例 Excel
+launchd/                 macOS launchd plist
+scripts/                 启动、定时任务安装和日常运行脚本
+tests/                   Python 单元测试与 API 合约测试
+```
+
+## 故障排查
+
+- `401 Unauthorized`：检查 `state/session.json` 中 Cookie 是否为空，或是否缺少
+  `zsxq_access_token=` 前缀；同时保留浏览器式 User-Agent。
+- 终端没有数据：确认已经执行 `reparse`、`poll once` 或 `backfill history`，并存在
+  `data/processed/series/{core,instruments}/*.csv`。
+- 仪表盘数据看起来不是最新：先对照知识星球最新附件，再执行 `poll once` 或 `backfill history`。
+- 移动仓库后数据异常：检查本地状态文件中是否还有旧绝对路径，必要时重新解析 raw 文件。
+- 前端显示后端离线：确认 `scripts/run_market_map_dashboard.sh` 已启动，或后端开发服务运行在
+  `127.0.0.1:8000`。
