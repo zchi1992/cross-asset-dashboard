@@ -6,6 +6,9 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 2026-06-27,instruments,BBB,Fixture Beta,daily_trend,down
 2026-06-27,instruments,BBB,Fixture Beta,rs_score,-74
 2026-06-27,instruments,BBB,Fixture Beta,current_relative_state,Lag
+2026-06-27,instruments,BBB,Fixture Beta,funding_leverage_value,-55
+2026-06-27,instruments,BBB,Fixture Beta,leverage_velocity,-8
+2026-06-27,instruments,BBB,Fixture Beta,leverage_velocity_score,-66
 2026-06-27,instruments,BBB,Fixture Beta,funding_signal_strength,-55
 2026-06-27,instruments,BBB,Fixture Beta,funding_signal_direction,short_candidate
 2026-06-28,instruments,BBB,Fixture Beta,capped_final_trend_score,-48
@@ -15,5 +18,8 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 2026-06-28,instruments,BBB,Fixture Beta,daily_trend,neutral
 2026-06-28,instruments,BBB,Fixture Beta,rs_score,-35
 2026-06-28,instruments,BBB,Fixture Beta,current_relative_state,Weakening
+2026-06-28,instruments,BBB,Fixture Beta,funding_leverage_value,-24
+2026-06-28,instruments,BBB,Fixture Beta,leverage_velocity,2
+2026-06-28,instruments,BBB,Fixture Beta,leverage_velocity_score,18
 2026-06-28,instruments,BBB,Fixture Beta,funding_signal_strength,-24
 2026-06-28,instruments,BBB,Fixture Beta,funding_signal_direction,short_candidate
