@@ -1,0 +1,19 @@
+date,dataset_type,asset_code,asset_name,metric_name,metric_value
+2026-06-27,instruments,BBB,Fixture Beta,capped_final_trend_score,-72
+2026-06-27,instruments,BBB,Fixture Beta,state_name,主跌浪
+2026-06-27,instruments,BBB,Fixture Beta,monthly_trend,down
+2026-06-27,instruments,BBB,Fixture Beta,weekly_trend,down
+2026-06-27,instruments,BBB,Fixture Beta,daily_trend,down
+2026-06-27,instruments,BBB,Fixture Beta,rs_score,-74
+2026-06-27,instruments,BBB,Fixture Beta,current_relative_state,Lag
+2026-06-27,instruments,BBB,Fixture Beta,funding_signal_strength,-55
+2026-06-27,instruments,BBB,Fixture Beta,funding_signal_direction,short_candidate
+2026-06-28,instruments,BBB,Fixture Beta,capped_final_trend_score,-48
+2026-06-28,instruments,BBB,Fixture Beta,state_name,震荡下探
+2026-06-28,instruments,BBB,Fixture Beta,monthly_trend,down
+2026-06-28,instruments,BBB,Fixture Beta,weekly_trend,neutral
+2026-06-28,instruments,BBB,Fixture Beta,daily_trend,neutral
+2026-06-28,instruments,BBB,Fixture Beta,rs_score,-35
+2026-06-28,instruments,BBB,Fixture Beta,current_relative_state,Weakening
+2026-06-28,instruments,BBB,Fixture Beta,funding_signal_strength,-24
+2026-06-28,instruments,BBB,Fixture Beta,funding_signal_direction,short_candidate

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from pathlib import Path
 
 from dashboard.config import load_dashboard_config
@@ -10,12 +11,22 @@ from .schemas import AssetMetadata, ConfigResponse, DefaultFilters, PlaybackSett
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+CONFIG_PATH_ENV = "CROSS_ASSET_CONFIG_PATH"
 FUNDING_STATES = ["Leveraging", "Deleveraging"]
 RS_STATES = ["Lag", "Weakening", "Improving", "Lead"]
 
 
-def load_config_response() -> ConfigResponse:
-    rows = load_rows()
+def resolve_config_path(config_path: str | Path | None = None) -> Path:
+    if config_path is not None:
+        return Path(config_path).expanduser().resolve()
+    configured = os.environ.get(CONFIG_PATH_ENV)
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return (REPO_ROOT / "config.yaml").resolve()
+
+
+def load_config_response(config_path: str | Path | None = None) -> ConfigResponse:
+    rows = load_rows(config_path)
     asset_classes = sorted({str(row["asset_class"]) for row in rows}) or ["core", "instruments"]
     return ConfigResponse(
         score_ranges=ScoreRanges(
@@ -35,17 +46,31 @@ def load_config_response() -> ConfigResponse:
     )
 
 
-def load_rows() -> tuple[dict, ...]:
-    dashboard_config = load_dashboard_config(REPO_ROOT / "config.yaml")
-    signature = _data_signature(dashboard_config.storage_root, dashboard_config.market_map)
-    return _load_rows_cached(signature)
+def load_rows(config_path: str | Path | None = None) -> tuple[dict, ...]:
+    resolved_path, signature = _cache_context(config_path)
+    return _load_rows_cached(str(resolved_path), signature)
 
 
 @lru_cache(maxsize=4)
-def _load_rows_cached(_signature: tuple) -> tuple[dict, ...]:
-    dashboard_config = load_dashboard_config(REPO_ROOT / "config.yaml")
+def _load_rows_cached(config_path: str, _signature: tuple) -> tuple[dict, ...]:
+    dashboard_config = load_dashboard_config(config_path)
     rows = load_market_map_rows(dashboard_config.storage_root, dashboard_config.market_map)
     return tuple(rows)
+
+
+def _cache_context(config_path: str | Path | None = None) -> tuple[Path, tuple]:
+    resolved_path = resolve_config_path(config_path)
+    dashboard_config = load_dashboard_config(resolved_path)
+    signature = (
+        _file_signature(resolved_path),
+        _data_signature(dashboard_config.storage_root, dashboard_config.market_map),
+    )
+    return resolved_path, signature
+
+
+def _file_signature(path: Path) -> tuple[str, int, int]:
+    stat = path.stat()
+    return (str(path), stat.st_mtime_ns, stat.st_size)
 
 
 def _data_signature(storage_root: str | Path, market_map_config: dict) -> tuple:
@@ -66,13 +91,13 @@ def _data_signature(storage_root: str | Path, market_map_config: dict) -> tuple:
     return tuple(parts)
 
 
-def get_dates() -> list[str]:
-    return available_dates(list(load_rows()))
+def get_dates(config_path: str | Path | None = None) -> list[str]:
+    return available_dates(list(load_rows(config_path)))
 
 
-def get_assets() -> list[AssetMetadata]:
+def get_assets(config_path: str | Path | None = None) -> list[AssetMetadata]:
     latest_by_symbol: dict[str, AssetMetadata] = {}
-    for row in load_rows():
+    for row in load_rows(config_path):
         symbol = str(row["asset_id"])
         latest_by_symbol[symbol] = AssetMetadata(
             symbol=symbol,
@@ -82,18 +107,62 @@ def get_assets() -> list[AssetMetadata]:
     return sorted(latest_by_symbol.values(), key=lambda asset: (asset.asset_class, asset.symbol))
 
 
-def get_snapshot(date: str) -> list[SnapshotItem]:
-    return [_to_snapshot_item(row) for row in load_rows() if row["date"] == date]
+def get_snapshot(date: str, config_path: str | Path | None = None) -> list[SnapshotItem]:
+    return list(_load_frames(config_path)[1].get(date, []))
 
 
-def get_playback(start: str | None, end: str | None) -> tuple[list[str], dict[str, list[SnapshotItem]]]:
-    dates = get_dates()
+def get_playback(
+    start: str | None,
+    end: str | None,
+    config_path: str | Path | None = None,
+) -> tuple[list[str], dict[str, list[SnapshotItem]]]:
+    dates, all_frames = _load_frames(config_path)
     if start is not None:
         dates = [date for date in dates if date >= start]
     if end is not None:
         dates = [date for date in dates if date <= end]
-    frames = {date: get_snapshot(date) for date in dates}
+    frames = {date: all_frames.get(date, []) for date in dates}
     return dates, frames
+
+
+def _load_frames(
+    config_path: str | Path | None = None,
+) -> tuple[list[str], dict[str, list[SnapshotItem]]]:
+    resolved_path, signature = _cache_context(config_path)
+    return _load_frames_cached(str(resolved_path), signature)
+
+
+@lru_cache(maxsize=4)
+def _load_frames_cached(
+    config_path: str,
+    signature: tuple,
+) -> tuple[list[str], dict[str, list[SnapshotItem]]]:
+    frames: dict[str, list[SnapshotItem]] = {}
+    for row in _load_rows_cached(config_path, signature):
+        date = str(row["date"])
+        frames.setdefault(date, []).append(_to_snapshot_item(row))
+    return sorted(frames), frames
+
+
+def get_readiness(config_path: str | Path | None = None) -> dict[str, object]:
+    rows = load_rows(config_path)
+    dates = available_dates(list(rows))
+    assets = {str(row["asset_id"]) for row in rows}
+    if not rows or not dates or not assets:
+        return {
+            "status": "not_ready",
+            "reason": "no_processed_data",
+            "date_count": len(dates),
+            "asset_count": len(assets),
+            "latest_date": dates[-1] if dates else None,
+        }
+    return {
+        "status": "ready",
+        "reason": None,
+        "date_count": len(dates),
+        "asset_count": len(assets),
+        "latest_date": dates[-1],
+    }
 
 
 def _to_snapshot_item(row: dict) -> SnapshotItem:

@@ -15,13 +15,21 @@ Terminal。
 - Notebook 分析：`analyses/notebooks/` 保存可版本管理的 Python 分析 notebook。
 - macOS 自动运行：提供 `launchd` 配置，在工作日定时执行日常轮询。
 
+## 工程导航
+
+- [架构与依赖方向](ARCHITECTURE.md)
+- [产品、数据、测试、可靠性与安全文档](docs/index.md)
+- [Dashboard 产品行为](docs/product/dashboard.md)
+- [技术债清单](docs/exec-plans/tech-debt.md)
+
 ## 快速开始
 
-### 1. 安装 Python 依赖
+main
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python3 -m pip install -r requirements.txt
+make check
+make smoke
+make e2e
 ```
 
 如本机使用 `uv` 管理 Python，也可以用项目虚拟环境中的 Python 执行后续命令。
@@ -63,7 +71,7 @@ cd ..
 .venv/bin/python3 zsxq.py backfill history --since 2026-05-08 --max-pages 100
 ```
 
-重试失败下载：
+main
 
 ```bash
 .venv/bin/python3 zsxq.py retry failed-downloads
@@ -221,17 +229,17 @@ scripts/uninstall_launchd.sh
 
 - `relative_state_turning_points.ipynb`：分析早期转折、强度动量、相对强度与当前比价状态变化的关系。
 
-Notebook 读取本地 `data/processed/series/`，因此可以版本管理分析逻辑，而不提交本地数据。
+main
 
 ## 测试与构建
 
-Python 测试：
+main
 
 ```bash
 .venv/bin/python3 -m pytest
 ```
 
-前端测试与构建：
+main
 
 ```bash
 cd frontend

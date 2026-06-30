@@ -7,6 +7,7 @@ import { assetKey, trajectoryForAssetKey } from "../utils/filtering";
 const DENSE_ASSET_THRESHOLD = 250;
 const DENSE_SYMBOL_SIZE = 10;
 const NORMAL_SYMBOL_SIZE = 16;
+const GRID = { left: 66, right: 122, top: 34, bottom: 58 };
 
 type Props = {
   items: SnapshotItem[];
@@ -33,15 +34,24 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   scoreRanges,
   attentionTags,
   onSelect,
-  onClear,
 }: Props) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
+  const axisRangesRef = useRef({ x: [0, 1], y: [0, 1] });
+  const dragRef = useRef<{
+    x: number;
+    y: number;
+    xRange: number[];
+    yRange: number[];
+    moved: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
   const yRange = scoreRanges.funding_score;
   const isDense = items.length >= DENSE_ASSET_THRESHOLD;
 
   const assetData = useMemo(() => {
-    return items.map((item) => ({
+    const visibleItems = selectedSymbol ? items.filter((item) => assetKey(item) === selectedSymbol) : items;
+    return visibleItems.map((item) => ({
       name: assetKey(item),
       value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
       label: {
@@ -69,7 +79,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       backgroundColor: "#000000",
       animation: !isDense,
       animationDurationUpdate: isDense ? 0 : 140,
-      grid: { left: 66, right: 122, top: 34, bottom: 58 },
+      grid: GRID,
       toolbox: {
         right: 18,
         top: 2,
@@ -77,31 +87,9 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         iconStyle: { borderColor: "#e7a23a" },
         emphasis: { iconStyle: { borderColor: "#ffffff" } },
         feature: {
-          dataZoom: {
-            yAxisIndex: "none",
-            title: { zoom: "Zoom", back: "Back" },
-          },
           restore: { title: "Reset Zoom" },
         },
       },
-      dataZoom: [
-        {
-          type: "inside",
-          xAxisIndex: 0,
-          filterMode: "filter",
-          zoomOnMouseWheel: true,
-          moveOnMouseMove: true,
-          throttle: isDense ? 80 : 30,
-        },
-        {
-          type: "inside",
-          yAxisIndex: 0,
-          filterMode: "filter",
-          zoomOnMouseWheel: true,
-          moveOnMouseMove: true,
-          throttle: isDense ? 80 : 30,
-        },
-      ],
       tooltip: {
         trigger: "item",
         triggerOn: isDense ? "click" : "mousemove|click",
@@ -135,7 +123,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         splitLine: { lineStyle: { color: "#46535a", type: "dotted", opacity: 0.72 } },
         axisLine: { lineStyle: { color: "#b9c5c9" } },
         axisTick: { lineStyle: { color: "#b9c5c9" } },
-        axisLabel: { color: "#d8dde0", fontSize: 11 },
+        axisLabel: { color: "#d8dde0", fontSize: 11, formatter: formatAxisLabel },
         nameTextStyle: { color: "#e8a33a", fontSize: 12 },
       },
       yAxis: {
@@ -146,7 +134,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         splitLine: { lineStyle: { color: "#46535a", type: "dotted", opacity: 0.72 } },
         axisLine: { lineStyle: { color: "#b9c5c9" } },
         axisTick: { lineStyle: { color: "#b9c5c9" } },
-        axisLabel: { color: "#d8dde0", fontSize: 11 },
+        axisLabel: { color: "#d8dde0", fontSize: 11, formatter: formatAxisLabel },
         nameTextStyle: { color: "#e8a33a", fontSize: 12 },
       },
       series: [
@@ -212,6 +200,13 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     () => (selectedSymbol && dates.length ? trajectoryForAssetKey(frames, dates, currentIndex, selectedSymbol) : []),
     [currentIndex, dates, frames, selectedSymbol],
   );
+
+  useEffect(() => {
+    axisRangesRef.current = {
+      x: [scoreRanges.rs_score[0], scoreRanges.rs_score[1]],
+      y: [yRange[0], yRange[1]],
+    };
+  }, [scoreRanges.rs_score, yRange]);
 
   const dynamicOption = useMemo<EChartsOption>(() => {
     const selectedItem =
@@ -294,7 +289,17 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   }, []);
 
   useEffect(() => {
-    chartRef.current?.setOption(baseOption, { notMerge: false, lazyUpdate: true });
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.setOption(baseOption, { notMerge: false, lazyUpdate: true });
+    const ranges = axisRangesRef.current;
+    chart.setOption(
+      {
+        xAxis: { min: ranges.x[0], max: ranges.x[1] },
+        yAxis: { min: ranges.y[0], max: ranges.y[1] },
+      },
+      { notMerge: false, lazyUpdate: true },
+    );
   }, [baseOption]);
 
   useEffect(() => {
@@ -304,22 +309,92 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
+    const zr = chart.getZr();
+    const startPan = (event: { offsetX: number; offsetY: number; event?: MouseEvent }) => {
+      if (event.event?.button && event.event.button !== 0) return;
+      dragRef.current = {
+        x: event.offsetX,
+        y: event.offsetY,
+        xRange: [...axisRangesRef.current.x],
+        yRange: [...axisRangesRef.current.y],
+        moved: false,
+      };
+    };
+    const movePan = (event: { offsetX: number; offsetY: number; event?: MouseEvent }) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const dx = event.offsetX - drag.x;
+      const dy = event.offsetY - drag.y;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+      drag.moved = true;
+      const plotWidth = Math.max(chart.getWidth() - GRID.left - GRID.right, 1);
+      const plotHeight = Math.max(chart.getHeight() - GRID.top - GRID.bottom, 1);
+      const xSpan = drag.xRange[1] - drag.xRange[0];
+      const ySpan = drag.yRange[1] - drag.yRange[0];
+      const xShift = -(dx / plotWidth) * xSpan;
+      const yShift = (dy / plotHeight) * ySpan;
+      const nextX = [drag.xRange[0] + xShift, drag.xRange[1] + xShift];
+      const nextY = [drag.yRange[0] + yShift, drag.yRange[1] + yShift];
+      axisRangesRef.current = { x: nextX, y: nextY };
+      setAxisRange(chart, nextX, nextY, false);
+      event.event?.preventDefault();
+    };
+    const endPan = () => {
+      if (dragRef.current?.moved) {
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      }
+      dragRef.current = null;
+    };
+    zr.on("mousedown", startPan);
+    zr.on("mousemove", movePan);
+    zr.on("mouseup", endPan);
+    zr.on("globalout", endPan);
+    return () => {
+      zr.off("mousedown", startPan);
+      zr.off("mousemove", movePan);
+      zr.off("mouseup", endPan);
+      zr.off("globalout", endPan);
+    };
+  }, []);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const resetPan = () => {
+      const nextRanges = {
+        x: [scoreRanges.rs_score[0], scoreRanges.rs_score[1]],
+        y: [yRange[0], yRange[1]],
+      };
+      axisRangesRef.current = nextRanges;
+      setAxisRange(chart, nextRanges.x, nextRanges.y, false);
+    };
+    chart.on("restore", resetPan);
+    return () => {
+      chart.off("restore", resetPan);
+    };
+  }, [scoreRanges.rs_score, yRange]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
     const clickHandler = (params: echarts.ECElementEvent) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
       if (params.seriesId === "assets" || params.seriesId === "selectedAsset") {
         const symbol = String(params.name ?? "");
         if (symbol) onSelect(symbol);
       }
     };
-    const blankHandler = (event: { target?: unknown }) => {
-      if (!event.target) onClear();
-    };
     chart.on("click", clickHandler);
-    chart.getZr().on("click", blankHandler);
     return () => {
       chart.off("click", clickHandler);
-      chart.getZr().off("click", blankHandler);
     };
-  }, [onClear, onSelect]);
+  }, [onSelect]);
 
   return <div ref={elementRef} className="scatter-chart" />;
 });
@@ -334,6 +409,26 @@ function trendGlow(score: number) {
   if (score >= 40) return "rgba(255, 176, 0, 0.72)";
   if (score <= -40) return "rgba(47, 134, 255, 0.72)";
   return "rgba(255, 255, 255, 0.45)";
+}
+
+function formatAxisLabel(value: number | string) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  if (Math.abs(numeric) >= 1000) return numeric.toFixed(0);
+  if (Math.abs(numeric) >= 100) return numeric.toFixed(1);
+  return numeric.toFixed(1).replace(/\.0$/, "");
+}
+
+function setAxisRange(chart: ECharts, xRange: number[], yRange: number[], lazyUpdate: boolean) {
+  chart.setOption(
+    {
+      animation: false,
+      animationDurationUpdate: 0,
+      xAxis: { min: xRange[0], max: xRange[1] },
+      yAxis: { min: yRange[0], max: yRange[1] },
+    },
+    { notMerge: false, lazyUpdate, silent: true },
+  );
 }
 
 function clamp(value: number, range: number[]) {
