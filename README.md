@@ -179,6 +179,30 @@ curl -s http://127.0.0.1:8000/api/dates
 curl -s "http://127.0.0.1:8000/api/snapshot?date=2026-06-18"
 ```
 
+## 自动采集
+
+如果使用仓库内置的知识星球采集流水线，已提供 macOS `launchd` 配置，可在本机时区的工作日每天
+18:00 启动轮询窗口：
+
+```bash
+scripts/install_launchd.sh
+```
+
+安装脚本会把 `launchd/com.chizhi.zsxq.daily-poll.plist` 模板中的 `__PROJECT_DIR__`
+替换为当前 checkout 的绝对路径，然后加载 `com.chizhi.zsxq.daily-poll`。实际执行
+`scripts/run_daily_poll.sh`：默认从 18:00 运行到 23:00，每 1800 秒左右执行一次
+`zsxq.py poll once`，发现新附件后下载、解析并刷新 processed series；dashboard API 和前端会在
+下一次刷新时读到最新文件。日志写入：
+
+- `logs/daily-poll.out.log`
+- `logs/daily-poll.err.log`
+
+如需取消自动运行：
+
+```bash
+scripts/uninstall_launchd.sh
+```
+
 ## 配置
 
 默认配置文件是 `config.yaml`。终端相关配置主要位于：
