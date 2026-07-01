@@ -13,3 +13,4 @@ data/
 logs/
 state/
 scripts/build_core_score_scatter.py
+launchd/*.plist
