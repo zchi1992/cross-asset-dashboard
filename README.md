@@ -179,6 +179,28 @@ curl -s http://127.0.0.1:8000/api/dates
 curl -s "http://127.0.0.1:8000/api/snapshot?date=2026-06-18"
 ```
 
+## 自动运行
+
+macOS 本地可通过 `launchd` 在工作日每天 18:00 启动轮询窗口：
+
+```bash
+scripts/install_launchd.sh
+```
+
+安装脚本会在 `~/Library/LaunchAgents/` 生成 `com.chizhi.zsxq.daily-poll.plist`，
+并加载 `com.chizhi.zsxq.daily-poll`。实际执行 `scripts/run_daily_poll.sh`：默认从
+18:00 运行到 23:00，每 1800 秒左右执行一次 `zsxq.py poll once`，发现新附件后下载、
+解析并刷新 processed series；dashboard API 和前端会在下一次刷新时读到最新文件。日志写入：
+
+- `logs/daily-poll.out.log`
+- `logs/daily-poll.err.log`
+
+如需取消自动运行：
+
+```bash
+scripts/uninstall_launchd.sh
+```
+
 ## 配置
 
 默认配置文件是 `config.yaml`。终端相关配置主要位于：
