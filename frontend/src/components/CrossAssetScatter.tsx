@@ -104,7 +104,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       ],
       tooltip: {
         trigger: "item",
-        triggerOn: isDense ? "click" : "mousemove|click",
+        triggerOn: "mousemove|click",
         backgroundColor: "#050505",
         borderColor: "#b37a22",
         padding: [8, 10],
