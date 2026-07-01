@@ -8,11 +8,11 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/chizhi/Workspace/地平线数据收集/scripts/run_daily_poll.sh</string>
+    <string>__PROJECT_DIR__/scripts/run_daily_poll.sh</string>
   </array>
 
   <key>WorkingDirectory</key>
-  <string>/Users/chizhi/Workspace/地平线数据收集</string>
+  <string>__PROJECT_DIR__</string>
 
   <key>StartCalendarInterval</key>
   <array>
@@ -59,9 +59,9 @@
   </array>
 
   <key>StandardOutPath</key>
-  <string>/Users/chizhi/Workspace/地平线数据收集/logs/daily-poll.out.log</string>
+  <string>__PROJECT_DIR__/logs/daily-poll.out.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/Users/chizhi/Workspace/地平线数据收集/logs/daily-poll.err.log</string>
+  <string>__PROJECT_DIR__/logs/daily-poll.err.log</string>
 </dict>
 </plist>
