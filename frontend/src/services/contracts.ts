@@ -1,6 +1,5 @@
 export type FundingState = "Leveraging" | "Deleveraging";
 export type RelativeStrengthState = "Lag" | "Weakening" | "Improving" | "Lead";
-export type VelocityFilter = "All" | "Fast Leveraging" | "Fast Deleveraging" | "Active";
 
 export type ConfigResponse = {
   score_ranges: {
