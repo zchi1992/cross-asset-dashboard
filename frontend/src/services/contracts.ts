@@ -35,6 +35,9 @@ export type SnapshotItem = {
   asset_class: string;
   trend_score: number;
   rs_score: number;
+  early_reversal: number;
+  strength_momentum: number;
+  relative_strength: number;
   rs_state: RelativeStrengthState;
   funding_score: number;
   funding_state: FundingState;

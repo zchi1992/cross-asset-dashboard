@@ -17,6 +17,9 @@
   --trend-negative: #2f86ff;
   --trend-neutral: #c9c9c9;
   --trend-positive: #ffb000;
+  --rs-early-reversal: #f2c84b;
+  --rs-strength-momentum: #c7a6ff;
+  --rs-relative-strength: #5cca66;
   --accent-primary: #e7a23a;
   --focus-ring: #f0b84a;
   --font-ui: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
@@ -549,6 +552,31 @@ button:disabled:hover {
   color: var(--terminal-amber);
   font-size: 12px;
   line-height: 1.2;
+}
+
+.mini-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 0 6px;
+  min-height: 12px;
+}
+
+.mini-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-numeric);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.mini-chart-swatch {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .mini-chart svg {

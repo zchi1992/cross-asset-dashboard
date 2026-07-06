@@ -13,12 +13,18 @@ CSV 使用 long format：
 date,dataset_type,asset_code,asset_name,metric_name,metric_value
 ```
 
-每个资产日期必须包含趋势分与状态、月周日趋势、相对强度分与状态、资金分与方向。
+每个资产日期必须包含趋势分与状态、月周日趋势、相对强度分与状态、相对强度分项、
+资金分与方向。
 dashboard 使用的 `trend_score` 来自 `capped_final_trend_score`，该字段表示月/周/日趋势
 结构的 duration-only 成熟度分。`transition_score`、`raw_transition_score` 和
 `transition_label` 仍保留在 processed series 中，用于后续交易机会筛选，不属于当前
 dashboard/API 展示字段。
 字段缺失或数值无法解析时，该资产日期不会进入 dashboard。
+
+相对强度总分 `rs_score` 由 `early_reversal`、`strength_momentum`、
+`relative_strength` 按 `4/17`、`6/17`、`7/17` 加权得到。状态跃迁只输出
+`state_transition` 和 `relative_signal_type` 诊断字段，不再输出状态跃迁基础分，也不再参与
+`rs_score`。
 
 测试契约数据位于 `tests/fixtures/dashboard/`，不得依赖仓库外或被忽略的本机数据。
 

@@ -64,6 +64,9 @@ class SnapshotItem(BaseModel):
     asset_class: str
     trend_score: float
     rs_score: float
+    early_reversal: float
+    strength_momentum: float
+    relative_strength: float
     rs_state: str
     funding_score: float
     funding_state: str

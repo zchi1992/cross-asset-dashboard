@@ -5,6 +5,9 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 2026-06-27,core,AAA,Fixture Alpha,weekly_trend,neutral
 2026-06-27,core,AAA,Fixture Alpha,daily_trend,neutral
 2026-06-27,core,AAA,Fixture Alpha,rs_score,58
+2026-06-27,core,AAA,Fixture Alpha,early_reversal,55
+2026-06-27,core,AAA,Fixture Alpha,strength_momentum,58
+2026-06-27,core,AAA,Fixture Alpha,relative_strength,60
 2026-06-27,core,AAA,Fixture Alpha,current_relative_state,Improving
 2026-06-27,core,AAA,Fixture Alpha,funding_leverage_value,42
 2026-06-27,core,AAA,Fixture Alpha,leverage_velocity,-3
@@ -17,6 +20,9 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 2026-06-28,core,AAA,Fixture Alpha,weekly_trend,up
 2026-06-28,core,AAA,Fixture Alpha,daily_trend,up
 2026-06-28,core,AAA,Fixture Alpha,rs_score,88
+2026-06-28,core,AAA,Fixture Alpha,early_reversal,86
+2026-06-28,core,AAA,Fixture Alpha,strength_momentum,89
+2026-06-28,core,AAA,Fixture Alpha,relative_strength,90
 2026-06-28,core,AAA,Fixture Alpha,current_relative_state,Lead
 2026-06-28,core,AAA,Fixture Alpha,funding_leverage_value,62
 2026-06-28,core,AAA,Fixture Alpha,leverage_velocity,7

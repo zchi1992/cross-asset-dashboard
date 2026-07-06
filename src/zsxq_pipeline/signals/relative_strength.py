@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Iterable
@@ -8,11 +7,11 @@ from typing import Iterable
 from .trend_score import SERIES_COLUMNS
 
 SCORE_FIELDS = ("early_reversal", "strength_momentum", "relative_strength")
+# Transition scoring was removed; keep the prior 20:30:35 component ratio normalized to 1.0.
 RS_SCORE_WEIGHTS = {
-    "early_reversal": 0.20,
-    "strength_momentum": 0.30,
-    "relative_strength": 0.35,
-    "transition_score": 0.15,
+    "early_reversal": 4 / 17,
+    "strength_momentum": 6 / 17,
+    "relative_strength": 7 / 17,
 }
 STATE_FIELDS = ("current_relative_state", "previous_relative_state")
 DURATION_FIELDS = ("current_state_duration", "previous_state_duration")
@@ -33,18 +32,18 @@ STATE_LABELS = {
 }
 
 TRANSITIONS = {
-    ("Lag", "Lead"): (120, "strong_reversal_to_lead"),
-    ("Weakening", "Lead"): (110, "renewed_leadership"),
-    ("Lag", "Improving"): (100, "low_level_improvement"),
-    ("Improving", "Lead"): (100, "improvement_confirmed"),
-    ("Weakening", "Improving"): (60, "weakness_repairing"),
-    ("Lead", "Improving"): (30, "leadership_cooling_but_positive"),
-    ("Lag", "Weakening"): (-40, "weak_to_unstable"),
-    ("Improving", "Weakening"): (-60, "improvement_failed"),
-    ("Lead", "Weakening"): (-90, "leadership_losing_momentum"),
-    ("Improving", "Lag"): (-90, "reversal_failed_to_lag"),
-    ("Weakening", "Lag"): (-100, "weakness_confirmed"),
-    ("Lead", "Lag"): (-120, "leadership_collapse"),
+    ("Lag", "Lead"): "strong_reversal_to_lead",
+    ("Weakening", "Lead"): "renewed_leadership",
+    ("Lag", "Improving"): "low_level_improvement",
+    ("Improving", "Lead"): "improvement_confirmed",
+    ("Weakening", "Improving"): "weakness_repairing",
+    ("Lead", "Improving"): "leadership_cooling_but_positive",
+    ("Lag", "Weakening"): "weak_to_unstable",
+    ("Improving", "Weakening"): "improvement_failed",
+    ("Lead", "Weakening"): "leadership_losing_momentum",
+    ("Improving", "Lag"): "reversal_failed_to_lag",
+    ("Weakening", "Lag"): "weakness_confirmed",
+    ("Lead", "Lag"): "leadership_collapse",
 }
 
 OUTPUT_FIELDS = [
@@ -56,12 +55,8 @@ OUTPUT_FIELDS = [
     "previous_relative_state",
     "current_state_duration",
     "previous_state_duration",
-    "transition_score",
-    "base_transition_score",
     "state_transition",
     "relative_signal_type",
-    "freshness_factor",
-    "previous_maturity_factor",
 ]
 
 
@@ -128,15 +123,11 @@ def _calculate_date_values(values: dict[str, str]) -> dict[str, str | float]:
     if transition not in TRANSITIONS:
         raise ValueError(f"unsupported relative state transition: {previous_state}->{current_state}")
 
-    base_transition_score, signal_type = TRANSITIONS[transition]
-    freshness_factor = math.exp(-(current_duration - 1) / 5)
-    previous_maturity_factor = min(previous_duration / 15, 1)
-    transition_score = base_transition_score * freshness_factor * previous_maturity_factor
+    signal_type = TRANSITIONS[transition]
     rs_score = (
         RS_SCORE_WEIGHTS["early_reversal"] * early_reversal
         + RS_SCORE_WEIGHTS["strength_momentum"] * strength_momentum
         + RS_SCORE_WEIGHTS["relative_strength"] * relative_strength
-        + RS_SCORE_WEIGHTS["transition_score"] * transition_score
     )
 
     return {
@@ -148,12 +139,8 @@ def _calculate_date_values(values: dict[str, str]) -> dict[str, str | float]:
         "previous_relative_state": previous_state,
         "current_state_duration": current_duration,
         "previous_state_duration": previous_duration,
-        "transition_score": transition_score,
-        "base_transition_score": base_transition_score,
         "state_transition": f"{previous_state}->{current_state}",
         "relative_signal_type": signal_type,
-        "freshness_factor": freshness_factor,
-        "previous_maturity_factor": previous_maturity_factor,
     }
 
 

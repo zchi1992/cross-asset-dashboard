@@ -108,7 +108,7 @@ class TrendScoreTests(unittest.TestCase):
 
 
 class RelativeStrengthScoreTests(unittest.TestCase):
-    def test_lag_to_lead_uses_raw_inputs_and_full_maturity_bonus(self) -> None:
+    def test_lag_to_lead_uses_normalized_component_weights(self) -> None:
         rows = _relative_rows(
             [
                 ("2026-06-04", 100, 100, 100, "Lead", "Lag", 1, 15),
@@ -119,13 +119,11 @@ class RelativeStrengthScoreTests(unittest.TestCase):
 
         self.assertEqual(output[("2026-06-04", "state_transition")], "Lag->Lead")
         self.assertEqual(output[("2026-06-04", "relative_signal_type")], "strong_reversal_to_lead")
-        self.assertEqual(output[("2026-06-04", "base_transition_score")], "120")
-        self.assertEqual(output[("2026-06-04", "freshness_factor")], "1")
-        self.assertEqual(output[("2026-06-04", "previous_maturity_factor")], "1")
-        self.assertEqual(output[("2026-06-04", "transition_score")], "120")
-        self.assertEqual(output[("2026-06-04", "rs_score")], "103")
+        self.assertNotIn(("2026-06-04", "base_transition_score"), output)
+        self.assertNotIn(("2026-06-04", "transition_score"), output)
+        self.assertEqual(output[("2026-06-04", "rs_score")], "100")
 
-    def test_lead_to_lag_applies_time_adjusted_transition_score(self) -> None:
+    def test_state_transition_diagnostics_do_not_change_rs_score(self) -> None:
         rows = _relative_rows(
             [
                 ("2026-06-04", 100, 100, 100, "lag", "lead", 6, 7.5),
@@ -136,11 +134,9 @@ class RelativeStrengthScoreTests(unittest.TestCase):
 
         self.assertEqual(output[("2026-06-04", "state_transition")], "Lead->Lag")
         self.assertEqual(output[("2026-06-04", "relative_signal_type")], "leadership_collapse")
-        self.assertEqual(output[("2026-06-04", "base_transition_score")], "-120")
-        self.assertAlmostEqual(float(output[("2026-06-04", "freshness_factor")]), 0.37, places=2)
-        self.assertEqual(output[("2026-06-04", "previous_maturity_factor")], "0.50")
-        self.assertAlmostEqual(float(output[("2026-06-04", "transition_score")]), -22.07, places=2)
-        self.assertAlmostEqual(float(output[("2026-06-04", "rs_score")]), 81.69, places=2)
+        self.assertEqual(output[("2026-06-04", "current_state_duration")], "6")
+        self.assertEqual(output[("2026-06-04", "previous_state_duration")], "7.50")
+        self.assertEqual(output[("2026-06-04", "rs_score")], "100")
 
     def test_rs_score_weights_relative_strength_above_early_reversal(self) -> None:
         rows = _relative_rows(
@@ -151,8 +147,7 @@ class RelativeStrengthScoreTests(unittest.TestCase):
 
         output = _rows_by_date_and_metric(calculate_rs_score_rows(rows))
 
-        self.assertEqual(output[("2026-06-04", "transition_score")], "120")
-        self.assertEqual(output[("2026-06-04", "rs_score")], "66.50")
+        self.assertAlmostEqual(float(output[("2026-06-04", "rs_score")]), 57.06, places=2)
 
     def test_same_state_is_rejected(self) -> None:
         rows = _relative_rows(
@@ -285,7 +280,9 @@ class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
         self.assertIn("rs_score", metric_names)
         self.assertIn("state_transition", metric_names)
         self.assertIn("relative_signal_type", metric_names)
-        self.assertIn("base_transition_score", metric_names)
+        self.assertNotIn("base_transition_score", metric_names)
+        self.assertNotIn("freshness_factor", metric_names)
+        self.assertNotIn("previous_maturity_factor", metric_names)
         self.assertIn("funding_signal_strength", metric_names)
         self.assertIn("funding_signal_rank", metric_names)
         self.assertIn("funding_score", metric_names)
