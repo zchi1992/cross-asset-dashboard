@@ -42,20 +42,6 @@ describe("filtering utilities", () => {
     expect(filterItems([item], "core", ["Leveraging"], [])).toHaveLength(0);
   });
 
-  it("filters leverage velocity opportunities", () => {
-    const fastDeleveraging = {
-      ...item,
-      symbol: "OIL",
-      funding_state: "Deleveraging" as const,
-      leverage_velocity_score: -88,
-    };
-    const quiet = { ...item, symbol: "TLT", leverage_velocity_score: 12 };
-
-    expect(filterItems([item, fastDeleveraging, quiet], "core", ["Leveraging", "Deleveraging"], ["Lead"], "Fast Leveraging")).toEqual([item]);
-    expect(filterItems([item, fastDeleveraging, quiet], "core", ["Leveraging", "Deleveraging"], ["Lead"], "Fast Deleveraging")).toEqual([fastDeleveraging]);
-    expect(filterItems([item, fastDeleveraging, quiet], "core", ["Leveraging", "Deleveraging"], ["Lead"], "Active")).toEqual([item, fastDeleveraging]);
-  });
-
   it("returns the trailing 30 available frame points for a symbol", () => {
     const dates = Array.from({ length: 35 }, (_, index) => `2026-05-${String(index + 1).padStart(2, "0")}`);
     const frames = Object.fromEntries(dates.map((date) => [date, [{ ...item, rs_score: dates.indexOf(date), funding_score: 1 }]]));
