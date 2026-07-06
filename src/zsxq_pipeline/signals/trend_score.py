@@ -227,7 +227,7 @@ def _calculate_date_values(current: dict[str, str | float], previous: dict[str, 
     raw_transition_score = sum(changes[level] * WEIGHTS[level] for level in ("monthly", "weekly", "daily"))
     transition_score = raw_transition_score / 12 * 100
     decayed_transition_score = transition_score
-    raw_final_trend_score = duration_score + 0.4 * decayed_transition_score
+    raw_final_trend_score = duration_score
     capped_final_trend_score = max(-100, min(100, raw_final_trend_score))
     combo = (monthly, weekly, daily)
 

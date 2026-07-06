@@ -34,6 +34,9 @@ class TrendScoreTests(unittest.TestCase):
         self.assertEqual(output[("2026-06-04", "raw_transition_score")], "2")
         self.assertAlmostEqual(float(output[("2026-06-04", "transition_score")]), 16.67, places=2)
         self.assertEqual(output[("2026-06-04", "transition_label")], "周线趋势改善")
+        self.assertAlmostEqual(float(output[("2026-06-04", "duration_score")]), 79.39, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "raw_final_trend_score")]), 79.39, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "capped_final_trend_score")]), 79.39, places=2)
 
     def test_mature_main_uptrend_with_daily_pullback(self) -> None:
         rows = _trend_rows(
@@ -53,7 +56,8 @@ class TrendScoreTests(unittest.TestCase):
         self.assertAlmostEqual(float(output[("2026-06-04", "transition_score")]), -16.67, places=2)
         self.assertEqual(output[("2026-06-04", "transition_label")], "日线由上行反转为下行")
         self.assertAlmostEqual(float(output[("2026-06-04", "duration_score")]), 70.83, places=2)
-        self.assertAlmostEqual(float(output[("2026-06-04", "raw_final_trend_score")]), 64.17, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "raw_final_trend_score")]), 70.83, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "capped_final_trend_score")]), 70.83, places=2)
 
     def test_monthly_confirmation_enters_main_uptrend(self) -> None:
         rows = _trend_rows(
@@ -72,6 +76,9 @@ class TrendScoreTests(unittest.TestCase):
         self.assertEqual(output[("2026-06-04", "raw_transition_score")], "3")
         self.assertEqual(output[("2026-06-04", "transition_score")], "25")
         self.assertEqual(output[("2026-06-04", "transition_label")], "月线趋势改善")
+        self.assertAlmostEqual(float(output[("2026-06-04", "duration_score")]), 79.71, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "raw_final_trend_score")]), 79.71, places=2)
+        self.assertAlmostEqual(float(output[("2026-06-04", "capped_final_trend_score")]), 79.71, places=2)
 
     def test_chinese_trends_duration_aliases_and_first_row_transition(self) -> None:
         rows = [
