@@ -83,9 +83,17 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
     snapshot = snapshot_response.json()
     assert snapshot["date"] == dates[-1]
     assert snapshot["items"]
-    assert {"symbol", "funding_score", "funding_state", "rs_score", "rs_state", "trend_score"} <= set(
-        snapshot["items"][0]
-    )
+    assert {
+        "symbol",
+        "funding_score",
+        "funding_state",
+        "rs_score",
+        "early_reversal",
+        "strength_momentum",
+        "relative_strength",
+        "rs_state",
+        "trend_score",
+    } <= set(snapshot["items"][0])
 
     playback_response = client.get("/api/playback", params={"start": dates[-2], "end": dates[-1]})
     assert playback_response.status_code == 200
@@ -110,6 +118,9 @@ def test_playback_frames_are_cached_by_data_signature(monkeypatch) -> None:
             "asset_class": "core",
             "trend_score": 75,
             "rs_score": 82,
+            "early_reversal": 80,
+            "strength_momentum": 83,
+            "relative_strength": 85,
             "rs_state": "Lead",
             "flow_score": 55,
             "flow_state": "Leveraging",
@@ -164,6 +175,9 @@ def test_large_playback_response_is_gzipped(monkeypatch) -> None:
             "asset_class": "core",
             "trend_score": 75,
             "rs_score": 82,
+            "early_reversal": 80,
+            "strength_momentum": 83,
+            "relative_strength": 85,
             "rs_state": "Lead",
             "funding_score": 55,
             "funding_state": "Leveraging",

@@ -9,6 +9,12 @@ import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
 import { assetKeyWithCollisions, duplicateAssetBaseKeys, filterItems, matchesSearch } from "./utils/filtering";
 
+const RS_COMPONENT_SERIES: MiniChartSeries[] = [
+  { metric: "early_reversal", label: "early_reversal", color: "var(--rs-early-reversal)" },
+  { metric: "strength_momentum", label: "strength_momentum", color: "var(--rs-strength-momentum)" },
+  { metric: "relative_strength", label: "relative_strength", color: "var(--rs-relative-strength)" },
+];
+
 export function App() {
   const refreshPolicy = {
     refetchInterval: 15_000,
@@ -376,6 +382,17 @@ function formatAssetClass(value: string) {
 
 type HistoryPoint = { date: string; item: SnapshotItem };
 type IndexedHistoryPoint = HistoryPoint & { index: number };
+type MiniChartMetric =
+  | "trend_score"
+  | "rs_score"
+  | "early_reversal"
+  | "strength_momentum"
+  | "relative_strength"
+  | "funding_score"
+  | "leverage_value"
+  | "leverage_velocity"
+  | "leverage_velocity_score";
+type MiniChartSeries = { metric: MiniChartMetric; label: string; color: string };
 
 function buildHistoryBySymbol(
   frames: Record<string, SnapshotItem[]>,
@@ -528,7 +545,7 @@ function AssetDetailPanel({
         <Metric label="长频" value={longTrend} />
       </div>
       <MiniHistoryChart title="趋势分变化" points={latestPoints} metric="trend_score" variant="line" />
-      <MiniHistoryChart title="比价强度分变化" points={latestPoints} metric="rs_score" variant="line" />
+      <MiniMultiHistoryChart title="比价分变化" points={latestPoints} series={RS_COMPONENT_SERIES} />
       <MiniHistoryChart title="杠杆资金水位变化" points={latestPoints} metric="leverage_value" variant="line" />
     </aside>
   );
@@ -551,7 +568,7 @@ function MiniHistoryChart({
 }: {
   title: string;
   points: HistoryPoint[];
-  metric: keyof SnapshotItem;
+  metric: MiniChartMetric;
   variant?: "dots" | "line";
 }) {
   const values = points.map((point) => Number(point.item[metric] ?? 0)).filter(Number.isFinite);
@@ -585,6 +602,50 @@ function MiniHistoryChart({
             <circle key={`${point.date}-${metric}`} cx={point.x} cy={point.y} r={2.6} opacity={point.opacity} />
           ))
         )}
+      </svg>
+    </section>
+  );
+}
+
+function MiniMultiHistoryChart({ title, points, series }: { title: string; points: HistoryPoint[]; series: MiniChartSeries[] }) {
+  const values = points.flatMap((point) =>
+    series.map((item) => Number(point.item[item.metric] ?? 0)).filter(Number.isFinite),
+  );
+  const rawMin = values.length ? Math.min(...values) : 0;
+  const rawMax = values.length ? Math.max(...values) : 1;
+  const range = rawMax - rawMin;
+  const padding = Math.max(range * 0.16, 2);
+  const min = rawMin - padding;
+  const max = rawMax + padding;
+  const span = Math.max(max - min, 1);
+  const width = 360;
+  const height = 160;
+  const inset = 12;
+  const zeroLineY = min <= 0 && max >= 0 ? yForValue(0, min, span, height, inset) : height / 2;
+  return (
+    <section className="mini-chart">
+      <h2>{title}</h2>
+      <div className="mini-chart-legend">
+        {series.map((item) => (
+          <span key={item.metric}>
+            <i className="mini-chart-swatch" style={{ backgroundColor: item.color }} aria-hidden="true" />
+            {item.label}
+          </span>
+        ))}
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
+        <line x1={inset} y1={zeroLineY} x2={width - inset} y2={zeroLineY} />
+        {series.map((item) => {
+          const pathData = points
+            .map((point, index) => {
+            const value = Number(point.item[item.metric] ?? 0);
+            const x = points.length <= 1 ? width / 2 : inset + (index / (points.length - 1)) * (width - inset * 2);
+            const y = yForValue(value, min, span, height, inset);
+              return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+            })
+            .join(" ");
+          return <path key={item.metric} className="mini-chart-path" d={pathData} style={{ stroke: item.color }} />;
+        })}
       </svg>
     </section>
   );

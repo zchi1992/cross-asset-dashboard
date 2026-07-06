@@ -25,13 +25,21 @@ test("loads fixture data and supports filters and playback controls", async ({ p
 
   const detailPanel = page.locator(".detail-panel");
   await expect(detailPanel).toBeVisible();
+  await expect(detailPanel.getByText("Fixture Alpha")).toBeVisible();
   await expect(detailPanel.getByText("杠杆资金水平")).toBeVisible();
   await expect(detailPanel.getByText("杠杆速率分")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "比价分变化" })).toBeVisible();
+  await expect(page.locator(".mini-chart-legend")).toContainText("early_reversal");
+  await expect(page.locator(".mini-chart-legend")).toContainText("strength_momentum");
+  await expect(page.locator(".mini-chart-legend")).toContainText("relative_strength");
+  await expect(page.locator(".mini-chart-swatch").nth(0)).toHaveCSS("background-color", "rgb(242, 200, 75)");
+  await expect(page.locator(".mini-chart-swatch").nth(1)).toHaveCSS("background-color", "rgb(199, 166, 255)");
+  await expect(page.locator(".mini-chart-swatch").nth(2)).toHaveCSS("background-color", "rgb(92, 202, 102)");
 
   const leverageChart = detailPanel.locator(".mini-chart").filter({ hasText: "杠杆资金水位变化" });
   await expect(leverageChart.locator("path.mini-chart-path")).toBeVisible();
-  await expect(detailPanel.locator("path.mini-chart-path")).toHaveCount(3);
+  await expect(detailPanel.locator("path.mini-chart-path")).toHaveCount(5);
   await expect(detailPanel.locator(".mini-chart circle")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率分变化")).toHaveCount(0);
 });

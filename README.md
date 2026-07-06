@@ -97,6 +97,9 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 | `weekly_trend` | 周频状态展示字段 |
 | `daily_trend` | 日频状态展示字段 |
 | `rs_score` | 横轴数值字段 |
+| `early_reversal` | 资产面板比价分项走势字段 |
+| `strength_momentum` | 资产面板比价分项走势字段 |
+| `relative_strength` | 资产面板比价分项走势字段 |
 | `current_relative_state` | 相对状态筛选和展示字段 |
 | `funding_leverage_value` | 纵轴和资金数值展示字段 |
 | `funding_signal_direction` | 资金方向筛选字段 |
@@ -116,6 +119,9 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 2026-06-18,core,SPX,S&P 500,weekly_trend,up
 2026-06-18,core,SPX,S&P 500,daily_trend,neutral
 2026-06-18,core,SPX,S&P 500,rs_score,64.2
+2026-06-18,core,SPX,S&P 500,early_reversal,62.0
+2026-06-18,core,SPX,S&P 500,strength_momentum,65.1
+2026-06-18,core,SPX,S&P 500,relative_strength,64.8
 2026-06-18,core,SPX,S&P 500,current_relative_state,Lead
 2026-06-18,core,SPX,S&P 500,funding_leverage_value,58.1
 2026-06-18,core,SPX,S&P 500,funding_signal_direction,long_candidate
