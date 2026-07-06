@@ -91,7 +91,7 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 
 | `metric_name` | 用途 |
 |---|---|
-| `capped_final_trend_score` | 趋势轴或颜色相关字段 |
+| `capped_final_trend_score` | 趋势轴或颜色相关字段；duration-only 趋势成熟度分 |
 | `state_name` | 趋势状态展示字段 |
 | `monthly_trend` | 月频状态展示字段 |
 | `weekly_trend` | 周频状态展示字段 |
@@ -102,6 +102,9 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 | `funding_signal_direction` | 资金方向筛选字段 |
 | `leverage_velocity` | 杠杆速度展示字段 |
 | `leverage_velocity_score` | 杠杆速度筛选和展示字段 |
+
+`transition_score`、`raw_transition_score` 和 `transition_label` 可随 processed series 一起产出，
+用于后续交易机会筛选；当前终端主页面不读取或展示这些 transition 字段。
 
 示例：
 

@@ -14,6 +14,10 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 ```
 
 每个资产日期必须包含趋势分与状态、月周日趋势、相对强度分与状态、资金分与方向。
+dashboard 使用的 `trend_score` 来自 `capped_final_trend_score`，该字段表示月/周/日趋势
+结构的 duration-only 成熟度分。`transition_score`、`raw_transition_score` 和
+`transition_label` 仍保留在 processed series 中，用于后续交易机会筛选，不属于当前
+dashboard/API 展示字段。
 字段缺失或数值无法解析时，该资产日期不会进入 dashboard。
 
 测试契约数据位于 `tests/fixtures/dashboard/`，不得依赖仓库外或被忽略的本机数据。
