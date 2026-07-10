@@ -95,9 +95,11 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
         "trend_score",
         "leverage_duration",
         "funding_signal_strength",
+        "is_gs_exempt",
     } <= set(snapshot["items"][0])
     assert snapshot["items"][0]["leverage_duration"] == 2
     assert snapshot["items"][0]["funding_signal_strength"] == 68
+    assert snapshot["items"][0]["is_gs_exempt"] is True
 
     playback_response = client.get("/api/playback", params={"start": dates[-2], "end": dates[-1]})
     assert playback_response.status_code == 200
@@ -170,6 +172,17 @@ def test_data_signature_changes_when_processed_file_changes(tmp_path) -> None:
     second = data_service._data_signature(tmp_path, market_map_config)
 
     assert second != first
+
+    exempt_dir = tmp_path / "gs_exempt_list"
+    exempt_dir.mkdir()
+    exempt_path = exempt_dir / "gs_exempt_list.csv"
+    exempt_path.write_text("Ticker\nAAA\n", encoding="utf-8")
+    third = data_service._data_signature(tmp_path, market_map_config)
+    exempt_path.write_text("Ticker\nAAA\nBBB\n", encoding="utf-8")
+    fourth = data_service._data_signature(tmp_path, market_map_config)
+
+    assert third != second
+    assert fourth != third
 
 
 def test_large_playback_response_is_gzipped(monkeypatch) -> None:

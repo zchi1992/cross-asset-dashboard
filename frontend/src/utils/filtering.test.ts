@@ -4,7 +4,9 @@ import {
   assetKey,
   assetKeyWithCollisions,
   duplicateAssetBaseKeys,
+  filterFramesByAssetFilter,
   filterItems,
+  GS_EXEMPT_FILTER,
   matchesSearch,
   trajectoryForAssetKey,
 } from "./filtering";
@@ -13,6 +15,7 @@ const item: SnapshotItem = {
   symbol: "GLD",
   asset_name: "SPDR Gold Shares",
   asset_class: "core",
+  is_gs_exempt: true,
   trend_score: 74,
   rs_score: 38,
   early_reversal: 36,
@@ -43,6 +46,15 @@ describe("filtering utilities", () => {
     expect(filterItems([item], "core", ["Leveraging"], ["Lag"])).toHaveLength(0);
     expect(filterItems([item], "core", [], ["Lead"])).toHaveLength(0);
     expect(filterItems([item], "core", ["Leveraging"], [])).toHaveLength(0);
+  });
+
+  it("filters the GS exempt universe across asset classes", () => {
+    const unapproved = { ...item, symbol: "SLV", asset_class: "instruments", is_gs_exempt: false };
+    const frames = { "2026-06-28": [item, unapproved] };
+
+    expect(filterItems([item, unapproved], GS_EXEMPT_FILTER, ["Leveraging"], ["Lead"])).toEqual([item]);
+    expect(filterFramesByAssetFilter(frames, GS_EXEMPT_FILTER)).toEqual({ "2026-06-28": [item] });
+    expect(filterFramesByAssetFilter(frames, "")).toEqual(frames);
   });
 
   it("returns the trailing 30 available frame points for a symbol", () => {

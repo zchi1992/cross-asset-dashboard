@@ -283,7 +283,7 @@ select {
   font-size: var(--font-size-sm);
 }
 
-.opportunity-bar span:first-child {
+.opportunity-bar .opportunity-title {
   color: var(--terminal-amber);
   font-family: var(--font-ui);
   font-weight: 700;
@@ -294,6 +294,7 @@ select {
 }
 
 .filter-bar label,
+.opportunity-bar label,
 .playback-bar label {
   display: grid;
   grid-template-rows: 14px var(--control-height);

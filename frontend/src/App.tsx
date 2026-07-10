@@ -7,7 +7,14 @@ import { CrossAssetScatter } from "./components/CrossAssetScatter";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
-import { assetKeyWithCollisions, duplicateAssetBaseKeys, filterItems, matchesSearch } from "./utils/filtering";
+import {
+  assetKeyWithCollisions,
+  duplicateAssetBaseKeys,
+  filterFramesByAssetFilter,
+  filterItems,
+  GS_EXEMPT_FILTER,
+  matchesSearch,
+} from "./utils/filtering";
 import {
   buildRankChanges,
   buildRankedOpportunityRows,
@@ -65,6 +72,7 @@ export function App() {
   const clearSelection = useSelectionStore((state) => state.clearSelection);
   const [detailPanelWidth, setDetailPanelWidth] = useState(360);
   const [activeView, setActiveView] = useState<ActiveView>("marketMap");
+  const [opportunityAssetFilter, setOpportunityAssetFilter] = useState("");
 
   useEffect(() => {
     if (datesQuery.data?.dates.length) {
@@ -81,8 +89,9 @@ export function App() {
   useEffect(() => {
     const config = configQuery.data;
     if (!config) return;
-    if (!config.asset_classes.includes(assetClass)) {
-      const normalized = config.asset_classes.find((value) => value.toLowerCase() === assetClass.toLowerCase());
+    const assetFilterOptions = buildAssetFilterOptions(config.asset_classes);
+    if (!assetFilterOptions.includes(assetClass)) {
+      const normalized = assetFilterOptions.find((value) => value.toLowerCase() === assetClass.toLowerCase());
       setAssetClass(normalized ?? config.default_filters.asset_class);
     }
     const validFundingStates = fundingStates.filter((value) => config.funding_states.includes(value));
@@ -126,8 +135,13 @@ export function App() {
 
   const currentDate = availableDates[currentIndex] ?? "";
   const frames = playbackQuery.data?.frames ?? {};
+  const opportunityFrames = useMemo(
+    () => filterFramesByAssetFilter(frames, opportunityAssetFilter),
+    [frames, opportunityAssetFilter],
+  );
   const duplicateAssetKeys = useMemo(() => duplicateAssetBaseKeys(frames), [frames]);
   const currentItems = frames[currentDate] ?? [];
+  const opportunityCurrentItems = opportunityFrames[currentDate] ?? [];
   const currentItemBySymbol = useMemo(
     () => new Map(currentItems.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item])),
     [currentItems, duplicateAssetKeys],
@@ -158,20 +172,20 @@ export function App() {
     [currentIndex, historyBySymbol, selectedSymbol],
   );
   const strongLongRankChanges = useMemo(
-    () => buildRankChanges(frames, availableDates, currentIndex, "strongLong"),
-    [availableDates, currentIndex, frames],
+    () => buildRankChanges(opportunityFrames, availableDates, currentIndex, "strongLong"),
+    [availableDates, currentIndex, opportunityFrames],
   );
   const candidateLongRankChanges = useMemo(
-    () => buildRankChanges(frames, availableDates, currentIndex, "candidateLong"),
-    [availableDates, currentIndex, frames],
+    () => buildRankChanges(opportunityFrames, availableDates, currentIndex, "candidateLong"),
+    [availableDates, currentIndex, opportunityFrames],
   );
   const strongLongRows = useMemo(
-    () => buildRankedOpportunityRows(currentItems, strongLongRankChanges, rankStrongLongOpportunities),
-    [currentItems, strongLongRankChanges],
+    () => buildRankedOpportunityRows(opportunityCurrentItems, strongLongRankChanges, rankStrongLongOpportunities),
+    [opportunityCurrentItems, strongLongRankChanges],
   );
   const candidateLongRows = useMemo(
-    () => buildRankedOpportunityRows(currentItems, candidateLongRankChanges, rankCandidateLongOpportunities),
-    [candidateLongRankChanges, currentItems],
+    () => buildRankedOpportunityRows(opportunityCurrentItems, candidateLongRankChanges, rankCandidateLongOpportunities),
+    [candidateLongRankChanges, opportunityCurrentItems],
   );
 
   const isBootLoading = configQuery.isLoading || datesQuery.isLoading;
@@ -208,7 +222,7 @@ export function App() {
           <label>
             <span>Asset Class</span>
             <select value={assetClass} onChange={(event) => setAssetClass(event.target.value)}>
-              {config.asset_classes.map((value) => (
+              {buildAssetFilterOptions(config.asset_classes).map((value) => (
                 <option key={value} value={value}>
                   {formatAssetClass(value)}
                 </option>
@@ -243,9 +257,20 @@ export function App() {
         </section>
       ) : (
         <section className="opportunity-bar">
-          <span>Long Opportunities</span>
+          <label>
+            <span>Asset Class</span>
+            <select value={opportunityAssetFilter} onChange={(event) => setOpportunityAssetFilter(event.target.value)}>
+              <option value="">All Assets</option>
+              {buildAssetFilterOptions(config.asset_classes).map((value) => (
+                <option key={value} value={value}>
+                  {formatAssetClass(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="opportunity-title">Long Opportunities</span>
           <strong>{strongLongRows.length} strong / {candidateLongRows.length} candidate</strong>
-          <span>{currentItems.length} frame assets</span>
+          <span>{opportunityCurrentItems.length} selected / {currentItems.length} frame assets</span>
         </section>
       )}
 
@@ -299,7 +324,8 @@ export function App() {
       ) : (
         <OpportunitiesWorkspace
           currentDate={currentDate}
-          assetCount={currentItems.length}
+          selectedAssetCount={opportunityCurrentItems.length}
+          frameAssetCount={currentItems.length}
           dateCount={availableDates.length}
           strongRows={strongLongRows}
           candidateRows={candidateLongRows}
@@ -375,13 +401,15 @@ function ViewTabs({ activeView, onChange }: { activeView: ActiveView; onChange: 
 
 function OpportunitiesWorkspace({
   currentDate,
-  assetCount,
+  selectedAssetCount,
+  frameAssetCount,
   dateCount,
   strongRows,
   candidateRows,
 }: {
   currentDate: string;
-  assetCount: number;
+  selectedAssetCount: number;
+  frameAssetCount: number;
   dateCount: number;
   strongRows: RankedOpportunity[];
   candidateRows: RankedOpportunity[];
@@ -390,7 +418,7 @@ function OpportunitiesWorkspace({
     <section className="workspace opportunities-workspace">
       <div className="workspace-topline">
         <span>{currentDate}</span>
-        <span>{strongRows.length} strong / {candidateRows.length} candidate / {assetCount} frame / {dateCount} dates</span>
+        <span>{strongRows.length} strong / {candidateRows.length} candidate / {selectedAssetCount} selected / {frameAssetCount} frame / {dateCount} dates</span>
       </div>
       <div className="opportunities-layout">
         <OpportunitySection title="强势多头" rows={strongRows} testId="strong-long" />
@@ -541,10 +569,15 @@ const SearchControl = memo(function SearchControl({
 });
 
 function formatAssetClass(value: string) {
+  if (value === GS_EXEMPT_FILTER) return "GS Exempt";
   return value
     .split(/[_-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function buildAssetFilterOptions(assetClasses: string[]) {
+  return [...assetClasses, GS_EXEMPT_FILTER];
 }
 
 function formatMaybeNumber(value?: number | null) {

@@ -33,6 +33,7 @@ export type SnapshotItem = {
   symbol: string;
   asset_name: string;
   asset_class: string;
+  is_gs_exempt: boolean;
   trend_score: number;
   rs_score: number;
   early_reversal: number;

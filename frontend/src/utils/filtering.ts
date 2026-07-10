@@ -1,5 +1,7 @@
 import type { SnapshotItem } from "../services/contracts";
 
+export const GS_EXEMPT_FILTER = "gs_exempt";
+
 export function matchesSearch(item: SnapshotItem, query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
@@ -46,11 +48,24 @@ export function filterItems(
   const normalizedRsStates = new Set(rsStates.map((value) => value.trim().toLowerCase()));
   return items.filter((item) => {
     return (
-      (!normalizedAssetClass || item.asset_class.toLowerCase() === normalizedAssetClass) &&
+      matchesAssetFilter(item, normalizedAssetClass) &&
       normalizedFundingStates.has(item.funding_state.toLowerCase()) &&
       normalizedRsStates.has(item.rs_state.toLowerCase())
     );
   });
+}
+
+export function filterFramesByAssetFilter(frames: Record<string, SnapshotItem[]>, assetFilter: string) {
+  return Object.fromEntries(
+    Object.entries(frames).map(([date, items]) => [date, items.filter((item) => matchesAssetFilter(item, assetFilter))]),
+  );
+}
+
+export function matchesAssetFilter(item: SnapshotItem, assetFilter: string) {
+  const normalized = assetFilter.trim().toLowerCase();
+  if (!normalized) return true;
+  if (normalized === GS_EXEMPT_FILTER) return item.is_gs_exempt;
+  return item.asset_class.toLowerCase() === normalized;
 }
 
 export function trajectoryForAssetKey(

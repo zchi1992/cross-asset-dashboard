@@ -14,6 +14,7 @@ function item(overrides: Partial<SnapshotItem> = {}): SnapshotItem {
     symbol,
     asset_name: overrides.asset_name ?? `Asset ${symbol}`,
     asset_class: overrides.asset_class ?? "core",
+    is_gs_exempt: overrides.is_gs_exempt ?? false,
     trend_score: 45,
     rs_score: 72,
     early_reversal: 112,
