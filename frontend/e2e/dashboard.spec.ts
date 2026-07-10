@@ -40,6 +40,18 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(page.locator(".mini-chart-swatch").nth(1)).toHaveCSS("background-color", "rgb(199, 166, 255)");
   await expect(page.locator(".mini-chart-swatch").nth(2)).toHaveCSS("background-color", "rgb(92, 202, 102)");
 
+  const trendChart = detailPanel.locator(".mini-chart").filter({ hasText: "趋势分变化" });
+  await expect(trendChart.getByText("06-18")).toBeVisible();
+  await expect(trendChart.getByText("06-28")).toBeVisible();
+  await expect(trendChart.locator(".mini-chart-x-label")).toHaveCount(5);
+
+  const relativeStrengthChart = detailPanel.locator(".mini-chart").filter({ hasText: "比价分变化" });
+  await expect(relativeStrengthChart.locator(".mini-chart-threshold")).toHaveCount(3);
+  await expect(relativeStrengthChart.locator(".mini-chart-threshold.is-baseline")).toHaveCount(1);
+  await expect(relativeStrengthChart.getByText("120", { exact: true })).toBeVisible();
+  await expect(relativeStrengthChart.getByText("100", { exact: true })).toBeVisible();
+  await expect(relativeStrengthChart.getByText("80", { exact: true })).toBeVisible();
+
   const leverageChart = detailPanel.locator(".mini-chart").filter({ hasText: "杠杆资金水位变化" });
   await expect(leverageChart.locator("path.mini-chart-path")).toBeVisible();
   await expect(detailPanel.locator("path.mini-chart-path")).toHaveCount(5);
