@@ -16,8 +16,10 @@ MARKET_MAP_COLUMNS = [
     "rs_score",
     "flow_score",
     "leverage_value",
+    "leverage_duration",
     "leverage_velocity",
     "leverage_velocity_score",
+    "funding_signal_strength",
     "trend_state",
     "monthly_trend",
     "weekly_trend",
@@ -60,6 +62,11 @@ def load_market_map_rows(
         fields["leverage_velocity"],
         fields["leverage_velocity_score"],
     }
+    optional_metrics = {
+        fields.get("leverage_duration", "funding_current_leverage_state_duration"),
+        fields.get("funding_signal_strength", "funding_signal_strength"),
+    }
+    readable_metrics = required_metrics | optional_metrics
 
     grouped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
     for dataset_type in selected_dataset_types:
@@ -71,7 +78,7 @@ def load_market_map_rows(
                 continue
             for row in _read_csv_rows(source_path):
                 metric_name = str(row.get("metric_name", "")).strip()
-                if metric_name not in required_metrics:
+                if metric_name not in readable_metrics:
                     continue
                 key = (
                     str(row.get("date", "")),
@@ -106,8 +113,14 @@ def load_market_map_rows(
                 "rs_score": _parse_float(metrics[fields["rs_score"]]),
                 "flow_score": _parse_float(metrics[fields["flow_score"]]),
                 "leverage_value": _parse_float(metrics[fields["leverage_value"]]),
+                "leverage_duration": _parse_optional_float(
+                    metrics.get(fields.get("leverage_duration", "funding_current_leverage_state_duration"))
+                ),
                 "leverage_velocity": _parse_float(metrics[fields["leverage_velocity"]]),
                 "leverage_velocity_score": _parse_float(metrics[fields["leverage_velocity_score"]]),
+                "funding_signal_strength": _parse_optional_float(
+                    metrics.get(fields.get("funding_signal_strength", "funding_signal_strength"))
+                ),
                 "trend_state": metrics[fields["trend_state"]],
                 "monthly_trend": metrics["monthly_trend"],
                 "weekly_trend": metrics["weekly_trend"],
@@ -182,4 +195,10 @@ def _read_csv_rows(path: Path) -> list[dict[str, str]]:
 
 
 def _parse_float(value: str) -> float:
+    return float(str(value).strip())
+
+
+def _parse_optional_float(value: str | None) -> float | None:
+    if value is None or str(value).strip() == "":
+        return None
     return float(str(value).strip())

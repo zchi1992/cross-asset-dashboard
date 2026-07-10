@@ -14,7 +14,8 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 ```
 
 每个资产日期必须包含趋势分与状态、月周日趋势、相对强度分与状态、相对强度分项、
-资金分与方向。
+资金分与方向。交易机会 tab 还读取 `funding_current_leverage_state_duration` 和
+`funding_signal_strength`；这两个字段在 API 中为可空字段，缺失时不影响 Market Map 行加载。
 dashboard 使用的 `trend_score` 来自 `capped_final_trend_score`，该字段表示月/周/日趋势
 结构的 duration-only 成熟度分。`transition_score`、`raw_transition_score` 和
 `transition_label` 仍保留在 processed series 中，用于后续交易机会筛选，不属于当前
@@ -39,7 +40,13 @@ dashboard/API 展示字段。
 - `GET /api/snapshot?date=YYYY-MM-DD`：单日宽表；未知日期返回 `404`。
 - `GET /api/playback?start=&end=`：日期和按日期分组的完整帧。
 
-现有字段由 `backend/app/schemas.py` 定义，前端镜像位于
+单日宽表和 playback item 保留原有字段，并额外返回：
+
+- `leverage_duration`：来自 `funding_current_leverage_state_duration`，用于机会排序和表格展示。
+- `funding_signal_strength`：来自同名 processed metric，用于机会排序；不替代现有
+  `funding_score` 字段。
+
+字段由 `backend/app/schemas.py` 定义，前端镜像位于
 `frontend/src/services/contracts.ts`。改变字段时必须同步两端并增加契约测试。
 
 ## Cache invalidation

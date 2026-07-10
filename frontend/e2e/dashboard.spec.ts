@@ -5,22 +5,22 @@ test("loads fixture data and supports filters and playback controls", async ({ p
 
   const topline = page.locator(".workspace-topline");
   await expect(topline).toContainText("2026-06-28");
-  await expect(topline).toContainText("1 visible / 2 frame / 2 assets / 2 dates");
+  await expect(topline).toContainText("12 visible / 13 frame / 13 assets / 11 dates");
   await expect(page.locator(".scatter-chart canvas")).toBeVisible();
 
   await page.getByRole("button", { name: "First" }).click();
-  await expect(topline).toContainText("2026-06-27");
-  await page.getByRole("button", { name: "Next" }).click();
+  await expect(topline).toContainText("2026-06-18");
+  await page.getByRole("button", { name: "Latest" }).click();
   await expect(topline).toContainText("2026-06-28");
 
   await page.getByLabel("Asset Class").selectOption("instruments");
-  await expect(topline).toContainText("1 visible / 2 frame");
+  await expect(topline).toContainText("1 visible / 13 frame");
   await expect(page.getByLabel("Velocity")).toHaveCount(0);
 
   const search = page.getByPlaceholder("Symbol or asset name");
   await search.fill("AAA");
   await expect(search).toHaveValue("AAA");
-  await expect(topline).toContainText("1 visible / 2 frame");
+  await expect(topline).toContainText("1 visible / 13 frame");
   await search.press("Enter");
 
   const detailPanel = page.locator(".detail-panel");
@@ -42,6 +42,19 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(detailPanel.locator("path.mini-chart-path")).toHaveCount(5);
   await expect(detailPanel.locator(".mini-chart circle")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率分变化")).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Opportunities" }).click();
+  await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
+  await expect(page.getByTestId("candidate-long-section")).toContainText("11 total / top 10 shown");
+  await expect(page.getByTestId("strong-long-table")).toContainText("标的类型");
+  await expect(page.getByTestId("strong-long-table")).toContainText("当前杠杆持续时间");
+  await expect(page.getByTestId("strong-long-table")).toContainText("10日总排名变化");
+  await expect(page.getByTestId("strong-long-row")).toHaveCount(10);
+  await expect(page.getByTestId("candidate-long-row")).toHaveCount(10);
+  await expect(page.getByTestId("strong-long-table")).toContainText("Fixture Alpha");
+  await expect(page.getByTestId("candidate-long-table")).toContainText("Candidate 10");
+  await expect(page.getByText("Candidate 11")).toHaveCount(0);
+  await expect(page.getByTestId("strong-long-table")).toContainText("+1");
 });
 
 test("renders an actionable backend error state", async ({ page }) => {

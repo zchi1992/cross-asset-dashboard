@@ -36,6 +36,7 @@ class MarketMapDashboardTests(unittest.TestCase):
                     ("2026-06-04", "AAA", "Asset A", "relative_strength", "85"),
                     ("2026-06-04", "AAA", "Asset A", "current_relative_state", "Lead"),
                     ("2026-06-04", "AAA", "Asset A", "funding_leverage_value", "55"),
+                    ("2026-06-04", "AAA", "Asset A", "funding_current_leverage_state_duration", "3"),
                     ("2026-06-04", "AAA", "Asset A", "leverage_velocity", "3.5"),
                     ("2026-06-04", "AAA", "Asset A", "leverage_velocity_score", "72"),
                     ("2026-06-04", "AAA", "Asset A", "funding_signal_strength", "55"),
@@ -60,8 +61,10 @@ class MarketMapDashboardTests(unittest.TestCase):
         self.assertEqual(row["relative_strength"], 85)
         self.assertEqual(row["flow_score"], 55)
         self.assertEqual(row["leverage_value"], 55)
+        self.assertEqual(row["leverage_duration"], 3)
         self.assertEqual(row["leverage_velocity"], 3.5)
         self.assertEqual(row["leverage_velocity_score"], 72)
+        self.assertEqual(row["funding_signal_strength"], 55)
         self.assertEqual(row["flow_state"], "Leveraging")
         self.assertTrue(row["long_candidate"])
         self.assertFalse(row["short_candidate"])
