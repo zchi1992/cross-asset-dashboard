@@ -20,6 +20,7 @@ class MarketMapDashboardTests(unittest.TestCase):
     def test_processed_long_rows_are_mapped_to_market_map_rows(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             storage_root = Path(temp_dir)
+            _write_gs_exempt_list(storage_root, ["AAA"])
             _write_processed_asset(
                 storage_root,
                 "core",
@@ -51,6 +52,7 @@ class MarketMapDashboardTests(unittest.TestCase):
         self.assertEqual(list(row), MARKET_MAP_COLUMNS)
         self.assertEqual(row["asset_id"], "AAA")
         self.assertEqual(row["asset_class"], "core")
+        self.assertTrue(row["is_gs_exempt"])
         self.assertEqual(row["trend_score"], 75)
         self.assertEqual(row["monthly_trend"], "up")
         self.assertEqual(row["weekly_trend"], "up")
@@ -243,6 +245,15 @@ def _write_processed_asset(
                     "metric_value": metric_value,
                 }
             )
+
+
+def _write_gs_exempt_list(storage_root: Path, tickers: list[str]) -> None:
+    target_dir = storage_root / "gs_exempt_list"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    with (target_dir / "gs_exempt_list.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["Ticker", "Name"])
+        writer.writerows((ticker, f"Asset {ticker}") for ticker in tickers)
 
 
 def _market_map_row(

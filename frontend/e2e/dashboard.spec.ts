@@ -17,6 +17,9 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(topline).toContainText("1 visible / 13 frame");
   await expect(page.getByLabel("Velocity")).toHaveCount(0);
 
+  await page.getByLabel("Asset Class").selectOption("gs_exempt");
+  await expect(topline).toContainText("1 visible / 13 frame");
+
   const search = page.getByPlaceholder("Symbol or asset name");
   await search.fill("AAA");
   await expect(search).toHaveValue("AAA");
@@ -55,6 +58,12 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(page.getByTestId("candidate-long-table")).toContainText("Candidate 10");
   await expect(page.getByText("Candidate 11")).toHaveCount(0);
   await expect(page.getByTestId("strong-long-table")).toContainText("+1");
+
+  await page.getByLabel("Asset Class").selectOption("gs_exempt");
+  await expect(page.getByTestId("strong-long-section")).toContainText("1 total / top 1 shown");
+  await expect(page.getByTestId("candidate-long-section")).toContainText("0 total / top 0 shown");
+  await expect(page.getByTestId("strong-long-table")).toContainText("Fixture Alpha");
+  await expect(page.getByTestId("strong-long-row")).toHaveCount(1);
 });
 
 test("renders an actionable backend error state", async ({ page }) => {

@@ -89,6 +89,23 @@ def _data_signature(storage_root: str | Path, market_map_config: dict) -> tuple:
             except FileNotFoundError:
                 continue
             parts.append((str(source_path), stat.st_mtime_ns, stat.st_size))
+    gs_exempt_dir = root / "gs_exempt_list"
+    gs_exempt_paths = [
+        gs_exempt_dir / "gs_exempt_list.xlsx",
+        gs_exempt_dir / "gs_exempt_list.csv",
+    ]
+    matched_gs_exempt_path = False
+    for source_path in gs_exempt_paths:
+        if not source_path.exists():
+            continue
+        matched_gs_exempt_path = True
+        try:
+            stat = source_path.stat()
+        except FileNotFoundError:
+            continue
+        parts.append((str(source_path), stat.st_mtime_ns, stat.st_size))
+    if not matched_gs_exempt_path:
+        parts.append((str(gs_exempt_dir), -1, -1))
     return tuple(parts)
 
 
@@ -171,6 +188,7 @@ def _to_snapshot_item(row: dict) -> SnapshotItem:
         symbol=str(row["asset_id"]),
         asset_name=str(row["asset_name"]),
         asset_class=str(row["asset_class"]),
+        is_gs_exempt=bool(row.get("is_gs_exempt")),
         trend_score=float(row["trend_score"]),
         rs_score=float(row["rs_score"]),
         early_reversal=float(row["early_reversal"]),

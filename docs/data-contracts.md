@@ -7,6 +7,10 @@ Dashboard 输入位于：
 - `data/processed/series/core/*.csv`
 - `data/processed/series/instruments/*.csv`
 
+公司批准名单默认读取 `data/gs_exempt_list/gs_exempt_list.xlsx` 的 `Ticker` 列；
+固定测试样例可使用同目录同名 CSV。代码按去除首尾空白并转大写后的 ticker 精确匹配，
+名单缺失时所有行情记录均视为非公司名单标的。
+
 CSV 使用 long format：
 
 ```text
@@ -42,6 +46,8 @@ dashboard/API 展示字段。
 
 单日宽表和 playback item 保留原有字段，并额外返回：
 
+- `is_gs_exempt`：布尔值，表示该行情记录的 symbol 是否在公司批准名单中；前端据此筛选已有数据，不把名单中无行情的 symbol 补进响应。
+
 - `leverage_duration`：来自 `funding_current_leverage_state_duration`，用于机会排序和表格展示。
 - `funding_signal_strength`：来自同名 processed metric，用于机会排序；不替代现有
   `funding_score` 字段。
@@ -55,5 +61,6 @@ dashboard/API 展示字段。
 
 - 配置文件路径、修改时间和大小。
 - 所有 processed CSV 的路径、修改时间和大小。
+- GS exempt 名单文件的路径、修改时间和大小；名单变化会重建 rows 和 playback frames。
 
 相同签名复用解析结果；配置或数据签名变化后重新构建 rows 和 playback frames。
