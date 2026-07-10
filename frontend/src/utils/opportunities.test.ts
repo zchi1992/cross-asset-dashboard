@@ -52,6 +52,19 @@ describe("opportunity screening utilities", () => {
     expect(ranked.map((entry) => entry.symbol)).toEqual(["FRESH", "STRONGER", "WEAKER", "LATE"]);
   });
 
+  it("deduplicates strong longs by symbol and asset name after ranking", () => {
+    const ranked = rankStrongLongOpportunities([
+      item({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "core", leverage_duration: 8 }),
+      item({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "instruments", leverage_duration: 1 }),
+      item({ symbol: "DUP", asset_name: "Different Asset", asset_class: "core", leverage_duration: 2 }),
+    ]);
+
+    expect(ranked.map((entry) => `${entry.asset_class}:${entry.symbol}:${entry.asset_name}`)).toEqual([
+      "instruments:DUP:Duplicate Asset",
+      "core:DUP:Different Asset",
+    ]);
+  });
+
   it("ranks candidate longs with leveraging before mild deleveraging", () => {
     const ranked = rankCandidateLongOpportunities([
       item({ symbol: "DEL_WEAK", funding_state: "Deleveraging", leverage_velocity: -6 }),
@@ -63,6 +76,19 @@ describe("opportunity screening utilities", () => {
     ]);
 
     expect(ranked.map((entry) => entry.symbol)).toEqual(["LEV_FAST", "LEV_SLOW", "DEL_FAST", "DEL_SLOW"]);
+  });
+
+  it("deduplicates candidate longs by symbol and asset name after ranking", () => {
+    const ranked = rankCandidateLongOpportunities([
+      item({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "core", leverage_duration: 5 }),
+      item({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "instruments", leverage_duration: 1 }),
+      item({ symbol: "UNIQUE", asset_name: "Unique Asset", leverage_duration: 2 }),
+    ]);
+
+    expect(ranked.map((entry) => `${entry.asset_class}:${entry.symbol}:${entry.asset_name}`)).toEqual([
+      "instruments:DUP:Duplicate Asset",
+      "core:UNIQUE:Unique Asset",
+    ]);
   });
 
   it("computes opportunity-list rank changes against available date offsets", () => {
@@ -96,6 +122,25 @@ describe("opportunity screening utilities", () => {
     expect(rows.find((row) => row.item.symbol === "B")?.rankChanges.rank_change_1d).toBe("-1");
     expect(rows.find((row) => row.item.symbol === "C")?.rankChanges.rank_change_1d).toBe("NEW");
     expect(rows.find((row) => row.item.symbol === "D")?.rankChanges.rank_change_1d).toBe("0");
+  });
+
+  it("tracks rank changes across core and instruments duplicates by symbol and asset name", () => {
+    const dates = ["2026-06-18", "2026-06-19"];
+    const frames: Record<string, SnapshotItem[]> = {
+      [dates[0]]: [
+        item({ symbol: "A", asset_name: "Same Asset", asset_class: "core", leverage_duration: 1 }),
+        item({ symbol: "B", asset_name: "Other Asset", leverage_duration: 2 }),
+      ],
+      [dates[1]]: [
+        item({ symbol: "A", asset_name: "Same Asset", asset_class: "instruments", leverage_duration: 1 }),
+        item({ symbol: "B", asset_name: "Other Asset", leverage_duration: 2 }),
+      ],
+    };
+
+    const changes = buildRankChanges(frames, dates, 1, "candidateLong");
+    const rows = buildRankedOpportunityRows(frames[dates[1]], changes, rankCandidateLongOpportunities);
+
+    expect(rows.find((row) => row.item.symbol === "A")?.rankChanges.rank_change_1d).toBe("0");
   });
 
   it("limits opportunity display rows to the top ten", () => {
