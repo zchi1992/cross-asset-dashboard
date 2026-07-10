@@ -17,11 +17,11 @@ export type RankedOpportunity = {
 type OpportunityRanker = (items: SnapshotItem[]) => SnapshotItem[];
 
 export function rankStrongLongOpportunities(items: SnapshotItem[]) {
-  return [...items].filter(isStrongLongOpportunity).sort(compareStrongLong);
+  return dedupeOpportunities([...items].filter(isStrongLongOpportunity).sort(compareStrongLong));
 }
 
 export function rankCandidateLongOpportunities(items: SnapshotItem[]) {
-  return [...items].filter(isCandidateLongOpportunity).sort(compareCandidateLong);
+  return dedupeOpportunities([...items].filter(isCandidateLongOpportunity).sort(compareCandidateLong));
 }
 
 export function buildRankChanges(
@@ -72,7 +72,7 @@ export function topOpportunities(rows: RankedOpportunity[], limit = OPPORTUNITY_
 }
 
 export function opportunityAssetKey(item: SnapshotItem) {
-  return `${item.asset_class}::${item.symbol}::${item.asset_name}`;
+  return `${item.symbol.trim()}::${item.asset_name.trim()}`;
 }
 
 function rankerForScreen(screen: OpportunityScreen): OpportunityRanker {
@@ -148,6 +148,16 @@ function compareAssetIdentity(a: SnapshotItem, b: SnapshotItem) {
     a.symbol.localeCompare(b.symbol) ||
     a.asset_name.localeCompare(b.asset_name)
   );
+}
+
+function dedupeOpportunities(items: SnapshotItem[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = opportunityAssetKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function ranksByAssetKey(items: SnapshotItem[]) {
