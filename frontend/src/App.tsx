@@ -8,12 +8,22 @@ import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
 import { assetKeyWithCollisions, duplicateAssetBaseKeys, filterItems, matchesSearch } from "./utils/filtering";
+import {
+  buildRankChanges,
+  buildRankedOpportunityRows,
+  OPPORTUNITY_DISPLAY_LIMIT,
+  rankCandidateLongOpportunities,
+  rankStrongLongOpportunities,
+  topOpportunities,
+  type RankedOpportunity,
+} from "./utils/opportunities";
 
 const RS_COMPONENT_SERIES: MiniChartSeries[] = [
   { metric: "early_reversal", label: "early_reversal", color: "var(--rs-early-reversal)" },
   { metric: "strength_momentum", label: "strength_momentum", color: "var(--rs-strength-momentum)" },
   { metric: "relative_strength", label: "relative_strength", color: "var(--rs-relative-strength)" },
 ];
+type ActiveView = "marketMap" | "opportunities";
 
 export function App() {
   const refreshPolicy = {
@@ -54,6 +64,7 @@ export function App() {
   const selectSymbol = useSelectionStore((state) => state.selectSymbol);
   const clearSelection = useSelectionStore((state) => state.clearSelection);
   const [detailPanelWidth, setDetailPanelWidth] = useState(360);
+  const [activeView, setActiveView] = useState<ActiveView>("marketMap");
 
   useEffect(() => {
     if (datesQuery.data?.dates.length) {
@@ -146,6 +157,22 @@ export function App() {
         : [],
     [currentIndex, historyBySymbol, selectedSymbol],
   );
+  const strongLongRankChanges = useMemo(
+    () => buildRankChanges(frames, availableDates, currentIndex, "strongLong"),
+    [availableDates, currentIndex, frames],
+  );
+  const candidateLongRankChanges = useMemo(
+    () => buildRankChanges(frames, availableDates, currentIndex, "candidateLong"),
+    [availableDates, currentIndex, frames],
+  );
+  const strongLongRows = useMemo(
+    () => buildRankedOpportunityRows(currentItems, strongLongRankChanges, rankStrongLongOpportunities),
+    [currentItems, strongLongRankChanges],
+  );
+  const candidateLongRows = useMemo(
+    () => buildRankedOpportunityRows(currentItems, candidateLongRankChanges, rankCandidateLongOpportunities),
+    [candidateLongRankChanges, currentItems],
+  );
 
   const isBootLoading = configQuery.isLoading || datesQuery.isLoading;
   const error = configQuery.error || datesQuery.error || playbackQuery.error || assetsQuery.error;
@@ -173,91 +200,111 @@ export function App() {
 
   return (
     <main className="terminal-shell">
-      <section className="filter-bar">
-        <SearchControl value={searchText} onCommit={setSearchText} />
-        <label>
-          <span>Asset Class</span>
-          <select value={assetClass} onChange={(event) => setAssetClass(event.target.value)}>
-            {config.asset_classes.map((value) => (
-              <option key={value} value={value}>
-                {formatAssetClass(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <MultiSelect
-          title="Funding State"
-          values={config.funding_states}
-          selected={fundingStates}
-          onChange={(value) => setFundingStates(value as FundingState[])}
-        />
-        <MultiSelect
-          title="Relative Strength State"
-          values={config.rs_states}
-          selected={rsStates}
-          onChange={(value) => setRsStates(value as RelativeStrengthState[])}
-        />
-        <button
-          className="reset-button"
-          onClick={() => {
-            resetFilters({
-              assetClass: config.default_filters.asset_class,
-              fundingStates: config.default_filters.funding_states,
-              rsStates: config.default_filters.rs_states,
-            });
-            clearSelection();
-          }}
-        >
-          Reset
-        </button>
-      </section>
+      <ViewTabs activeView={activeView} onChange={setActiveView} />
 
-      <section className="workspace">
-        <div className="workspace-topline">
-          <span>{currentDate}</span>
-          <span>{chartItems.length} visible / {currentItems.length} frame / {assetCount} assets / {availableDates.length} dates</span>
-        </div>
-        <div
-          className={`workspace-body ${selectedCurrentItem ? "with-detail" : ""}`}
-          style={{ "--detail-panel-width": `${detailPanelWidth}px` } as CSSProperties}
-        >
-          <div className="chart-frame">
-            <CrossAssetScatter
-              items={chartItems}
-              frames={frames}
-              dates={availableDates}
-              currentIndex={currentIndex}
-              selectedSymbol={selectedSymbol}
-              duplicateAssetKeys={duplicateAssetKeys}
-              scoreRanges={config.score_ranges}
-              attentionTags={attentionTags}
-              onSelect={selectSymbol}
-              onClear={clearSelection}
-            />
-            <div className="trend-legend" aria-hidden="true">
-              <span>Weak</span>
-              <div />
-              <span>Strong</span>
-            </div>
+      {activeView === "marketMap" ? (
+        <section className="filter-bar">
+          <SearchControl value={searchText} onCommit={setSearchText} />
+          <label>
+            <span>Asset Class</span>
+            <select value={assetClass} onChange={(event) => setAssetClass(event.target.value)}>
+              {config.asset_classes.map((value) => (
+                <option key={value} value={value}>
+                  {formatAssetClass(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <MultiSelect
+            title="Funding State"
+            values={config.funding_states}
+            selected={fundingStates}
+            onChange={(value) => setFundingStates(value as FundingState[])}
+          />
+          <MultiSelect
+            title="Relative Strength State"
+            values={config.rs_states}
+            selected={rsStates}
+            onChange={(value) => setRsStates(value as RelativeStrengthState[])}
+          />
+          <button
+            className="reset-button"
+            onClick={() => {
+              resetFilters({
+                assetClass: config.default_filters.asset_class,
+                fundingStates: config.default_filters.funding_states,
+                rsStates: config.default_filters.rs_states,
+              });
+              clearSelection();
+            }}
+          >
+            Reset
+          </button>
+        </section>
+      ) : (
+        <section className="opportunity-bar">
+          <span>Long Opportunities</span>
+          <strong>{strongLongRows.length} strong / {candidateLongRows.length} candidate</strong>
+          <span>{currentItems.length} frame assets</span>
+        </section>
+      )}
+
+      {activeView === "marketMap" ? (
+        <section className="workspace">
+          <div className="workspace-topline">
+            <span>{currentDate}</span>
+            <span>{chartItems.length} visible / {currentItems.length} frame / {assetCount} assets / {availableDates.length} dates</span>
           </div>
-          {selectedCurrentItem && (
-            <>
-              <button
-                className="panel-resizer"
-                aria-label="Resize detail panel"
-                onPointerDown={(event) => startPanelResize(event, detailPanelWidth, setDetailPanelWidth)}
+          <div
+            className={`workspace-body ${selectedCurrentItem ? "with-detail" : ""}`}
+            style={{ "--detail-panel-width": `${detailPanelWidth}px` } as CSSProperties}
+          >
+            <div className="chart-frame">
+              <CrossAssetScatter
+                items={chartItems}
+                frames={frames}
+                dates={availableDates}
+                currentIndex={currentIndex}
+                selectedSymbol={selectedSymbol}
+                duplicateAssetKeys={duplicateAssetKeys}
+                scoreRanges={config.score_ranges}
+                attentionTags={attentionTags}
+                onSelect={selectSymbol}
+                onClear={clearSelection}
               />
-              <AssetDetailPanel
-                item={selectedCurrentItem}
-                history={selectedHistory}
-                tags={classifyAsset(selectedCurrentItem)}
-                onClose={clearSelection}
-              />
-            </>
-          )}
-        </div>
-        {!chartItems.length && <div className="empty-state">{emptyMessage}</div>}
-      </section>
+              <div className="trend-legend" aria-hidden="true">
+                <span>Weak</span>
+                <div />
+                <span>Strong</span>
+              </div>
+            </div>
+            {selectedCurrentItem && (
+              <>
+                <button
+                  className="panel-resizer"
+                  aria-label="Resize detail panel"
+                  onPointerDown={(event) => startPanelResize(event, detailPanelWidth, setDetailPanelWidth)}
+                />
+                <AssetDetailPanel
+                  item={selectedCurrentItem}
+                  history={selectedHistory}
+                  tags={classifyAsset(selectedCurrentItem)}
+                  onClose={clearSelection}
+                />
+              </>
+            )}
+          </div>
+          {!chartItems.length && <div className="empty-state">{emptyMessage}</div>}
+        </section>
+      ) : (
+        <OpportunitiesWorkspace
+          currentDate={currentDate}
+          assetCount={currentItems.length}
+          dateCount={availableDates.length}
+          strongRows={strongLongRows}
+          candidateRows={candidateLongRows}
+        />
+      )}
 
       <section className="playback-bar">
         <button onClick={first} disabled={!canUsePlayback}>First</button>
@@ -299,6 +346,126 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function ViewTabs({ activeView, onChange }: { activeView: ActiveView; onChange: (view: ActiveView) => void }) {
+  return (
+    <section className="view-tabs" role="tablist" aria-label="Dashboard views">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeView === "marketMap"}
+        className={activeView === "marketMap" ? "active" : ""}
+        onClick={() => onChange("marketMap")}
+      >
+        Market Map
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeView === "opportunities"}
+        className={activeView === "opportunities" ? "active" : ""}
+        onClick={() => onChange("opportunities")}
+      >
+        Opportunities
+      </button>
+    </section>
+  );
+}
+
+function OpportunitiesWorkspace({
+  currentDate,
+  assetCount,
+  dateCount,
+  strongRows,
+  candidateRows,
+}: {
+  currentDate: string;
+  assetCount: number;
+  dateCount: number;
+  strongRows: RankedOpportunity[];
+  candidateRows: RankedOpportunity[];
+}) {
+  return (
+    <section className="workspace opportunities-workspace">
+      <div className="workspace-topline">
+        <span>{currentDate}</span>
+        <span>{strongRows.length} strong / {candidateRows.length} candidate / {assetCount} frame / {dateCount} dates</span>
+      </div>
+      <div className="opportunities-layout">
+        <OpportunitySection title="强势多头" rows={strongRows} testId="strong-long" />
+        <OpportunitySection title="候选多头" rows={candidateRows} testId="candidate-long" />
+      </div>
+    </section>
+  );
+}
+
+function OpportunitySection({ title, rows, testId }: { title: string; rows: RankedOpportunity[]; testId: string }) {
+  const visibleRows = topOpportunities(rows);
+  return (
+    <section className="opportunity-section" data-testid={`${testId}-section`}>
+      <header>
+        <h2>{title}</h2>
+        <span>{rows.length} total / top {Math.min(rows.length, OPPORTUNITY_DISPLAY_LIMIT)} shown</span>
+      </header>
+      <OpportunityTable rows={visibleRows} testId={testId} />
+    </section>
+  );
+}
+
+function OpportunityTable({ rows, testId }: { rows: RankedOpportunity[]; testId: string }) {
+  return (
+    <div className="opportunity-table-wrap">
+      <table className="opportunity-table" data-testid={`${testId}-table`}>
+        <thead>
+          <tr>
+            <th>标的类型</th>
+            <th>标的代码</th>
+            <th>名称</th>
+            <th>趋势状态名称</th>
+            <th>趋势分</th>
+            <th>比价分</th>
+            <th>当前杠杆状态</th>
+            <th>当前杠杆持续时间</th>
+            <th>杠杆速率</th>
+            <th>杠杆速率分</th>
+            <th>1日总排名变化</th>
+            <th>5日总排名变化</th>
+            <th>10日总排名变化</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length ? (
+            rows.map((row) => (
+              <tr key={`${row.rank}-${row.item.asset_class}-${row.item.symbol}-${row.item.asset_name}`} data-testid={`${testId}-row`}>
+                <td>{row.item.asset_class}</td>
+                <td className="numeric-cell">{row.item.symbol}</td>
+                <td>{row.item.asset_name}</td>
+                <td>{row.item.trend_state || "-"}</td>
+                <td className="numeric-cell">{formatMaybeNumber(row.item.trend_score)}</td>
+                <td className="numeric-cell">{formatMaybeNumber(row.item.rs_score)}</td>
+                <td>{row.item.funding_state}</td>
+                <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_duration)}</td>
+                <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_velocity)}</td>
+                <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_velocity_score)}</td>
+                <OpportunityRankCell value={row.rankChanges.rank_change_1d} />
+                <OpportunityRankCell value={row.rankChanges.rank_change_5d} />
+                <OpportunityRankCell value={row.rankChanges.rank_change_10d} />
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={13} className="empty-row">No matching opportunities</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function OpportunityRankCell({ value }: { value: string }) {
+  return <td className={`numeric-cell rank-change ${rankChangeClass(value)}`}>{value}</td>;
 }
 
 function MultiSelect({
@@ -378,6 +545,17 @@ function formatAssetClass(value: string) {
     .split(/[_-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function formatMaybeNumber(value?: number | null) {
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
+}
+
+function rankChangeClass(value: string) {
+  if (value === "NEW") return "is-new";
+  if (value.startsWith("+")) return "is-positive";
+  if (value.startsWith("-")) return "is-negative";
+  return "is-flat";
 }
 
 type HistoryPoint = { date: string; item: SnapshotItem };

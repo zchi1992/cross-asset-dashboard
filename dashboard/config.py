@@ -23,8 +23,10 @@ DEFAULT_MARKET_MAP_CONFIG: dict[str, Any] = {
         "flow_score": "funding_leverage_value",
         "flow_state": "funding_signal_direction",
         "leverage_value": "funding_leverage_value",
+        "leverage_duration": "funding_current_leverage_state_duration",
         "leverage_velocity": "leverage_velocity",
         "leverage_velocity_score": "leverage_velocity_score",
+        "funding_signal_strength": "funding_signal_strength",
     },
     "quadrants": {
         "x_midline": 0,

@@ -28,8 +28,8 @@ def test_readiness_reports_fixture_data() -> None:
     assert response.json() == {
         "status": "ready",
         "reason": None,
-        "date_count": 2,
-        "asset_count": 2,
+        "date_count": 11,
+        "asset_count": 13,
         "latest_date": "2026-06-28",
     }
 
@@ -93,13 +93,18 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
         "relative_strength",
         "rs_state",
         "trend_score",
+        "leverage_duration",
+        "funding_signal_strength",
     } <= set(snapshot["items"][0])
+    assert snapshot["items"][0]["leverage_duration"] == 2
+    assert snapshot["items"][0]["funding_signal_strength"] == 68
 
     playback_response = client.get("/api/playback", params={"start": dates[-2], "end": dates[-1]})
     assert playback_response.status_code == 200
     playback = playback_response.json()
     assert playback["dates"] == dates[-2:]
     assert set(playback["frames"]) == set(dates[-2:])
+    assert playback["frames"][dates[-1]][0]["leverage_duration"] == 2
 
 
 def test_snapshot_rejects_unknown_date() -> None:

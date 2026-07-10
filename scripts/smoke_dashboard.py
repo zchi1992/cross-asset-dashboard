@@ -94,7 +94,7 @@ def main() -> int:
             status, _payload = get_json(f"{base_url}{path}")
             if status != expected_status:
                 raise RuntimeError(f"{path} returned {status}, expected {expected_status}")
-        if ready["date_count"] != 2 or ready["asset_count"] != 2:
+        if ready["date_count"] != 11 or ready["asset_count"] != 13:
             raise RuntimeError(f"unexpected readiness payload: {ready}")
         print(json.dumps({"status": "ok", "base_url": base_url, "ready": ready}))
         return 0

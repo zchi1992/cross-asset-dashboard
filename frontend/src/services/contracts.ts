@@ -42,8 +42,10 @@ export type SnapshotItem = {
   funding_score: number;
   funding_state: FundingState;
   leverage_value: number;
+  leverage_duration?: number | null;
   leverage_velocity: number;
   leverage_velocity_score: number;
+  funding_signal_strength?: number | null;
   trend_state?: string | null;
   monthly_trend?: string | null;
   weekly_trend?: string | null;

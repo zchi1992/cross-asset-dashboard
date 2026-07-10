@@ -180,8 +180,10 @@ def _to_snapshot_item(row: dict) -> SnapshotItem:
         funding_score=float(row["flow_score"]),
         funding_state=str(row["flow_state"]),
         leverage_value=float(row["leverage_value"]),
+        leverage_duration=_optional_float(row.get("leverage_duration")),
         leverage_velocity=float(row["leverage_velocity"]),
         leverage_velocity_score=float(row["leverage_velocity_score"]),
+        funding_signal_strength=_optional_float(row.get("funding_signal_strength")),
         trend_state=str(row.get("trend_state") or ""),
         monthly_trend=str(row.get("monthly_trend") or ""),
         weekly_trend=str(row.get("weekly_trend") or ""),
@@ -209,6 +211,12 @@ def _score_range(
         return [low - 1, high + 1]
     padding = max((high - low) * 0.05, 1)
     return [round(low - padding, 2), round(high + padding, 2)]
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None or value == "":
+        return None
+    return float(value)
 
 
 def _quantile_value(values: list[float], quantile: float) -> float:

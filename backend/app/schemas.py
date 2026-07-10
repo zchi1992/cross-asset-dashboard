@@ -71,8 +71,10 @@ class SnapshotItem(BaseModel):
     funding_score: float
     funding_state: str
     leverage_value: float
+    leverage_duration: float | None = None
     leverage_velocity: float
     leverage_velocity_score: float
+    funding_signal_strength: float | None = None
     trend_state: str | None = None
     monthly_trend: str | None = None
     weekly_trend: str | None = None
