@@ -30,6 +30,16 @@ const RS_COMPONENT_SERIES: MiniChartSeries[] = [
   { metric: "strength_momentum", label: "strength_momentum", color: "var(--rs-strength-momentum)" },
   { metric: "relative_strength", label: "relative_strength", color: "var(--rs-relative-strength)" },
 ];
+const MINI_CHART_WIDTH = 360;
+const MINI_CHART_HEIGHT = 184;
+const MINI_CHART_PLOT = {
+  top: 12,
+  right: 16,
+  bottom: 34,
+  left: 42,
+};
+const RS_THRESHOLD_VALUES = [120, 100, 80];
+
 type ActiveView = "marketMap" | "opportunities";
 
 export function App() {
@@ -783,20 +793,12 @@ function MiniHistoryChart({
   variant?: "dots" | "line";
 }) {
   const values = points.map((point) => Number(point.item[metric] ?? 0)).filter(Number.isFinite);
-  const rawMin = values.length ? Math.min(...values) : 0;
-  const rawMax = values.length ? Math.max(...values) : 1;
-  const range = rawMax - rawMin;
-  const padding = Math.max(range * 0.16, metric === "funding_score" ? 0.4 : 2);
-  const min = rawMin - padding;
-  const max = rawMax + padding;
-  const span = Math.max(max - min, 1);
-  const width = 360;
-  const height = 160;
-  const inset = 12;
-  const zeroLineY = min <= 0 && max >= 0 ? yForValue(0, min, span, height, inset) : height / 2;
+  const scale = buildMiniChartScale(values, { minPadding: metric === "funding_score" ? 0.4 : 2 });
+  const yTicks = buildYAxisTicks(scale.min, scale.max);
+  const dateTicks = buildDateTicks(points);
   const chartPoints = points.map((point, index) => {
-    const x = points.length <= 1 ? width / 2 : inset + (index / (points.length - 1)) * (width - inset * 2);
-    const y = yForValue(Number(point.item[metric] ?? 0), min, span, height, inset);
+    const x = xForIndex(index, points.length);
+    const y = yForValue(Number(point.item[metric] ?? 0), scale);
     const opacity = 0.18 + ((index + 1) / Math.max(points.length, 1)) * 0.82;
     return { date: point.date, x, y, opacity };
   });
@@ -804,8 +806,8 @@ function MiniHistoryChart({
   return (
     <section className="mini-chart">
       <h2>{title}</h2>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
-        <line x1={inset} y1={zeroLineY} x2={width - inset} y2={zeroLineY} />
+      <svg viewBox={`0 0 ${MINI_CHART_WIDTH} ${MINI_CHART_HEIGHT}`} role="img" aria-label={title}>
+        <MiniChartAxes scale={scale} yTicks={yTicks} dateTicks={dateTicks} />
         {variant === "line" ? (
           <path className="mini-chart-path" d={pathData} />
         ) : (
@@ -822,17 +824,9 @@ function MiniMultiHistoryChart({ title, points, series }: { title: string; point
   const values = points.flatMap((point) =>
     series.map((item) => Number(point.item[item.metric] ?? 0)).filter(Number.isFinite),
   );
-  const rawMin = values.length ? Math.min(...values) : 0;
-  const rawMax = values.length ? Math.max(...values) : 1;
-  const range = rawMax - rawMin;
-  const padding = Math.max(range * 0.16, 2);
-  const min = rawMin - padding;
-  const max = rawMax + padding;
-  const span = Math.max(max - min, 1);
-  const width = 360;
-  const height = 160;
-  const inset = 12;
-  const zeroLineY = min <= 0 && max >= 0 ? yForValue(0, min, span, height, inset) : height / 2;
+  const scale = buildMiniChartScale(values, { forcedValues: RS_THRESHOLD_VALUES, minPadding: 2 });
+  const yTicks = buildYAxisTicks(scale.min, scale.max, RS_THRESHOLD_VALUES);
+  const dateTicks = buildDateTicks(points);
   return (
     <section className="mini-chart">
       <h2>{title}</h2>
@@ -844,14 +838,24 @@ function MiniMultiHistoryChart({ title, points, series }: { title: string; point
           </span>
         ))}
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
-        <line x1={inset} y1={zeroLineY} x2={width - inset} y2={zeroLineY} />
+      <svg viewBox={`0 0 ${MINI_CHART_WIDTH} ${MINI_CHART_HEIGHT}`} role="img" aria-label={title}>
+        <MiniChartAxes scale={scale} yTicks={yTicks} dateTicks={dateTicks} />
+        {RS_THRESHOLD_VALUES.map((value) => (
+          <line
+            key={`rs-threshold-${value}`}
+            className={`mini-chart-threshold${value === 100 ? " is-baseline" : ""}`}
+            x1={MINI_CHART_PLOT.left}
+            y1={yForValue(value, scale)}
+            x2={MINI_CHART_WIDTH - MINI_CHART_PLOT.right}
+            y2={yForValue(value, scale)}
+          />
+        ))}
         {series.map((item) => {
           const pathData = points
             .map((point, index) => {
-            const value = Number(point.item[item.metric] ?? 0);
-            const x = points.length <= 1 ? width / 2 : inset + (index / (points.length - 1)) * (width - inset * 2);
-            const y = yForValue(value, min, span, height, inset);
+              const value = Number(point.item[item.metric] ?? 0);
+              const x = xForIndex(index, points.length);
+              const y = yForValue(value, scale);
               return `${index === 0 ? "M" : "L"} ${x} ${y}`;
             })
             .join(" ");
@@ -862,9 +866,159 @@ function MiniMultiHistoryChart({ title, points, series }: { title: string; point
   );
 }
 
-function yForValue(value: number, min: number, span: number, height: number, inset: number) {
-  const plotHeight = height - inset * 2;
-  return height - inset - ((value - min) / span) * plotHeight;
+function MiniChartAxes({
+  scale,
+  yTicks,
+  dateTicks,
+}: {
+  scale: MiniChartScale;
+  yTicks: number[];
+  dateTicks: MiniDateTick[];
+}) {
+  const xAxisY = MINI_CHART_HEIGHT - MINI_CHART_PLOT.bottom;
+  const xStart = scale.plotLeft;
+  const xEnd = scale.plotRight;
+  return (
+    <g aria-hidden="true">
+      {yTicks.map((value) => {
+        const y = yForValue(value, scale);
+        return (
+          <g key={`y-${value}`}>
+            <line className="mini-chart-grid" x1={xStart} y1={y} x2={xEnd} y2={y} />
+            <text className="mini-chart-axis-label mini-chart-y-label" x={xStart - 7} y={y}>
+              {formatAxisNumber(value)}
+            </text>
+          </g>
+        );
+      })}
+      <line className="mini-chart-axis" x1={xStart} y1={scale.plotTop} x2={xStart} y2={xAxisY} />
+      <line className="mini-chart-axis" x1={xStart} y1={xAxisY} x2={xEnd} y2={xAxisY} />
+      {dateTicks.map((tick) => (
+        <g key={`x-${tick.date}-${tick.index}`}>
+          <line className="mini-chart-tick" x1={tick.x} y1={xAxisY} x2={tick.x} y2={xAxisY + 4} />
+          <text className="mini-chart-axis-label mini-chart-x-label" x={tick.x} y={xAxisY + 7} textAnchor={tick.anchor}>
+            {tick.label}
+          </text>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+type MiniChartScale = {
+  min: number;
+  max: number;
+  span: number;
+  plotTop: number;
+  plotBottom: number;
+  plotLeft: number;
+  plotRight: number;
+};
+type MiniDateTick = { date: string; index: number; x: number; label: string; anchor: "start" | "middle" | "end" };
+
+function buildMiniChartScale(values: number[], options: { forcedValues?: number[]; minPadding?: number } = {}): MiniChartScale {
+  const finiteValues = values.filter(Number.isFinite);
+  const forcedValues = (options.forcedValues ?? []).filter(Number.isFinite);
+  const allValues = [...finiteValues, ...forcedValues];
+  let rawMin = allValues.length ? Math.min(...allValues) : 0;
+  let rawMax = allValues.length ? Math.max(...allValues) : 1;
+  if (rawMin === rawMax) {
+    rawMin -= 1;
+    rawMax += 1;
+  }
+  const range = rawMax - rawMin;
+  const padding = Math.max(range * 0.14, options.minPadding ?? 2);
+  const min = rawMin - padding;
+  const max = rawMax + padding;
+  return {
+    min,
+    max,
+    span: Math.max(max - min, 1),
+    plotTop: MINI_CHART_PLOT.top,
+    plotBottom: MINI_CHART_HEIGHT - MINI_CHART_PLOT.bottom,
+    plotLeft: MINI_CHART_PLOT.left,
+    plotRight: MINI_CHART_WIDTH - MINI_CHART_PLOT.right,
+  };
+}
+
+function buildYAxisTicks(min: number, max: number, forcedTicks: number[] = []) {
+  const niceTicks = buildNiceTicks(min, max, 4);
+  return [...new Set([...niceTicks, ...forcedTicks.filter((value) => value >= min && value <= max)])].sort((a, b) => a - b);
+}
+
+function buildNiceTicks(min: number, max: number, preferredCount: number) {
+  const span = max - min;
+  if (!Number.isFinite(span) || span <= 0) return [min];
+  const step = niceStep(span / Math.max(preferredCount - 1, 1));
+  const start = Math.ceil(min / step) * step;
+  const end = Math.floor(max / step) * step;
+  const ticks: number[] = [];
+  for (let value = start; value <= end + step * 0.5; value += step) {
+    ticks.push(roundTick(value));
+  }
+  if (ticks.length >= 2) return ticks;
+  return [roundTick(min), roundTick(max)];
+}
+
+function niceStep(value: number) {
+  const exponent = Math.floor(Math.log10(value));
+  const magnitude = 10 ** exponent;
+  const fraction = value / magnitude;
+  if (fraction <= 1) return magnitude;
+  if (fraction <= 2) return 2 * magnitude;
+  if (fraction <= 5) return 5 * magnitude;
+  return 10 * magnitude;
+}
+
+function roundTick(value: number) {
+  return Number(value.toFixed(6));
+}
+
+function buildDateTicks(points: HistoryPoint[], maxTicks = 5): MiniDateTick[] {
+  if (!points.length) return [];
+  const tickCount = Math.min(maxTicks, points.length);
+  if (tickCount === 1) {
+    return [
+      {
+        date: points[0].date,
+        index: 0,
+        x: xForIndex(0, points.length),
+        label: formatMiniDate(points[0].date),
+        anchor: "middle",
+      },
+    ];
+  }
+  const indexes = Array.from({ length: tickCount }, (_, index) => Math.round((index / (tickCount - 1)) * (points.length - 1)));
+  return [...new Set(indexes)].map((index) => {
+    const point = points[index];
+    return {
+      date: point.date,
+      index,
+      x: xForIndex(index, points.length),
+      label: formatMiniDate(point.date),
+      anchor: index === 0 ? "start" : index === points.length - 1 ? "end" : "middle",
+    };
+  });
+}
+
+function formatMiniDate(date: string) {
+  const match = date.match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return match ? `${match[1]}-${match[2]}` : date;
+}
+
+function formatAxisNumber(value: number) {
+  if (Math.abs(value) >= 100 || Number.isInteger(value)) return value.toFixed(0);
+  if (Math.abs(value) >= 10) return value.toFixed(1);
+  return value.toFixed(2);
+}
+
+function xForIndex(index: number, total: number) {
+  if (total <= 1) return (MINI_CHART_PLOT.left + MINI_CHART_WIDTH - MINI_CHART_PLOT.right) / 2;
+  return MINI_CHART_PLOT.left + (index / (total - 1)) * (MINI_CHART_WIDTH - MINI_CHART_PLOT.left - MINI_CHART_PLOT.right);
+}
+
+function yForValue(value: number, scale: MiniChartScale) {
+  return scale.plotBottom - ((value - scale.min) / scale.span) * (scale.plotBottom - scale.plotTop);
 }
 
 function startPanelResize(
