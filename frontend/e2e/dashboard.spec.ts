@@ -63,15 +63,22 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await page.getByRole("tab", { name: "Opportunities" }).click();
   await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
   await expect(page.getByTestId("candidate-long-section")).toContainText("11 total / top 10 shown");
+  await expect(page.getByTestId("strong-short-section")).toContainText("1 total / top 1 shown");
+  await expect(page.getByTestId("candidate-short-section")).toContainText("1 total / top 1 shown");
   await expect(page.getByTestId("strong-long-table")).toContainText("标的类型");
   await expect(page.getByTestId("strong-long-table")).toContainText("当前杠杆持续时间");
   await expect(page.getByTestId("strong-long-table")).toContainText("10日总排名变化");
   await expect(page.getByTestId("strong-long-row")).toHaveCount(10);
   await expect(page.getByTestId("candidate-long-row")).toHaveCount(10);
+  await expect(page.getByTestId("strong-short-row")).toHaveCount(1);
+  await expect(page.getByTestId("candidate-short-row")).toHaveCount(1);
   await expect(page.getByTestId("strong-long-table")).toContainText("Fixture Alpha");
   await expect(page.getByTestId("candidate-long-table")).toContainText("Candidate 10");
   await expect(page.getByText("Candidate 11")).toHaveCount(0);
   await expect(page.getByTestId("strong-long-table")).toContainText("+1");
+  await expect(page.getByTestId("strong-short-table")).toContainText("Fixture Beta");
+  await expect(page.getByTestId("candidate-short-table")).toContainText("Fixture Beta");
+  await expect(page.getByTestId("strong-short-table")).toContainText("0");
 
   const opportunityRow = page.getByTestId("strong-long-row").filter({ hasText: "Fixture Alpha" });
   await opportunityRow.click();

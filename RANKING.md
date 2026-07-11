@@ -1,15 +1,16 @@
 # Opportunity Screening and Ranking Reference
 
 本文记录 Dashboard 当前 Opportunities 页面的筛选与排名逻辑。实现以
-`frontend/src/utils/opportunities.ts` 为准；资产池预筛选由
-`frontend/src/App.tsx` 和 `frontend/src/utils/filtering.ts` 完成。
+`frontend/src/utils/opportunities.ts` 为准，页面调用位于 `frontend/src/App.tsx`。
 
-Opportunities 页面包含两个独立榜单：
+Opportunities 页面包含四个独立榜单：
 
 - **强势多头（Strong Long）**
 - **候选多头（Candidate Long）**
+- **强势空头（Strong Short）**
+- **候选空头（Candidate Short）**
 
-两个榜单分别筛选、分别排序。同一标的可以同时出现在两个榜单中。
+四个榜单分别筛选、分别排序。同一标的可以同时出现在多个榜单中。
 
 ## 1. 排名使用的输入字段
 
@@ -26,6 +27,7 @@ Opportunities 页面包含两个独立榜单：
 | `daily_trend` | 日频趋势方向 |
 | `weekly_trend` | 周频趋势方向 |
 | `funding_state` | 当前资金状态 |
+| `leverage_value` | 当前杠杆资金数值 |
 | `leverage_duration` | 当前杠杆状态持续时间 |
 | `leverage_velocity` | 杠杆速率 |
 | `funding_signal_strength` | 资金信号强度；缺失时使用 `funding_score` |
@@ -39,20 +41,12 @@ normalizeTrend(value) = trim(lowercase(value))
 
 因此当前筛选条件直接使用归一化后的 `up` 和 `down`。
 
-## 2. 资产池预筛选
+## 2. 资产池
 
-Opportunity 排名不是固定在全市场资产池上计算。页面会先按照当前的
-`Asset Class` 选项过滤每个历史 frame，再在过滤后的资产池内执行两套
-Opportunity 筛选和排序。
-
-当前选项包括：
-
-- `All Assets`：不额外限制资产池。
-- 普通 Asset Class：只保留对应 `asset_class` 的标的。
-- `GS Exempt`：只保留 `is_gs_exempt = true` 且当前 frame 中实际有数据的标的。
-
-当前排名与历史排名使用同一个资产池过滤条件。因此切换 Asset Class 后，
-榜单排名和 1/5/10 日排名变化都会在所选资产范围内重新计算。
+Opportunities 页面不套用 Market Map 的 Search、Funding State 或 Relative
+Strength State 过滤器，但拥有独立的 Asset Class 选项：`All Assets`、普通
+Asset Class 和 `GS Exempt`。页面先按该选项过滤每个历史 frame，再在同一资产池
+中计算四个榜单及排名变化；`GS Exempt` 只保留公司批准名单中且当前 frame 有数据的标的。
 
 ## 3. 强势多头筛选
 
@@ -152,36 +146,115 @@ normalizeTrend(weekly_trend) != down
 注意：候选多头排序中 `strength_momentum`、`relative_strength` 和
 `funding_signal_strength` 当前使用升序。这是当前代码的实际行为。
 
-## 7. 排名编号与展示数量
+## 7. 强势空头筛选
 
-每个榜单在完成完整资产池的筛选和排序后，从 `1` 开始编号：
+标的必须同时满足以下全部条件：
+
+```text
+rs_state in {Weakening, Lag}
+early_reversal < 100
+funding_state == Deleveraging
+trend_score > 20
+normalizeTrend(daily_trend) == down
+```
+
+边界值是严格比较：
+
+- `early_reversal = 100` 不入选。
+- `trend_score = 20` 不入选。
+- 日频趋势必须为 `down`；`neutral` 和 `up` 都不入选。
+
+## 8. 强势空头排序
+
+筛选通过后，按以下优先级依次排序：
+
+```text
+1. leverage_duration asc
+2. leverage_value desc
+3. asset_class asc
+4. symbol asc
+5. asset_name asc
+```
+
+强势空头优先选择刚开始去杠杆的标的；持续时间相同时，优先杠杆资金数值
+更大的标的。`leverage_duration` 不是有限数值时按正无穷处理，因此排在有效
+持续时间之后。
+
+## 9. 候选空头筛选
+
+标的必须同时满足以下全部条件：
+
+```text
+rs_state in {Weakening, Lag}
+early_reversal < 100
+trend_score > 20
+not (
+  normalizeTrend(daily_trend) == up
+  and normalizeTrend(weekly_trend) == up
+)
+
+并且满足以下资金条件之一：
+  funding_state == Deleveraging
+  或
+  funding_state == Leveraging and leverage_velocity < 5
+```
+
+边界与特殊情况：
+
+- `early_reversal = 100` 不入选。
+- `trend_score = 20` 不入选。
+- 日频与周频趋势同时为 `up` 时不入选；其中任一为 `neutral` 或 `down` 即通过趋势条件。
+- 加杠杆标的必须满足 `leverage_velocity < 5`；等于 `5` 不入选。
+- 加杠杆标的的 `leverage_velocity` 不是有限数值时按正无穷处理，因此不入选。
+- 筛选根据当前指标派生，不依赖 API 中已有的 `short_candidate` 字段。
+
+## 10. 候选空头排序
+
+筛选通过后，按以下优先级依次排序：
+
+```text
+1. funding_state
+   Deleveraging before Leveraging before other states
+
+2. Deleveraging 标的：leverage_duration asc
+   非 Deleveraging 标的在这一项按正无穷处理
+
+3. Leveraging 标的：leverage_velocity asc
+   非 Leveraging 标的在这一项按正无穷处理
+
+4. leverage_value desc
+5. asset_class asc
+6. symbol asc
+7. asset_name asc
+```
+
+这意味着去杠杆候选始终排在低速加杠杆候选之前：
+
+- 去杠杆组内，优先当前去杠杆状态持续时间更短的标的。
+- 加杠杆组内，优先 `leverage_velocity` 更低、即更接近加杠杆尾声的标的。
+- 同组的主要排序值相同时，优先杠杆资金数值更大的标的。
+
+## 11. 排名编号与展示数量
+
+每个榜单在完成当前所选资产池的筛选、排序和去重后，从 `1` 开始编号：
 
 ```text
 rank = sorted_index + 1
 ```
 
 页面只展示每个榜单的前 `10` 名，但页面标题中的 total 数量是该榜单筛选后
-的完整数量。Market Map 上的 Opportunity 标记也只取两个榜单各自的前
-`10` 名；同时进入两个 Top 10 的标的会保留两个标记。
+的完整数量。
 
-## 8. 1/5/10 日排名变化
+## 12. 1/5/10 日排名变化
 
-页面分别计算 `1`、`5`、`10` 个可用数据日期之前的榜单排名。这里的偏移量
-基于 `availableDates` 的索引，不是自然日差。
+页面分别计算 `1`、`5`、`10` 个可用数据日期之前的同一榜单排名。这里的
+偏移量基于 `availableDates` 的索引，不是自然日差。
 
-每个历史日期都会使用：
-
-1. 当前页面选中的同一资产池过滤条件；
-2. 当前榜单的同一套入选条件；
-3. 当前榜单的同一套排序规则。
-
-排名变化公式为：
+每个历史日期都会使用当前榜单的同一套入选条件与排序规则。排名变化公式为：
 
 ```text
 rank_change = previous_rank - current_rank
 ```
-
-显示规则：
 
 | 情况 | 显示值 |
 |---|---|
@@ -194,23 +267,23 @@ rank_change = previous_rank - current_rank
 例如：标的从历史第 `5` 名升到当前第 `2` 名，显示 `+3`；从第 `2` 名降到
 第 `5` 名，显示 `-3`。
 
-## 9. 标的身份与稳定排序
+## 13. 标的身份与稳定排序
 
 Opportunity 内部使用以下组合键识别标的：
 
 ```text
-asset_class::symbol::asset_name
+symbol::asset_name
 ```
 
-这个组合键用于关联当前排名、历史排名变化和 Market Map 标记。排序规则最后
-也使用 `asset_class`、`symbol`、`asset_name` 升序作为稳定的确定性兜底，避免
-前述排名字段完全相同时结果顺序漂移。
+这个组合键用于关联当前排名、历史排名变化和重复标的。每套榜单先按自己的
+完整排序规则排序，再按该组合键去重；同一标的同时存在于 `core` 和 `instruments`
+时，只保留排序更靠前的一条。四套排序规则最后都使用 `asset_class`、`symbol`、
+`asset_name` 升序作为稳定的确定性兜底，避免前述排名字段完全相同时结果顺序漂移。
 
-## 10. 实现与验证位置
+## 14. 实现与验证位置
 
-- 资产池预筛选和页面调用链：`frontend/src/App.tsx`
-- Asset Class / GS Exempt 过滤：`frontend/src/utils/filtering.ts`
-- 两套筛选、排序、排名变化和 Top 10：`frontend/src/utils/opportunities.ts`
+- 页面调用链：`frontend/src/App.tsx`
+- 四套筛选、排序、排名变化和 Top 10：`frontend/src/utils/opportunities.ts`
 - 固定样例单测：`frontend/src/utils/opportunities.test.ts`
 
 如果本文与代码出现不一致，以当前实现代码为准，并应同步更新本文。

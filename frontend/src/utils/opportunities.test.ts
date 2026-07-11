@@ -5,7 +5,9 @@ import {
   buildRankChanges,
   buildRankedOpportunityRows,
   rankCandidateLongOpportunities,
+  rankCandidateShortOpportunities,
   rankStrongLongOpportunities,
+  rankStrongShortOpportunities,
   topOpportunities,
 } from "./opportunities";
 
@@ -37,6 +39,20 @@ function item(overrides: Partial<SnapshotItem> = {}): SnapshotItem {
     short_candidate: false,
     ...overrides,
   };
+}
+
+function shortItem(overrides: Partial<SnapshotItem> = {}): SnapshotItem {
+  return item({
+    early_reversal: 88,
+    rs_state: "Weakening",
+    funding_state: "Deleveraging",
+    leverage_velocity: -4,
+    weekly_trend: "up",
+    daily_trend: "down",
+    long_candidate: false,
+    short_candidate: true,
+    ...overrides,
+  });
 }
 
 describe("opportunity screening utilities", () => {
@@ -85,6 +101,70 @@ describe("opportunity screening utilities", () => {
       item({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "core", leverage_duration: 5 }),
       item({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "instruments", leverage_duration: 1 }),
       item({ symbol: "UNIQUE", asset_name: "Unique Asset", leverage_duration: 2 }),
+    ]);
+
+    expect(ranked.map((entry) => `${entry.asset_class}:${entry.symbol}:${entry.asset_name}`)).toEqual([
+      "instruments:DUP:Duplicate Asset",
+      "core:UNIQUE:Unique Asset",
+    ]);
+  });
+
+  it("filters and sorts strong shorts by fresh deleveraging then leverage value", () => {
+    const ranked = rankStrongShortOpportunities([
+      shortItem({ symbol: "LATE", leverage_duration: 4, leverage_value: 90 }),
+      shortItem({ symbol: "FRESH", leverage_duration: 1, leverage_value: 20 }),
+      shortItem({ symbol: "BIGGER", leverage_duration: 2, leverage_value: 80 }),
+      shortItem({ symbol: "SMALLER", leverage_duration: 2, leverage_value: 60 }),
+      shortItem({ symbol: "MISSING", leverage_duration: null, leverage_value: 99 }),
+      shortItem({ symbol: "NO_ER", early_reversal: 100 }),
+      shortItem({ symbol: "NO_TREND_SCORE", trend_score: 20 }),
+      shortItem({ symbol: "NO_DAILY_DOWN", daily_trend: "neutral" }),
+      shortItem({ symbol: "NO_FLOW", funding_state: "Leveraging" }),
+      shortItem({ symbol: "NO_RS", rs_state: "Improving" }),
+    ]);
+
+    expect(ranked.map((entry) => entry.symbol)).toEqual(["FRESH", "BIGGER", "SMALLER", "LATE", "MISSING"]);
+  });
+
+  it("ranks candidate shorts with deleveraging before low-speed leveraging", () => {
+    const ranked = rankCandidateShortOpportunities([
+      shortItem({ symbol: "DEL_LATE", leverage_duration: 4, leverage_value: 90, daily_trend: "neutral" }),
+      shortItem({ symbol: "DEL_SMALL", leverage_duration: 2, leverage_value: 60, daily_trend: "neutral" }),
+      shortItem({ symbol: "DEL_BIG", leverage_duration: 2, leverage_value: 80, daily_trend: "neutral" }),
+      shortItem({ symbol: "DEL_FRESH", leverage_duration: 1, leverage_value: 20, daily_trend: "neutral" }),
+      shortItem({ symbol: "LEV_FAST", funding_state: "Leveraging", leverage_velocity: 4, leverage_value: 90, weekly_trend: "down", daily_trend: "up" }),
+      shortItem({ symbol: "LEV_SLOW", funding_state: "Leveraging", leverage_velocity: 1, leverage_value: 20, daily_trend: "neutral" }),
+      shortItem({ symbol: "NO_VELOCITY", funding_state: "Leveraging", leverage_velocity: 5, daily_trend: "neutral" }),
+      shortItem({ symbol: "BOTH_UP", weekly_trend: "up", daily_trend: "up" }),
+      shortItem({ symbol: "NO_ER", early_reversal: 100, daily_trend: "neutral" }),
+      shortItem({ symbol: "NO_TREND_SCORE", trend_score: 20, daily_trend: "neutral" }),
+    ]);
+
+    expect(ranked.map((entry) => entry.symbol)).toEqual([
+      "DEL_FRESH",
+      "DEL_BIG",
+      "DEL_SMALL",
+      "DEL_LATE",
+      "LEV_SLOW",
+      "LEV_FAST",
+    ]);
+  });
+
+  it("accepts a candidate short when either daily or weekly trend is not up", () => {
+    const ranked = rankCandidateShortOpportunities([
+      shortItem({ symbol: "DAILY_NEUTRAL", daily_trend: "neutral", weekly_trend: "up" }),
+      shortItem({ symbol: "WEEKLY_DOWN", funding_state: "Leveraging", leverage_velocity: 2, daily_trend: "up", weekly_trend: "down" }),
+      shortItem({ symbol: "BOTH_UP", daily_trend: "up", weekly_trend: "up" }),
+    ]);
+
+    expect(ranked.map((entry) => entry.symbol)).toEqual(["DAILY_NEUTRAL", "WEEKLY_DOWN"]);
+  });
+
+  it("deduplicates candidate shorts by symbol and asset name after ranking", () => {
+    const ranked = rankCandidateShortOpportunities([
+      shortItem({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "core", leverage_duration: 5 }),
+      shortItem({ symbol: "DUP", asset_name: "Duplicate Asset", asset_class: "instruments", leverage_duration: 1 }),
+      shortItem({ symbol: "UNIQUE", asset_name: "Unique Asset", leverage_duration: 2 }),
     ]);
 
     expect(ranked.map((entry) => `${entry.asset_class}:${entry.symbol}:${entry.asset_name}`)).toEqual([
@@ -145,6 +225,20 @@ describe("opportunity screening utilities", () => {
     expect(rows.find((row) => row.item.symbol === "A")?.rankChanges.rank_change_1d).toBe("0");
   });
 
+  it("computes rank changes independently for candidate shorts", () => {
+    const dates = ["2026-06-01", "2026-06-02"];
+    const frames = {
+      [dates[0]]: [shortItem({ symbol: "A", leverage_duration: 2 }), shortItem({ symbol: "B", leverage_duration: 1 })],
+      [dates[1]]: [shortItem({ symbol: "A", leverage_duration: 1 }), shortItem({ symbol: "C", leverage_duration: 2 })],
+    };
+
+    const changes = buildRankChanges(frames, dates, 1, "candidateShort");
+    const rows = buildRankedOpportunityRows(frames[dates[1]], changes, rankCandidateShortOpportunities);
+
+    expect(rows.find((row) => row.item.symbol === "A")?.rankChanges.rank_change_1d).toBe("+1");
+    expect(rows.find((row) => row.item.symbol === "C")?.rankChanges.rank_change_1d).toBe("NEW");
+  });
+
   it("limits opportunity display rows to the top ten", () => {
     const rows = buildRankedOpportunityRows(
       Array.from({ length: 12 }, (_, index) => item({ symbol: `ASSET${index + 1}`, leverage_duration: index + 1 })),
@@ -171,11 +265,11 @@ describe("opportunity screening utilities", () => {
 
     const markers = buildOpportunityMarkers(strongRows, candidateRows);
 
-    expect(markers.get("core::STRONG1::Asset STRONG1")).toEqual({ strongLong: true, candidateLong: true });
-    expect(markers.get("core::CANDIDATE_ONLY::Asset CANDIDATE_ONLY")).toEqual({
+    expect(markers.get("STRONG1::Asset STRONG1")).toEqual({ strongLong: true, candidateLong: true });
+    expect(markers.get("CANDIDATE_ONLY::Asset CANDIDATE_ONLY")).toEqual({
       strongLong: false,
       candidateLong: true,
     });
-    expect(markers.has("core::STRONG11::Asset STRONG11")).toBe(false);
+    expect(markers.has("STRONG11::Asset STRONG11")).toBe(false);
   });
 });

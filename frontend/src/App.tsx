@@ -21,7 +21,9 @@ import {
   buildRankedOpportunityRows,
   OPPORTUNITY_DISPLAY_LIMIT,
   rankCandidateLongOpportunities,
+  rankCandidateShortOpportunities,
   rankStrongLongOpportunities,
+  rankStrongShortOpportunities,
   topOpportunities,
   type RankedOpportunity,
 } from "./utils/opportunities";
@@ -186,6 +188,14 @@ export function App() {
     () => buildRankChanges(opportunityFrames, availableDates, currentIndex, "candidateLong"),
     [availableDates, currentIndex, opportunityFrames],
   );
+  const strongShortRankChanges = useMemo(
+    () => buildRankChanges(opportunityFrames, availableDates, currentIndex, "strongShort"),
+    [availableDates, currentIndex, opportunityFrames],
+  );
+  const candidateShortRankChanges = useMemo(
+    () => buildRankChanges(opportunityFrames, availableDates, currentIndex, "candidateShort"),
+    [availableDates, currentIndex, opportunityFrames],
+  );
   const strongLongRows = useMemo(
     () => buildRankedOpportunityRows(opportunityCurrentItems, strongLongRankChanges, rankStrongLongOpportunities),
     [opportunityCurrentItems, strongLongRankChanges],
@@ -197,6 +207,14 @@ export function App() {
   const opportunityMarkers = useMemo(
     () => buildOpportunityMarkers(strongLongRows, candidateLongRows),
     [candidateLongRows, strongLongRows],
+  );
+  const strongShortRows = useMemo(
+    () => buildRankedOpportunityRows(opportunityCurrentItems, strongShortRankChanges, rankStrongShortOpportunities),
+    [opportunityCurrentItems, strongShortRankChanges],
+  );
+  const candidateShortRows = useMemo(
+    () => buildRankedOpportunityRows(opportunityCurrentItems, candidateShortRankChanges, rankCandidateShortOpportunities),
+    [candidateShortRankChanges, opportunityCurrentItems],
   );
 
   const isBootLoading = configQuery.isLoading || datesQuery.isLoading;
@@ -279,8 +297,10 @@ export function App() {
               ))}
             </select>
           </label>
-          <span className="opportunity-title">Long Opportunities</span>
-          <strong>{strongLongRows.length} strong / {candidateLongRows.length} candidate</strong>
+          <span className="opportunity-title">Trading Opportunities</span>
+          <strong>
+            Long {strongLongRows.length} strong / {candidateLongRows.length} candidate · Short {strongShortRows.length} strong / {candidateShortRows.length} candidate
+          </strong>
           <span>{opportunityCurrentItems.length} selected / {currentItems.length} frame assets</span>
         </section>
       )}
@@ -331,8 +351,10 @@ export function App() {
           selectedAssetCount={opportunityCurrentItems.length}
           frameAssetCount={currentItems.length}
           dateCount={availableDates.length}
-          strongRows={strongLongRows}
-          candidateRows={candidateLongRows}
+          strongLongRows={strongLongRows}
+          candidateLongRows={candidateLongRows}
+          strongShortRows={strongShortRows}
+          candidateShortRows={candidateShortRows}
           selectedSymbol={selectedSymbol}
           selectedItem={selectedCurrentItem}
           selectedHistory={selectedHistory}
@@ -416,8 +438,10 @@ function OpportunitiesWorkspace({
   selectedAssetCount,
   frameAssetCount,
   dateCount,
-  strongRows,
-  candidateRows,
+  strongLongRows,
+  candidateLongRows,
+  strongShortRows,
+  candidateShortRows,
   selectedSymbol,
   selectedItem,
   selectedHistory,
@@ -431,8 +455,10 @@ function OpportunitiesWorkspace({
   selectedAssetCount: number;
   frameAssetCount: number;
   dateCount: number;
-  strongRows: RankedOpportunity[];
-  candidateRows: RankedOpportunity[];
+  strongLongRows: RankedOpportunity[];
+  candidateLongRows: RankedOpportunity[];
+  strongShortRows: RankedOpportunity[];
+  candidateShortRows: RankedOpportunity[];
   selectedSymbol: string | null;
   selectedItem: SnapshotItem | null;
   selectedHistory: HistoryPoint[];
@@ -446,29 +472,23 @@ function OpportunitiesWorkspace({
     <section className="workspace opportunities-workspace">
       <div className="workspace-topline">
         <span>{currentDate}</span>
-        <span>{strongRows.length} strong / {candidateRows.length} candidate / {selectedAssetCount} selected / {frameAssetCount} frame / {dateCount} dates</span>
+        <span>
+          Long {strongLongRows.length}/{candidateLongRows.length} · Short {strongShortRows.length}/{candidateShortRows.length} strong/candidate / {selectedAssetCount} selected / {frameAssetCount} frame / {dateCount} dates
+        </span>
       </div>
       <div
         className="opportunities-body"
         style={{ "--detail-panel-width": `${detailPanelWidth}px` } as CSSProperties}
       >
         <div className="opportunities-layout">
-          <OpportunitySection
-            title="强势多头"
-            rows={strongRows}
-            testId="strong-long"
-            selectedSymbol={selectedSymbol}
-            duplicateAssetKeys={duplicateAssetKeys}
-            onSelect={onSelect}
-          />
-          <OpportunitySection
-            title="候选多头"
-            rows={candidateRows}
-            testId="candidate-long"
-            selectedSymbol={selectedSymbol}
-            duplicateAssetKeys={duplicateAssetKeys}
-            onSelect={onSelect}
-          />
+          <div className="opportunity-row">
+            <OpportunitySection title="强势多头" rows={strongLongRows} testId="strong-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="候选多头" rows={candidateLongRows} testId="candidate-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+          </div>
+          <div className="opportunity-row">
+            <OpportunitySection title="强势空头" rows={strongShortRows} testId="strong-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="候选空头" rows={candidateShortRows} testId="candidate-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+          </div>
         </div>
         {selectedItem && (
           <AssetDetailOverlay
