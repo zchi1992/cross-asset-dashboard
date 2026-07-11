@@ -14,6 +14,11 @@ export type RankedOpportunity = {
   rankChanges: RankChanges;
 };
 
+export type OpportunityMarker = {
+  strongLong: boolean;
+  candidateLong: boolean;
+};
+
 type OpportunityRanker = (items: SnapshotItem[]) => SnapshotItem[];
 
 export function rankStrongLongOpportunities(items: SnapshotItem[]) {
@@ -69,6 +74,26 @@ export function buildRankedOpportunityRows(
 
 export function topOpportunities(rows: RankedOpportunity[], limit = OPPORTUNITY_DISPLAY_LIMIT) {
   return rows.slice(0, limit);
+}
+
+export function buildOpportunityMarkers(
+  strongRows: RankedOpportunity[],
+  candidateRows: RankedOpportunity[],
+  limit = OPPORTUNITY_DISPLAY_LIMIT,
+) {
+  const markers = new Map<string, OpportunityMarker>();
+  const mark = (row: RankedOpportunity, screen: OpportunityScreen) => {
+    const key = opportunityAssetKey(row.item);
+    const current = markers.get(key) ?? { strongLong: false, candidateLong: false };
+    markers.set(key, {
+      ...current,
+      [screen]: true,
+    });
+  };
+
+  topOpportunities(strongRows, limit).forEach((row) => mark(row, "strongLong"));
+  topOpportunities(candidateRows, limit).forEach((row) => mark(row, "candidateLong"));
+  return markers;
 }
 
 export function opportunityAssetKey(item: SnapshotItem) {

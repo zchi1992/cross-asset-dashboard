@@ -57,6 +57,8 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(detailPanel.locator("path.mini-chart-path")).toHaveCount(5);
   await expect(detailPanel.locator(".mini-chart circle")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率分变化")).toHaveCount(0);
+  await detailPanel.getByRole("button", { name: "Close detail panel" }).click();
+  await expect(detailPanel).toHaveCount(0);
 
   await page.getByRole("tab", { name: "Opportunities" }).click();
   await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
@@ -70,6 +72,14 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(page.getByTestId("candidate-long-table")).toContainText("Candidate 10");
   await expect(page.getByText("Candidate 11")).toHaveCount(0);
   await expect(page.getByTestId("strong-long-table")).toContainText("+1");
+
+  const opportunityRow = page.getByTestId("strong-long-row").filter({ hasText: "Fixture Alpha" });
+  await opportunityRow.click();
+  await expect(opportunityRow).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".opportunities-body .detail-panel")).toBeVisible();
+  await expect(page.locator(".opportunities-body .detail-panel").getByText("Fixture Alpha")).toBeVisible();
+  await expect(page.locator(".opportunities-body .panel-resizer")).toBeVisible();
+  await page.locator(".opportunities-body .detail-panel").getByRole("button", { name: "Close detail panel" }).click();
 
   await page.getByLabel("Asset Class").selectOption("gs_exempt");
   await expect(page.getByTestId("strong-long-section")).toContainText("1 total / top 1 shown");
