@@ -752,6 +752,13 @@ button:disabled:hover {
   padding-bottom: 8px;
 }
 
+.opportunity-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
 .opportunity-section {
   border: 1px solid #161616;
   background: #030303;
@@ -970,5 +977,9 @@ button:disabled:hover {
   .opportunities-layout {
     height: auto;
     overflow: visible;
+  }
+
+  .opportunity-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

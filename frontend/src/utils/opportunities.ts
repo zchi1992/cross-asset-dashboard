@@ -3,7 +3,7 @@ import type { SnapshotItem } from "../services/contracts";
 export const OPPORTUNITY_DISPLAY_LIMIT = 10;
 export const RANK_CHANGE_OFFSETS = [1, 5, 10] as const;
 
-export type OpportunityScreen = "strongLong" | "candidateLong";
+export type OpportunityScreen = "strongLong" | "candidateLong" | "strongShort" | "candidateShort";
 export type RankChangeOffset = (typeof RANK_CHANGE_OFFSETS)[number];
 export type RankChangeKey = `rank_change_${RankChangeOffset}d`;
 export type RankChanges = Record<RankChangeKey, string>;
@@ -27,6 +27,14 @@ export function rankStrongLongOpportunities(items: SnapshotItem[]) {
 
 export function rankCandidateLongOpportunities(items: SnapshotItem[]) {
   return dedupeOpportunities([...items].filter(isCandidateLongOpportunity).sort(compareCandidateLong));
+}
+
+export function rankStrongShortOpportunities(items: SnapshotItem[]) {
+  return dedupeOpportunities([...items].filter(isStrongShortOpportunity).sort(compareStrongShort));
+}
+
+export function rankCandidateShortOpportunities(items: SnapshotItem[]) {
+  return dedupeOpportunities([...items].filter(isCandidateShortOpportunity).sort(compareCandidateShort));
 }
 
 export function buildRankChanges(
@@ -101,7 +109,16 @@ export function opportunityAssetKey(item: SnapshotItem) {
 }
 
 function rankerForScreen(screen: OpportunityScreen): OpportunityRanker {
-  return screen === "strongLong" ? rankStrongLongOpportunities : rankCandidateLongOpportunities;
+  switch (screen) {
+    case "strongLong":
+      return rankStrongLongOpportunities;
+    case "candidateLong":
+      return rankCandidateLongOpportunities;
+    case "strongShort":
+      return rankStrongShortOpportunities;
+    case "candidateShort":
+      return rankCandidateShortOpportunities;
+  }
 }
 
 function isStrongLongOpportunity(item: SnapshotItem) {
@@ -123,6 +140,29 @@ function isCandidateLongOpportunity(item: SnapshotItem) {
     normalizeTrend(item.weekly_trend) !== "down" &&
     (item.funding_state === "Leveraging" ||
       (item.funding_state === "Deleveraging" && finiteNumber(item.leverage_velocity, -Infinity) > -5))
+  );
+}
+
+function isStrongShortOpportunity(item: SnapshotItem) {
+  return (
+    (item.rs_state === "Weakening" || item.rs_state === "Lag") &&
+    item.early_reversal < 100 &&
+    item.funding_state === "Deleveraging" &&
+    item.trend_score > 20 &&
+    normalizeTrend(item.daily_trend) === "down"
+  );
+}
+
+function isCandidateShortOpportunity(item: SnapshotItem) {
+  const dailyTrend = normalizeTrend(item.daily_trend);
+  const weeklyTrend = normalizeTrend(item.weekly_trend);
+  return (
+    (item.rs_state === "Weakening" || item.rs_state === "Lag") &&
+    item.early_reversal < 100 &&
+    item.trend_score > 20 &&
+    !(dailyTrend === "up" && weeklyTrend === "up") &&
+    (item.funding_state === "Deleveraging" ||
+      (item.funding_state === "Leveraging" && finiteNumber(item.leverage_velocity, Infinity) < 5))
   );
 }
 
@@ -149,6 +189,24 @@ function compareCandidateLong(a: SnapshotItem, b: SnapshotItem) {
   );
 }
 
+function compareStrongShort(a: SnapshotItem, b: SnapshotItem) {
+  return (
+    compareAscending(finiteNumber(a.leverage_duration, Infinity), finiteNumber(b.leverage_duration, Infinity)) ||
+    compareDescending(a.leverage_value, b.leverage_value) ||
+    compareAssetIdentity(a, b)
+  );
+}
+
+function compareCandidateShort(a: SnapshotItem, b: SnapshotItem) {
+  return (
+    compareAscending(shortFundingStateSort(a), shortFundingStateSort(b)) ||
+    compareAscending(deleveragingDurationSort(a), deleveragingDurationSort(b)) ||
+    compareAscending(leveragingVelocitySort(a), leveragingVelocitySort(b)) ||
+    compareDescending(a.leverage_value, b.leverage_value) ||
+    compareAssetIdentity(a, b)
+  );
+}
+
 function fundingStateSort(item: SnapshotItem) {
   if (item.funding_state === "Leveraging") return 0;
   if (item.funding_state === "Deleveraging") return 1;
@@ -161,6 +219,20 @@ function leveragingDurationSort(item: SnapshotItem) {
 
 function deleveragingVelocitySort(item: SnapshotItem) {
   return item.funding_state === "Deleveraging" ? finiteNumber(item.leverage_velocity, -Infinity) : -Infinity;
+}
+
+function shortFundingStateSort(item: SnapshotItem) {
+  if (item.funding_state === "Deleveraging") return 0;
+  if (item.funding_state === "Leveraging") return 1;
+  return 2;
+}
+
+function deleveragingDurationSort(item: SnapshotItem) {
+  return item.funding_state === "Deleveraging" ? finiteNumber(item.leverage_duration, Infinity) : Infinity;
+}
+
+function leveragingVelocitySort(item: SnapshotItem) {
+  return item.funding_state === "Leveraging" ? finiteNumber(item.leverage_velocity, Infinity) : Infinity;
 }
 
 function fundingSignalStrength(item: SnapshotItem) {
