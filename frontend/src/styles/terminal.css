@@ -733,13 +733,22 @@ button:disabled:hover {
 }
 
 .opportunities-workspace {
-  overflow: auto;
+  overflow: hidden;
+}
+
+.opportunities-body {
+  position: relative;
+  height: calc(100vh - var(--playback-height) - var(--workspace-offset));
+  min-height: 540px;
+  overflow: hidden;
 }
 
 .opportunities-layout {
   display: grid;
   gap: 10px;
   min-width: 0;
+  height: 100%;
+  overflow: auto;
   padding-bottom: 8px;
 }
 
@@ -814,6 +823,20 @@ button:disabled:hover {
 
 .opportunity-table tbody tr:hover td {
   background: #101010;
+}
+
+.opportunity-table tbody tr[tabindex] {
+  cursor: pointer;
+}
+
+.opportunity-table tbody tr:focus {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.opportunity-table tbody tr.is-selected td {
+  background: #162535;
+  color: var(--text-primary);
 }
 
 .opportunity-table th:nth-child(1),
@@ -932,5 +955,20 @@ button:disabled:hover {
     height: auto;
     min-height: 0;
     animation: none;
+  }
+
+  .opportunities-workspace {
+    overflow: auto;
+  }
+
+  .opportunities-body {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .opportunities-layout {
+    height: auto;
+    overflow: visible;
   }
 }

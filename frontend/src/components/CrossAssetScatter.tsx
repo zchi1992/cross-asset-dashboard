@@ -3,6 +3,7 @@ import * as echarts from "echarts";
 import type { ECharts, EChartsOption } from "echarts";
 import type { SnapshotItem } from "../services/contracts";
 import { assetKeyWithCollisions, trajectoryForAssetKey } from "../utils/filtering";
+import { opportunityAssetKey, type OpportunityMarker } from "../utils/opportunities";
 
 const DENSE_ASSET_THRESHOLD = 250;
 const DENSE_SYMBOL_SIZE = 10;
@@ -22,7 +23,7 @@ type Props = {
     leverage_velocity_score: number[];
     trend_score: number[];
   };
-  attentionTags: Map<string, string>;
+  opportunityMarkers: Map<string, OpportunityMarker>;
   onSelect: (symbol: string) => void;
   onClear: () => void;
 };
@@ -35,7 +36,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   selectedSymbol,
   duplicateAssetKeys,
   scoreRanges,
-  attentionTags,
+  opportunityMarkers,
   onSelect,
 }: Props) {
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -62,10 +63,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       label: {
         show:
           assetKeyWithCollisions(item, duplicateAssetKeys) !== selectedSymbol &&
-          attentionTags.has(assetKeyWithCollisions(item, duplicateAssetKeys)),
-        color: "#ffc247",
-        fontSize: 12,
-        fontWeight: 700,
+          opportunityMarkers.has(opportunityAssetKey(item)),
       },
       itemStyle: {
         opacity: selectedSymbol && assetKeyWithCollisions(item, duplicateAssetKeys) !== selectedSymbol ? 0.24 : 1,
@@ -75,7 +73,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         shadowColor: trendGlow(item.trend_score),
       },
     }));
-  }, [attentionTags, duplicateAssetKeys, isDense, items, selectedSymbol, yRange]);
+  }, [duplicateAssetKeys, isDense, items, opportunityMarkers, selectedSymbol, yRange]);
 
   const itemBySymbol = useMemo(
     () => new Map(items.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item])),
@@ -174,11 +172,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             formatter: (params) => {
               const symbol = String(params.name ?? "");
               const item = itemBySymbol.get(symbol);
-              const label = item?.symbol ?? symbol;
-              const tag = attentionTags.get(symbol);
-              return tag ? `${label} ${tag}` : label;
+              if (!item) return symbol;
+              return formatOpportunityLabel(item.symbol, opportunityMarkers.get(opportunityAssetKey(item)));
             },
-            color: "#ffc247",
+            color: "#f1f1ec",
             position: "top",
             distance: 7,
             fontSize: 12,
@@ -187,6 +184,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             textBorderWidth: 1,
             textShadowBlur: 7,
             textShadowColor: "#000000",
+            rich: {
+              strongLong: { color: "#ffbf47", fontWeight: 800 },
+              candidateLong: { color: "#65d6b2", fontWeight: 800 },
+            },
           },
           data: assetData,
           encode: { x: 0, y: 1 },
@@ -206,7 +207,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [assetData, attentionTags, isDense, itemBySymbol, scoreRanges.rs_score, yRange]);
+  }, [assetData, isDense, itemBySymbol, opportunityMarkers, scoreRanges.rs_score, yRange]);
 
   const selectedTrajectory = useMemo(
     () =>
@@ -418,6 +419,15 @@ function trendColor(score: number) {
   if (score >= 40) return "#ffb000";
   if (score <= -40) return "#2f86ff";
   return "#d6d2c5";
+}
+
+function formatOpportunityLabel(symbol: string, marker?: OpportunityMarker) {
+  if (!marker) return symbol;
+  const labels = [
+    marker.strongLong ? "{strongLong|强势多头}" : "",
+    marker.candidateLong ? "{candidateLong|候选多头}" : "",
+  ].filter(Boolean);
+  return `${symbol} ${labels.join(" / ")}`;
 }
 
 function trendGlow(score: number) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SnapshotItem } from "../services/contracts";
 import {
+  buildOpportunityMarkers,
   buildRankChanges,
   buildRankedOpportunityRows,
   rankCandidateLongOpportunities,
@@ -154,5 +155,27 @@ describe("opportunity screening utilities", () => {
     expect(topOpportunities(rows)).toHaveLength(10);
     expect(topOpportunities(rows).map((row) => row.item.symbol)).toContain("ASSET10");
     expect(topOpportunities(rows).map((row) => row.item.symbol)).not.toContain("ASSET11");
+  });
+
+  it("marks the top ten from both opportunity screens and preserves overlaps", () => {
+    const strongRows = buildRankedOpportunityRows(
+      Array.from({ length: 11 }, (_, index) => item({ symbol: `STRONG${index + 1}`, leverage_duration: index + 1 })),
+      new Map(),
+      rankStrongLongOpportunities,
+    );
+    const candidateRows = buildRankedOpportunityRows(
+      [item({ symbol: "STRONG1" }), item({ symbol: "CANDIDATE_ONLY" })],
+      new Map(),
+      rankCandidateLongOpportunities,
+    );
+
+    const markers = buildOpportunityMarkers(strongRows, candidateRows);
+
+    expect(markers.get("core::STRONG1::Asset STRONG1")).toEqual({ strongLong: true, candidateLong: true });
+    expect(markers.get("core::CANDIDATE_ONLY::Asset CANDIDATE_ONLY")).toEqual({
+      strongLong: false,
+      candidateLong: true,
+    });
+    expect(markers.has("core::STRONG11::Asset STRONG11")).toBe(false);
   });
 });

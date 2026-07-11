@@ -16,6 +16,7 @@ import {
   matchesSearch,
 } from "./utils/filtering";
 import {
+  buildOpportunityMarkers,
   buildRankChanges,
   buildRankedOpportunityRows,
   OPPORTUNITY_DISPLAY_LIMIT,
@@ -170,10 +171,6 @@ export function App() {
   );
   const selectedCurrentItem = selectedSymbol ? currentItemBySymbol.get(selectedSymbol) ?? null : null;
   const chartItems = filteredItems;
-  const attentionTags = useMemo(
-    () => buildAttentionTags(currentItems, frames, availableDates, currentIndex, duplicateAssetKeys),
-    [availableDates, currentIndex, currentItems, duplicateAssetKeys, frames],
-  );
   const selectedHistory = useMemo(
     () =>
       selectedSymbol
@@ -196,6 +193,10 @@ export function App() {
   const candidateLongRows = useMemo(
     () => buildRankedOpportunityRows(opportunityCurrentItems, candidateLongRankChanges, rankCandidateLongOpportunities),
     [candidateLongRankChanges, opportunityCurrentItems],
+  );
+  const opportunityMarkers = useMemo(
+    () => buildOpportunityMarkers(strongLongRows, candidateLongRows),
+    [candidateLongRows, strongLongRows],
   );
 
   const isBootLoading = configQuery.isLoading || datesQuery.isLoading;
@@ -303,7 +304,7 @@ export function App() {
                 selectedSymbol={selectedSymbol}
                 duplicateAssetKeys={duplicateAssetKeys}
                 scoreRanges={config.score_ranges}
-                attentionTags={attentionTags}
+                opportunityMarkers={opportunityMarkers}
                 onSelect={selectSymbol}
                 onClear={clearSelection}
               />
@@ -314,19 +315,12 @@ export function App() {
               </div>
             </div>
             {selectedCurrentItem && (
-              <>
-                <button
-                  className="panel-resizer"
-                  aria-label="Resize detail panel"
-                  onPointerDown={(event) => startPanelResize(event, detailPanelWidth, setDetailPanelWidth)}
-                />
-                <AssetDetailPanel
-                  item={selectedCurrentItem}
-                  history={selectedHistory}
-                  tags={classifyAsset(selectedCurrentItem)}
-                  onClose={clearSelection}
-                />
-              </>
+              <AssetDetailOverlay
+                item={selectedCurrentItem}
+                history={selectedHistory}
+                onClose={clearSelection}
+                onResize={(event) => startPanelResize(event, detailPanelWidth, setDetailPanelWidth)}
+              />
             )}
           </div>
           {!chartItems.length && <div className="empty-state">{emptyMessage}</div>}
@@ -339,6 +333,14 @@ export function App() {
           dateCount={availableDates.length}
           strongRows={strongLongRows}
           candidateRows={candidateLongRows}
+          selectedSymbol={selectedSymbol}
+          selectedItem={selectedCurrentItem}
+          selectedHistory={selectedHistory}
+          duplicateAssetKeys={duplicateAssetKeys}
+          detailPanelWidth={detailPanelWidth}
+          onSelect={(item) => selectSymbol(assetKeyWithCollisions(item, duplicateAssetKeys))}
+          onClose={clearSelection}
+          onResize={(event) => startPanelResize(event, detailPanelWidth, setDetailPanelWidth)}
         />
       )}
 
@@ -416,6 +418,14 @@ function OpportunitiesWorkspace({
   dateCount,
   strongRows,
   candidateRows,
+  selectedSymbol,
+  selectedItem,
+  selectedHistory,
+  duplicateAssetKeys,
+  detailPanelWidth,
+  onSelect,
+  onClose,
+  onResize,
 }: {
   currentDate: string;
   selectedAssetCount: number;
@@ -423,6 +433,14 @@ function OpportunitiesWorkspace({
   dateCount: number;
   strongRows: RankedOpportunity[];
   candidateRows: RankedOpportunity[];
+  selectedSymbol: string | null;
+  selectedItem: SnapshotItem | null;
+  selectedHistory: HistoryPoint[];
+  duplicateAssetKeys: Set<string>;
+  detailPanelWidth: number;
+  onSelect: (item: SnapshotItem) => void;
+  onClose: () => void;
+  onResize: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <section className="workspace opportunities-workspace">
@@ -430,15 +448,56 @@ function OpportunitiesWorkspace({
         <span>{currentDate}</span>
         <span>{strongRows.length} strong / {candidateRows.length} candidate / {selectedAssetCount} selected / {frameAssetCount} frame / {dateCount} dates</span>
       </div>
-      <div className="opportunities-layout">
-        <OpportunitySection title="强势多头" rows={strongRows} testId="strong-long" />
-        <OpportunitySection title="候选多头" rows={candidateRows} testId="candidate-long" />
+      <div
+        className="opportunities-body"
+        style={{ "--detail-panel-width": `${detailPanelWidth}px` } as CSSProperties}
+      >
+        <div className="opportunities-layout">
+          <OpportunitySection
+            title="强势多头"
+            rows={strongRows}
+            testId="strong-long"
+            selectedSymbol={selectedSymbol}
+            duplicateAssetKeys={duplicateAssetKeys}
+            onSelect={onSelect}
+          />
+          <OpportunitySection
+            title="候选多头"
+            rows={candidateRows}
+            testId="candidate-long"
+            selectedSymbol={selectedSymbol}
+            duplicateAssetKeys={duplicateAssetKeys}
+            onSelect={onSelect}
+          />
+        </div>
+        {selectedItem && (
+          <AssetDetailOverlay
+            item={selectedItem}
+            history={selectedHistory}
+            onClose={onClose}
+            onResize={onResize}
+          />
+        )}
       </div>
     </section>
   );
 }
 
-function OpportunitySection({ title, rows, testId }: { title: string; rows: RankedOpportunity[]; testId: string }) {
+function OpportunitySection({
+  title,
+  rows,
+  testId,
+  selectedSymbol,
+  duplicateAssetKeys,
+  onSelect,
+}: {
+  title: string;
+  rows: RankedOpportunity[];
+  testId: string;
+  selectedSymbol: string | null;
+  duplicateAssetKeys: Set<string>;
+  onSelect: (item: SnapshotItem) => void;
+}) {
   const visibleRows = topOpportunities(rows);
   return (
     <section className="opportunity-section" data-testid={`${testId}-section`}>
@@ -446,12 +505,30 @@ function OpportunitySection({ title, rows, testId }: { title: string; rows: Rank
         <h2>{title}</h2>
         <span>{rows.length} total / top {Math.min(rows.length, OPPORTUNITY_DISPLAY_LIMIT)} shown</span>
       </header>
-      <OpportunityTable rows={visibleRows} testId={testId} />
+      <OpportunityTable
+        rows={visibleRows}
+        testId={testId}
+        selectedSymbol={selectedSymbol}
+        duplicateAssetKeys={duplicateAssetKeys}
+        onSelect={onSelect}
+      />
     </section>
   );
 }
 
-function OpportunityTable({ rows, testId }: { rows: RankedOpportunity[]; testId: string }) {
+function OpportunityTable({
+  rows,
+  testId,
+  selectedSymbol,
+  duplicateAssetKeys,
+  onSelect,
+}: {
+  rows: RankedOpportunity[];
+  testId: string;
+  selectedSymbol: string | null;
+  duplicateAssetKeys: Set<string>;
+  onSelect: (item: SnapshotItem) => void;
+}) {
   return (
     <div className="opportunity-table-wrap">
       <table className="opportunity-table" data-testid={`${testId}-table`}>
@@ -474,23 +551,40 @@ function OpportunityTable({ rows, testId }: { rows: RankedOpportunity[]; testId:
         </thead>
         <tbody>
           {rows.length ? (
-            rows.map((row) => (
-              <tr key={`${row.rank}-${row.item.asset_class}-${row.item.symbol}-${row.item.asset_name}`} data-testid={`${testId}-row`}>
-                <td>{row.item.asset_class}</td>
-                <td className="numeric-cell">{row.item.symbol}</td>
-                <td>{row.item.asset_name}</td>
-                <td>{row.item.trend_state || "-"}</td>
-                <td className="numeric-cell">{formatMaybeNumber(row.item.trend_score)}</td>
-                <td className="numeric-cell">{formatMaybeNumber(row.item.rs_score)}</td>
-                <td>{row.item.funding_state}</td>
-                <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_duration)}</td>
-                <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_velocity)}</td>
-                <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_velocity_score)}</td>
-                <OpportunityRankCell value={row.rankChanges.rank_change_1d} />
-                <OpportunityRankCell value={row.rankChanges.rank_change_5d} />
-                <OpportunityRankCell value={row.rankChanges.rank_change_10d} />
-              </tr>
-            ))
+            rows.map((row) => {
+              const rowSymbol = assetKeyWithCollisions(row.item, duplicateAssetKeys);
+              const isSelected = rowSymbol === selectedSymbol;
+              return (
+                <tr
+                  key={`${row.rank}-${row.item.asset_class}-${row.item.symbol}-${row.item.asset_name}`}
+                  data-testid={`${testId}-row`}
+                  className={isSelected ? "is-selected" : ""}
+                  aria-selected={isSelected}
+                  tabIndex={0}
+                  onClick={() => onSelect(row.item)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelect(row.item);
+                    }
+                  }}
+                >
+                  <td>{row.item.asset_class}</td>
+                  <td className="numeric-cell">{row.item.symbol}</td>
+                  <td>{row.item.asset_name}</td>
+                  <td>{row.item.trend_state || "-"}</td>
+                  <td className="numeric-cell">{formatMaybeNumber(row.item.trend_score)}</td>
+                  <td className="numeric-cell">{formatMaybeNumber(row.item.rs_score)}</td>
+                  <td>{row.item.funding_state}</td>
+                  <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_duration)}</td>
+                  <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_velocity)}</td>
+                  <td className="numeric-cell">{formatMaybeNumber(row.item.leverage_velocity_score)}</td>
+                  <OpportunityRankCell value={row.rankChanges.rank_change_1d} />
+                  <OpportunityRankCell value={row.rankChanges.rank_change_5d} />
+                  <OpportunityRankCell value={row.rankChanges.rank_change_10d} />
+                </tr>
+              );
+            })
           ) : (
             <tr>
               <td colSpan={13} className="empty-row">No matching opportunities</td>
@@ -636,79 +730,6 @@ function buildHistoryBySymbol(
   return historyBySymbol;
 }
 
-function buildAttentionTags(
-  currentItems: SnapshotItem[],
-  frames: Record<string, SnapshotItem[]>,
-  dates: string[],
-  currentIndex: number,
-  duplicateAssetKeys: Set<string>,
-) {
-  const previousDate = dates[currentIndex - 1];
-  const previousItems = previousDate ? frames[previousDate] ?? [] : [];
-  const previousBySymbol = new Map(previousItems.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item]));
-  const tags = new Map<string, string>();
-
-  const strongest = [...currentItems]
-    .sort((a, b) => compositeLongScore(b) - compositeLongScore(a))
-    .slice(0, 5);
-  strongest.forEach((item) => tags.set(assetKeyWithCollisions(item, duplicateAssetKeys), "三强"));
-
-  const improving = currentItems
-    .map((item) => ({ item, previous: previousBySymbol.get(assetKeyWithCollisions(item, duplicateAssetKeys)) }))
-    .filter(({ item, previous }) => {
-      return (
-        previous?.funding_state === "Deleveraging" &&
-        item.funding_state === "Leveraging" &&
-        ["Lag", "Weakening"].includes(previous.rs_state) &&
-        item.rs_state === "Improving"
-      );
-    })
-    .sort((a, b) => transitionScore(b.item, b.previous) - transitionScore(a.item, a.previous))
-    .slice(0, 5);
-  improving.forEach(({ item }) => {
-    const key = assetKeyWithCollisions(item, duplicateAssetKeys);
-    tags.set(key, tags.has(key) ? `${tags.get(key)} 转强` : "转强");
-  });
-
-  const deteriorating = currentItems
-    .map((item) => ({ item, previous: previousBySymbol.get(assetKeyWithCollisions(item, duplicateAssetKeys)) }))
-    .filter(({ item, previous }) => {
-      return (
-        previous?.funding_state === "Leveraging" &&
-        item.funding_state === "Deleveraging" &&
-        ["Improving", "Lead"].includes(previous.rs_state) &&
-        ["Lag", "Weakening"].includes(item.rs_state)
-      );
-    })
-    .sort((a, b) => transitionScore(b.previous, b.item) - transitionScore(a.previous, a.item))
-    .slice(0, 5);
-  deteriorating.forEach(({ item }) => {
-    const key = assetKeyWithCollisions(item, duplicateAssetKeys);
-    tags.set(key, tags.has(key) ? `${tags.get(key)} 转弱` : "转弱");
-  });
-
-  return tags;
-}
-
-function compositeLongScore(item: SnapshotItem) {
-  return item.trend_score + item.rs_score + item.leverage_velocity_score;
-}
-
-function transitionScore(current?: SnapshotItem, previous?: SnapshotItem) {
-  if (!current || !previous) return -Infinity;
-  return (
-    Math.abs(current.funding_score - previous.funding_score) +
-    Math.abs(current.leverage_velocity_score - previous.leverage_velocity_score) +
-    Math.abs(current.rs_score - previous.rs_score) +
-    Math.abs(current.trend_score - previous.trend_score) * 0.5 +
-    Math.abs(rsRank(current.rs_state) - rsRank(previous.rs_state)) * 20
-  );
-}
-
-function rsRank(state: RelativeStrengthState) {
-  return { Lag: 0, Weakening: 1, Improving: 2, Lead: 3 }[state] ?? 0;
-}
-
 function classifyAsset(item: SnapshotItem) {
   const tags: string[] = [];
   if (item.trend_score >= 70 && item.rs_score >= 70 && item.leverage_velocity_score >= 70) tags.push("高置信多头");
@@ -721,6 +742,25 @@ function classifyAsset(item: SnapshotItem) {
   if (item.rs_state === "Improving") tags.push("比价改善");
   if (!tags.length) tags.push("观察");
   return tags;
+}
+
+function AssetDetailOverlay({
+  item,
+  history,
+  onClose,
+  onResize,
+}: {
+  item: SnapshotItem;
+  history: HistoryPoint[];
+  onClose: () => void;
+  onResize: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <>
+      <button className="panel-resizer" aria-label="Resize detail panel" onPointerDown={onResize} />
+      <AssetDetailPanel item={item} history={history} tags={classifyAsset(item)} onClose={onClose} />
+    </>
+  );
 }
 
 function AssetDetailPanel({
