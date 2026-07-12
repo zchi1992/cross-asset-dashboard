@@ -323,15 +323,20 @@ export function App() {
                 currentIndex={currentIndex}
                 selectedSymbol={selectedSymbol}
                 duplicateAssetKeys={duplicateAssetKeys}
-                scoreRanges={config.score_ranges}
                 opportunityMarkers={opportunityMarkers}
                 onSelect={selectSymbol}
                 onClear={clearSelection}
               />
-              <div className="trend-legend" aria-hidden="true">
-                <span>Weak</span>
-                <div />
-                <span>Strong</span>
+              <div
+                className="trend-legend"
+                role="img"
+                aria-label="Trend score color scale with thresholds at minus 40 and 40"
+              >
+                <div className="trend-legend-scale" />
+                <div className="trend-legend-thresholds">
+                  <span>−40</span>
+                  <span>40</span>
+                </div>
               </div>
             </div>
             {selectedCurrentItem && (
@@ -756,11 +761,6 @@ function classifyAsset(item: SnapshotItem) {
   if (item.trend_score <= -70 && item.rs_score <= -70 && item.leverage_velocity_score <= -70) tags.push("高置信空头");
   if (item.leverage_velocity_score >= 70) tags.push("快速加杠杆");
   if (item.leverage_velocity_score <= -70) tags.push("快速去杠杆");
-  if (item.funding_state === "Leveraging") tags.push("资金加杠杆");
-  if (item.funding_state === "Deleveraging") tags.push("资金去杠杆");
-  if (item.rs_state === "Lead") tags.push("比价领先");
-  if (item.rs_state === "Improving") tags.push("比价改善");
-  if (!tags.length) tags.push("观察");
   return tags;
 }
 
@@ -807,11 +807,13 @@ function AssetDetailPanel({
         </div>
         <button onClick={onClose} aria-label="Close detail panel">Close</button>
       </header>
-      <div className="tag-row">
-        {tags.map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
+      {tags.length > 0 && (
+        <div className="tag-row">
+          {tags.map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
+      )}
       <div className="detail-grid">
         <Metric label="趋势分" value={item.trend_score} />
         <Metric label="比价强度" value={item.rs_score} />

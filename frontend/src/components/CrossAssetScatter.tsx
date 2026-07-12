@@ -9,6 +9,11 @@ const DENSE_ASSET_THRESHOLD = 250;
 const DENSE_SYMBOL_SIZE = 10;
 const NORMAL_SYMBOL_SIZE = 16;
 const GRID = { left: 66, right: 122, top: 34, bottom: 58 };
+const TOOLBOX_RIGHT = 112;
+const X_RANGE: [number, number] = [70, 140];
+const Y_RANGE: [number, number] = [0, 100];
+const LEVERAGING_BORDER = "#ff5d5d";
+const DELEVERAGING_BORDER = "transparent";
 
 type Props = {
   items: SnapshotItem[];
@@ -17,12 +22,6 @@ type Props = {
   currentIndex: number;
   selectedSymbol: string | null;
   duplicateAssetKeys: Set<string>;
-  scoreRanges: {
-    rs_score: number[];
-    funding_score: number[];
-    leverage_velocity_score: number[];
-    trend_score: number[];
-  };
   opportunityMarkers: Map<string, OpportunityMarker>;
   onSelect: (symbol: string) => void;
   onClear: () => void;
@@ -35,22 +34,11 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   currentIndex,
   selectedSymbol,
   duplicateAssetKeys,
-  scoreRanges,
   opportunityMarkers,
   onSelect,
 }: Props) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
-  const axisRangesRef = useRef({ x: [0, 1], y: [0, 1] });
-  const dragRef = useRef<{
-    x: number;
-    y: number;
-    xRange: number[];
-    yRange: number[];
-    moved: boolean;
-  } | null>(null);
-  const suppressClickRef = useRef(false);
-  const yRange = scoreRanges.funding_score;
   const isDense = items.length >= DENSE_ASSET_THRESHOLD;
 
   const assetData = useMemo(() => {
@@ -59,7 +47,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       : items;
     return visibleItems.map((item) => ({
       name: assetKeyWithCollisions(item, duplicateAssetKeys),
-      value: [item.rs_score, clamp(item.funding_score, yRange), item.trend_score],
+      value: [item.rs_score, clamp(item.funding_score, Y_RANGE), item.trend_score],
       label: {
         show:
           assetKeyWithCollisions(item, duplicateAssetKeys) !== selectedSymbol &&
@@ -67,13 +55,11 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       },
       itemStyle: {
         opacity: selectedSymbol && assetKeyWithCollisions(item, duplicateAssetKeys) !== selectedSymbol ? 0.24 : 1,
-        borderColor: "#f4f4ee",
-        borderWidth: isDense ? 1 : 1.8,
-        shadowBlur: isDense ? 0 : 12,
-        shadowColor: trendGlow(item.trend_score),
+        borderColor: fundingBorder(item.funding_state),
+        borderWidth: isDense ? 1.4 : 2,
       },
     }));
-  }, [duplicateAssetKeys, isDense, items, opportunityMarkers, selectedSymbol, yRange]);
+  }, [duplicateAssetKeys, isDense, items, opportunityMarkers, selectedSymbol]);
 
   const itemBySymbol = useMemo(
     () => new Map(items.map((item) => [assetKeyWithCollisions(item, duplicateAssetKeys), item])),
@@ -81,23 +67,58 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   );
 
   const baseOption = useMemo<EChartsOption>(() => {
-    const xRange = scoreRanges.rs_score;
-
     return {
       backgroundColor: "#000000",
-      animation: !isDense,
-      animationDurationUpdate: isDense ? 0 : 140,
+      animation: false,
+      animationDurationUpdate: 0,
       grid: GRID,
       toolbox: {
-        right: 18,
+        right: TOOLBOX_RIGHT,
         top: 2,
         itemSize: 15,
         iconStyle: { borderColor: "#e7a23a" },
         emphasis: { iconStyle: { borderColor: "#ffffff" } },
         feature: {
-          restore: { title: "Reset Zoom" },
+          dataZoom: {
+            title: { zoom: "", back: "" },
+          },
+          myResetZoom: {
+            title: "",
+            icon: "M3.8,33.4 M47,18.9h9.8V8.7 M56.3,20.1 C52.1,9,40.5,0.6,26.8,2.1C12.6,3.7,1.6,16.2,2.1,30.6 M13,41.1H3.1v10.2 M3.7,39.9c4.2,11.1,15.8,19.5,29.5,18 c14.2-1.6,25.2-14.1,24.7-28.5",
+            onclick: () => {
+              chartRef.current?.dispatchAction({
+                type: "dataZoom",
+                batch: [
+                  { dataZoomId: "xZoom", start: 0, end: 100 },
+                  { dataZoomId: "yZoom", start: 0, end: 100 },
+                ],
+              });
+            },
+          },
         },
       },
+      dataZoom: [
+        {
+          id: "xZoom",
+          type: "inside",
+          xAxisIndex: 0,
+          filterMode: "none",
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false,
+          minValueSpan: 2,
+        },
+        {
+          id: "yZoom",
+          type: "inside",
+          yAxisIndex: 0,
+          filterMode: "none",
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false,
+          minValueSpan: 2,
+        },
+      ],
       tooltip: {
         trigger: "item",
         triggerOn: "mousemove|click",
@@ -110,25 +131,15 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           const key = String(point.name ?? "");
           const item = itemBySymbol.get(key);
           if (!item) return "";
-          return [
-            `<b>${item.symbol}</b> ${item.asset_name}`,
-            `Asset Class: ${item.asset_class}`,
-            `Trend Score: ${item.trend_score.toFixed(2)}`,
-            `RS Score: ${item.rs_score.toFixed(2)}`,
-            `RS State: ${item.rs_state}`,
-            `Leverage Value: ${item.leverage_value.toFixed(2)}`,
-            `Leverage Velocity: ${item.leverage_velocity.toFixed(2)}`,
-            `Velocity Score: ${item.leverage_velocity_score.toFixed(2)}`,
-            `Funding State: ${item.funding_state}`,
-          ].join("<br/>");
+          return `<b>${item.symbol}</b> ${item.asset_name}`;
         },
       },
       xAxis: {
         name: "Relative Strength Score",
         nameLocation: "middle",
         nameGap: 34,
-        min: xRange[0],
-        max: xRange[1],
+        min: X_RANGE[0],
+        max: X_RANGE[1],
         splitNumber: 8,
         splitLine: { lineStyle: { color: "#46535a", type: "dotted", opacity: 0.72 } },
         axisLine: { lineStyle: { color: "#b9c5c9" } },
@@ -138,8 +149,8 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
       },
       yAxis: {
         name: "Leverage Value",
-        min: yRange[0],
-        max: yRange[1],
+        min: Y_RANGE[0],
+        max: Y_RANGE[1],
         splitNumber: 8,
         splitLine: { lineStyle: { color: "#46535a", type: "dotted", opacity: 0.72 } },
         axisLine: { lineStyle: { color: "#b9c5c9" } },
@@ -162,10 +173,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
               return trendColor(Number(value[2] ?? 0));
             },
             opacity: 1,
-            borderColor: "#f4f4ee",
-            borderWidth: isDense ? 1 : 1.8,
-            shadowBlur: isDense ? 0 : 12,
-            shadowColor: "rgba(255, 176, 0, 0.48)",
+            borderWidth: isDense ? 1.4 : 2,
           },
           label: {
             show: false,
@@ -194,7 +202,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           labelLayout: { hideOverlap: true },
           emphasis: {
             focus: "self",
-            scale: !isDense,
+            scale: false,
             label: {
               show: true,
               color: "#ffffff",
@@ -207,7 +215,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [assetData, isDense, itemBySymbol, opportunityMarkers, scoreRanges.rs_score, yRange]);
+  }, [assetData, isDense, itemBySymbol, opportunityMarkers]);
 
   const selectedTrajectory = useMemo(
     () =>
@@ -216,13 +224,6 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         : [],
     [currentIndex, dates, duplicateAssetKeys, frames, selectedSymbol],
   );
-
-  useEffect(() => {
-    axisRangesRef.current = {
-      x: [scoreRanges.rs_score[0], scoreRanges.rs_score[1]],
-      y: [yRange[0], yRange[1]],
-    };
-  }, [scoreRanges.rs_score, yRange]);
 
   const dynamicOption = useMemo<EChartsOption>(() => {
     const selectedItem =
@@ -236,11 +237,18 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         {
           id: "trajectory",
           type: "line",
-          data: selectedTrajectory.map(({ date, item }) => [item.rs_score, clamp(item.funding_score, yRange), date]),
+          data: selectedTrajectory.map(({ date, item }) => ({
+            value: [item.rs_score, clamp(item.funding_score, Y_RANGE), date],
+            itemStyle: { borderColor: fundingBorder(item.funding_state) },
+          })),
           symbol: "circle",
           symbolSize: (_value, params) => (params.dataIndex === selectedTrajectory.length - 1 ? 15 : 7),
           lineStyle: { color: "#ffcc45", width: 2.4, opacity: selectedTrajectory.length ? 0.96 : 0 },
-          itemStyle: { color: "#ffcc45", borderColor: "#ffffff", borderWidth: 1.5, shadowBlur: 8, shadowColor: "#ffcc45" },
+          itemStyle: {
+            color: "#ffcc45",
+            borderWidth: 1.5,
+          },
+          animation: false,
           emphasis: { disabled: true },
           tooltip: { show: false },
           z: 4,
@@ -254,7 +262,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             ? [
                 {
                   name: assetKeyWithCollisions(selectedItem, duplicateAssetKeys),
-                  value: [selectedItem.rs_score, clamp(selectedItem.funding_score, yRange), selectedItem.trend_score],
+                  value: [selectedItem.rs_score, clamp(selectedItem.funding_score, Y_RANGE), selectedItem.trend_score],
                   label: {
                     show: true,
                     color: "#fff27a",
@@ -266,11 +274,11 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             : [],
           itemStyle: {
             color: "#ffcc45",
-            borderColor: "#fff27a",
+            borderColor: fundingBorder(selectedItem?.funding_state),
             borderWidth: 3,
-            shadowBlur: 18,
-            shadowColor: "#ffcc45",
           },
+          animation: false,
+          emphasis: { scale: false },
           label: {
             show: true,
             formatter: (params) => itemBySymbol.get(String(params.name ?? ""))?.symbol ?? String(params.name ?? ""),
@@ -284,7 +292,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [currentIndex, dates, duplicateAssetKeys, frames, itemBySymbol, selectedSymbol, selectedTrajectory, yRange]);
+  }, [itemBySymbol, selectedSymbol, selectedTrajectory, duplicateAssetKeys]);
 
   useEffect(() => {
     if (!elementRef.current) return;
@@ -308,14 +316,6 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     const chart = chartRef.current;
     if (!chart) return;
     chart.setOption(baseOption, { notMerge: false, lazyUpdate: true });
-    const ranges = axisRangesRef.current;
-    chart.setOption(
-      {
-        xAxis: { min: ranges.x[0], max: ranges.x[1] },
-        yAxis: { min: ranges.y[0], max: ranges.y[1] },
-      },
-      { notMerge: false, lazyUpdate: true },
-    );
   }, [baseOption]);
 
   useEffect(() => {
@@ -325,82 +325,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    const zr = chart.getZr();
-    const startPan = (event: { offsetX: number; offsetY: number; event?: MouseEvent }) => {
-      if (event.event?.button && event.event.button !== 0) return;
-      dragRef.current = {
-        x: event.offsetX,
-        y: event.offsetY,
-        xRange: [...axisRangesRef.current.x],
-        yRange: [...axisRangesRef.current.y],
-        moved: false,
-      };
-    };
-    const movePan = (event: { offsetX: number; offsetY: number; event?: MouseEvent }) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      const dx = event.offsetX - drag.x;
-      const dy = event.offsetY - drag.y;
-      if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
-      drag.moved = true;
-      const plotWidth = Math.max(chart.getWidth() - GRID.left - GRID.right, 1);
-      const plotHeight = Math.max(chart.getHeight() - GRID.top - GRID.bottom, 1);
-      const xSpan = drag.xRange[1] - drag.xRange[0];
-      const ySpan = drag.yRange[1] - drag.yRange[0];
-      const xShift = -(dx / plotWidth) * xSpan;
-      const yShift = (dy / plotHeight) * ySpan;
-      const nextX = [drag.xRange[0] + xShift, drag.xRange[1] + xShift];
-      const nextY = [drag.yRange[0] + yShift, drag.yRange[1] + yShift];
-      axisRangesRef.current = { x: nextX, y: nextY };
-      setAxisRange(chart, nextX, nextY, false);
-      event.event?.preventDefault();
-    };
-    const endPan = () => {
-      if (dragRef.current?.moved) {
-        suppressClickRef.current = true;
-        window.setTimeout(() => {
-          suppressClickRef.current = false;
-        }, 0);
-      }
-      dragRef.current = null;
-    };
-    zr.on("mousedown", startPan);
-    zr.on("mousemove", movePan);
-    zr.on("mouseup", endPan);
-    zr.on("globalout", endPan);
-    return () => {
-      zr.off("mousedown", startPan);
-      zr.off("mousemove", movePan);
-      zr.off("mouseup", endPan);
-      zr.off("globalout", endPan);
-    };
-  }, []);
-
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    const resetPan = () => {
-      const nextRanges = {
-        x: [scoreRanges.rs_score[0], scoreRanges.rs_score[1]],
-        y: [yRange[0], yRange[1]],
-      };
-      axisRangesRef.current = nextRanges;
-      setAxisRange(chart, nextRanges.x, nextRanges.y, false);
-    };
-    chart.on("restore", resetPan);
-    return () => {
-      chart.off("restore", resetPan);
-    };
-  }, [scoreRanges.rs_score, yRange]);
-
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
     const clickHandler = (params: echarts.ECElementEvent) => {
-      if (suppressClickRef.current) {
-        suppressClickRef.current = false;
-        return;
-      }
       if (params.seriesId === "assets" || params.seriesId === "selectedAsset") {
         const symbol = String(params.name ?? "");
         if (symbol) onSelect(symbol);
@@ -412,7 +337,14 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     };
   }, [onSelect]);
 
-  return <div ref={elementRef} className="scatter-chart" />;
+  return (
+    <div
+      ref={elementRef}
+      className="scatter-chart"
+      role="img"
+      aria-label="Market map scatter plot. Relative Strength Score ranges from 70 to 140; Leverage Value ranges from 0 to 100. Scroll to zoom, drag to pan, or use Box Zoom."
+    />
+  );
 });
 
 function trendColor(score: number) {
@@ -430,10 +362,8 @@ function formatOpportunityLabel(symbol: string, marker?: OpportunityMarker) {
   return `${symbol} ${labels.join(" / ")}`;
 }
 
-function trendGlow(score: number) {
-  if (score >= 40) return "rgba(255, 176, 0, 0.72)";
-  if (score <= -40) return "rgba(47, 134, 255, 0.72)";
-  return "rgba(255, 255, 255, 0.45)";
+function fundingBorder(state: SnapshotItem["funding_state"] | undefined) {
+  return state === "Leveraging" ? LEVERAGING_BORDER : DELEVERAGING_BORDER;
 }
 
 function formatAxisLabel(value: number | string) {
@@ -444,18 +374,6 @@ function formatAxisLabel(value: number | string) {
   return numeric.toFixed(1).replace(/\.0$/, "");
 }
 
-function setAxisRange(chart: ECharts, xRange: number[], yRange: number[], lazyUpdate: boolean) {
-  chart.setOption(
-    {
-      animation: false,
-      animationDurationUpdate: 0,
-      xAxis: { min: xRange[0], max: xRange[1] },
-      yAxis: { min: yRange[0], max: yRange[1] },
-    },
-    { notMerge: false, lazyUpdate, silent: true },
-  );
-}
-
-function clamp(value: number, range: number[]) {
+function clamp(value: number, range: readonly number[]) {
   return Math.max(range[0], Math.min(value, range[1]));
 }

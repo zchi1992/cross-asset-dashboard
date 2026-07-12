@@ -6,7 +6,21 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   const topline = page.locator(".workspace-topline");
   await expect(topline).toContainText("2026-06-28");
   await expect(topline).toContainText("12 visible / 13 frame / 13 assets / 11 dates");
-  await expect(page.locator(".scatter-chart canvas")).toBeVisible();
+  const scatterChart = page.locator(".scatter-chart");
+  await expect(scatterChart.locator("canvas")).toBeVisible();
+  await expect(page.locator(".trend-legend")).toContainText("−40");
+  await expect(page.locator(".trend-legend")).toContainText("40");
+  await expect(page.getByRole("img", { name: "Market map scatter plot. Relative Strength Score ranges from 70 to 140; Leverage Value ranges from 0 to 100. Scroll to zoom, drag to pan, or use Box Zoom." })).toBeVisible();
+
+  const chartBox = await scatterChart.boundingBox();
+  if (!chartBox) throw new Error("scatter chart has no bounding box");
+  const plotWidth = chartBox.width - 66 - 122;
+  const plotHeight = chartBox.height - 34 - 58;
+  await page.mouse.move(
+    chartBox.x + 66 + ((84 - 70) / (140 - 70)) * plotWidth,
+    chartBox.y + 34 + ((100 - 66) / 100) * plotHeight,
+  );
+  await expect(page.getByText("AAA Fixture Alpha", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "First" }).click();
   await expect(topline).toContainText("2026-06-18");
@@ -29,6 +43,13 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   const detailPanel = page.locator(".detail-panel");
   await expect(detailPanel).toBeVisible();
   await expect(detailPanel.getByText("Fixture Alpha")).toBeVisible();
+  await expect(detailPanel.getByText("高置信多头", { exact: true })).toBeVisible();
+  await expect(detailPanel.getByText("快速加杠杆", { exact: true })).toBeVisible();
+  await expect(detailPanel.getByText("资金加杠杆", { exact: true })).toHaveCount(0);
+  await expect(detailPanel.getByText("比价领先", { exact: true })).toHaveCount(0);
+  await expect(detailPanel.getByText("资金去杠杆", { exact: true })).toHaveCount(0);
+  await expect(detailPanel.getByText("比价改善", { exact: true })).toHaveCount(0);
+  await expect(detailPanel.getByText("观察", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆资金水平")).toBeVisible();
   await expect(detailPanel.getByText("杠杆速率分")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率", { exact: true })).toHaveCount(0);
@@ -59,6 +80,13 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(detailPanel.getByText("杠杆速率分变化")).toHaveCount(0);
   await detailPanel.getByRole("button", { name: "Close detail panel" }).click();
   await expect(detailPanel).toHaveCount(0);
+
+  await search.fill("BBB");
+  await search.press("Enter");
+  await expect(detailPanel.getByText("Fixture Beta")).toBeVisible();
+  await expect(detailPanel.getByText("资金去杠杆", { exact: true })).toHaveCount(0);
+  await expect(detailPanel.locator(".tag-row")).toHaveCount(0);
+  await detailPanel.getByRole("button", { name: "Close detail panel" }).click();
 
   await page.getByRole("tab", { name: "Opportunities" }).click();
   await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
