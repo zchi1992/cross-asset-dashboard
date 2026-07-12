@@ -193,8 +193,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             textShadowBlur: 7,
             textShadowColor: "#000000",
             rich: {
-              strongLong: { color: "#ffbf47", fontWeight: 800 },
-              candidateLong: { color: "#65d6b2", fontWeight: 800 },
+              strongLong: { color: "#ff5d5d", fontWeight: 800 },
+              candidateLong: { color: "#ffbf47", fontWeight: 800 },
+              strongShort: { color: "#00b36b", fontWeight: 800 },
+              candidateShort: { color: "#8bd450", fontWeight: 800 },
             },
           },
           data: assetData,
@@ -356,8 +358,10 @@ function trendColor(score: number) {
 function formatOpportunityLabel(symbol: string, marker?: OpportunityMarker) {
   if (!marker) return symbol;
   const labels = [
-    marker.strongLong ? "{strongLong|强势多头}" : "",
-    marker.candidateLong ? "{candidateLong|候选多头}" : "",
+    marker.strongLong ? "{strongLong|强势做多}" : "",
+    marker.candidateLong ? "{candidateLong|候选做多}" : "",
+    marker.strongShort ? "{strongShort|强势做空}" : "",
+    marker.candidateShort ? "{candidateShort|候选做空}" : "",
   ].filter(Boolean);
   return `${symbol} ${labels.join(" / ")}`;
 }

@@ -204,10 +204,6 @@ export function App() {
     () => buildRankedOpportunityRows(opportunityCurrentItems, candidateLongRankChanges, rankCandidateLongOpportunities),
     [candidateLongRankChanges, opportunityCurrentItems],
   );
-  const opportunityMarkers = useMemo(
-    () => buildOpportunityMarkers(strongLongRows, candidateLongRows),
-    [candidateLongRows, strongLongRows],
-  );
   const strongShortRows = useMemo(
     () => buildRankedOpportunityRows(opportunityCurrentItems, strongShortRankChanges, rankStrongShortOpportunities),
     [opportunityCurrentItems, strongShortRankChanges],
@@ -215,6 +211,10 @@ export function App() {
   const candidateShortRows = useMemo(
     () => buildRankedOpportunityRows(opportunityCurrentItems, candidateShortRankChanges, rankCandidateShortOpportunities),
     [candidateShortRankChanges, opportunityCurrentItems],
+  );
+  const opportunityMarkers = useMemo(
+    () => buildOpportunityMarkers(strongLongRows, candidateLongRows, strongShortRows, candidateShortRows),
+    [candidateLongRows, candidateShortRows, strongLongRows, strongShortRows],
   );
 
   const isBootLoading = configQuery.isLoading || datesQuery.isLoading;
@@ -487,12 +487,12 @@ function OpportunitiesWorkspace({
       >
         <div className="opportunities-layout">
           <div className="opportunity-row">
-            <OpportunitySection title="强势多头" rows={strongLongRows} testId="strong-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
-            <OpportunitySection title="候选多头" rows={candidateLongRows} testId="candidate-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="强势做多" rows={strongLongRows} testId="strong-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="候选做多" rows={candidateLongRows} testId="candidate-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
           </div>
           <div className="opportunity-row">
-            <OpportunitySection title="强势空头" rows={strongShortRows} testId="strong-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
-            <OpportunitySection title="候选空头" rows={candidateShortRows} testId="candidate-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="强势做空" rows={strongShortRows} testId="strong-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="候选做空" rows={candidateShortRows} testId="candidate-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
           </div>
         </div>
         {selectedItem && (
@@ -757,8 +757,8 @@ function buildHistoryBySymbol(
 
 function classifyAsset(item: SnapshotItem) {
   const tags: string[] = [];
-  if (item.trend_score >= 70 && item.rs_score >= 70 && item.leverage_velocity_score >= 70) tags.push("高置信多头");
-  if (item.trend_score <= -70 && item.rs_score <= -70 && item.leverage_velocity_score <= -70) tags.push("高置信空头");
+  if (item.trend_score >= 70 && item.rs_score >= 70 && item.leverage_velocity_score >= 70) tags.push("高置信做多");
+  if (item.trend_score <= -70 && item.rs_score <= -70 && item.leverage_velocity_score <= -70) tags.push("高置信做空");
   if (item.leverage_velocity_score >= 70) tags.push("快速加杠杆");
   if (item.leverage_velocity_score <= -70) tags.push("快速去杠杆");
   return tags;

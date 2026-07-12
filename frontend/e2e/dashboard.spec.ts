@@ -43,7 +43,7 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   const detailPanel = page.locator(".detail-panel");
   await expect(detailPanel).toBeVisible();
   await expect(detailPanel.getByText("Fixture Alpha")).toBeVisible();
-  await expect(detailPanel.getByText("高置信多头", { exact: true })).toBeVisible();
+  await expect(detailPanel.getByText("高置信做多", { exact: true })).toBeVisible();
   await expect(detailPanel.getByText("快速加杠杆", { exact: true })).toBeVisible();
   await expect(detailPanel.getByText("资金加杠杆", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("比价领先", { exact: true })).toHaveCount(0);
@@ -89,6 +89,10 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await detailPanel.getByRole("button", { name: "Close detail panel" }).click();
 
   await page.getByRole("tab", { name: "Opportunities" }).click();
+  await expect(page.getByRole("heading", { name: "强势做多" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "候选做多" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "强势做空" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "候选做空" })).toBeVisible();
   await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
   await expect(page.getByTestId("candidate-long-section")).toContainText("11 total / top 10 shown");
   await expect(page.getByTestId("strong-short-section")).toContainText("1 total / top 1 shown");

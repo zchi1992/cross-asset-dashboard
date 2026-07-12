@@ -251,25 +251,60 @@ describe("opportunity screening utilities", () => {
     expect(topOpportunities(rows).map((row) => row.item.symbol)).not.toContain("ASSET11");
   });
 
-  it("marks the top ten from both opportunity screens and preserves overlaps", () => {
-    const strongRows = buildRankedOpportunityRows(
+  it("marks the top ten from all opportunity screens and preserves overlaps", () => {
+    const strongLongRows = buildRankedOpportunityRows(
       Array.from({ length: 11 }, (_, index) => item({ symbol: `STRONG${index + 1}`, leverage_duration: index + 1 })),
       new Map(),
       rankStrongLongOpportunities,
     );
-    const candidateRows = buildRankedOpportunityRows(
+    const candidateLongRows = buildRankedOpportunityRows(
       [item({ symbol: "STRONG1" }), item({ symbol: "CANDIDATE_ONLY" })],
       new Map(),
       rankCandidateLongOpportunities,
     );
+    const strongShortRows = buildRankedOpportunityRows(
+      Array.from({ length: 11 }, (_, index) => shortItem({ symbol: `SHORT${index + 1}`, leverage_duration: index + 1 })),
+      new Map(),
+      rankStrongShortOpportunities,
+    );
+    const candidateShortRows = buildRankedOpportunityRows(
+      [shortItem({ symbol: "SHORT1" }), shortItem({ symbol: "SHORT_CANDIDATE_ONLY", daily_trend: "neutral" })],
+      new Map(),
+      rankCandidateShortOpportunities,
+    );
 
-    const markers = buildOpportunityMarkers(strongRows, candidateRows);
+    const markers = buildOpportunityMarkers(
+      strongLongRows,
+      candidateLongRows,
+      strongShortRows,
+      candidateShortRows,
+    );
 
-    expect(markers.get("STRONG1::Asset STRONG1")).toEqual({ strongLong: true, candidateLong: true });
+    expect(markers.get("STRONG1::Asset STRONG1")).toEqual({
+      strongLong: true,
+      candidateLong: true,
+      strongShort: false,
+      candidateShort: false,
+    });
     expect(markers.get("CANDIDATE_ONLY::Asset CANDIDATE_ONLY")).toEqual({
       strongLong: false,
       candidateLong: true,
+      strongShort: false,
+      candidateShort: false,
+    });
+    expect(markers.get("SHORT1::Asset SHORT1")).toEqual({
+      strongLong: false,
+      candidateLong: false,
+      strongShort: true,
+      candidateShort: true,
+    });
+    expect(markers.get("SHORT_CANDIDATE_ONLY::Asset SHORT_CANDIDATE_ONLY")).toEqual({
+      strongLong: false,
+      candidateLong: false,
+      strongShort: false,
+      candidateShort: true,
     });
     expect(markers.has("STRONG11::Asset STRONG11")).toBe(false);
+    expect(markers.has("SHORT11::Asset SHORT11")).toBe(false);
   });
 });
