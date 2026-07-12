@@ -23,6 +23,9 @@ from .trend_score import (
 from ..utils import ensure_dir
 
 
+PASSTHROUGH_METRICS = {"close_position_vs_60d"}
+
+
 def build_processed_series_with_trend_scores(
     storage_root: Path,
     dataset_types: list[str] | None = None,
@@ -63,9 +66,10 @@ def build_processed_series_with_trend_scores(
             rs_rows = calculate_rs_score_rows(_complete_rows(source_rows, RS_INPUT_FIELD_ALIASES, RS_REQUIRED_FIELDS))
             asset_key = _asset_key(source_rows)
             asset_funding_rows = funding_rows_by_asset.get(asset_key, []) if asset_key is not None else []
-            output_rows = trend_rows + rs_rows + asset_funding_rows
-            if not output_rows:
+            calculated_rows = trend_rows + rs_rows + asset_funding_rows
+            if not calculated_rows:
                 continue
+            output_rows = calculated_rows + _passthrough_rows(source_rows)
             target_path = target_dir / source_path.name
             _write_csv_rows(target_path, output_rows)
             written_paths.append(target_path)
@@ -156,6 +160,14 @@ def _group_rows_by_asset(rows: list[dict[str, str]]) -> dict[tuple[str, str, str
             )
         ].append(row)
     return grouped
+
+
+def _passthrough_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [
+        {column: str(row.get(column, "")) for column in SERIES_COLUMNS}
+        for row in rows
+        if str(row.get("metric_name", "")).strip() in PASSTHROUGH_METRICS
+    ]
 
 
 def _write_csv_rows(path: Path, rows: list[dict[str, str]]) -> None:

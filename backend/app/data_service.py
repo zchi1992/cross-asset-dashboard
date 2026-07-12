@@ -190,6 +190,7 @@ def _to_snapshot_item(row: dict) -> SnapshotItem:
         asset_class=str(row["asset_class"]),
         is_gs_exempt=bool(row.get("is_gs_exempt")),
         trend_score=float(row["trend_score"]),
+        close_position_vs_60d=_optional_float(row.get("close_position_vs_60d")),
         rs_score=float(row["rs_score"]),
         early_reversal=float(row["early_reversal"]),
         strength_momentum=float(row["strength_momentum"]),

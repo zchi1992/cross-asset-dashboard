@@ -35,6 +35,7 @@ export type SnapshotItem = {
   asset_class: string;
   is_gs_exempt: boolean;
   trend_score: number;
+  close_position_vs_60d?: number | null;
   rs_score: number;
   early_reversal: number;
   strength_momentum: number;
