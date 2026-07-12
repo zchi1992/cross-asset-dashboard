@@ -703,24 +703,43 @@ button:disabled:hover {
 
 .trend-legend {
   position: absolute;
-  right: 72px;
-  top: 32px;
+  right: 140px;
+  top: 42px;
   display: flex;
-  gap: 7px;
-  align-items: center;
+  width: 118px;
+  flex-direction: column;
+  gap: 1px;
   color: var(--terminal-amber);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   pointer-events: none;
 }
 
-.trend-legend div {
-  width: 118px;
+.trend-legend-scale {
+  width: 100%;
   height: 10px;
   border-radius: 2px;
   border: 1px solid #111;
   background: linear-gradient(90deg, #2f86ff, #e4e2d8 50%, #ffb000);
-  box-shadow: 0 0 10px rgba(255, 176, 0, 0.18);
+}
+
+.trend-legend-thresholds {
+  position: relative;
+  height: 10px;
+  line-height: 1;
+}
+
+.trend-legend-thresholds span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.trend-legend-thresholds span:first-child {
+  left: 30%;
+}
+
+.trend-legend-thresholds span:last-child {
+  left: 70%;
 }
 
 .empty-state {
