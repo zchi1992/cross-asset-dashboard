@@ -51,6 +51,8 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(detailPanel.getByText("比价改善", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("观察", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆资金水平")).toBeVisible();
+  await expect(detailPanel.getByText("收盘价对比60日位置")).toBeVisible();
+  await expect(detailPanel.getByText("0.7340", { exact: true })).toBeVisible();
   await expect(detailPanel.getByText("杠杆速率分")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "比价分变化" })).toBeVisible();

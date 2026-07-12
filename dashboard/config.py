@@ -15,6 +15,7 @@ DEFAULT_MARKET_MAP_CONFIG: dict[str, Any] = {
         "asset_class": "dataset_type",
         "trend_score": "capped_final_trend_score",
         "trend_state": "state_name",
+        "close_position_vs_60d": "close_position_vs_60d",
         "rs_score": "rs_score",
         "early_reversal": "early_reversal",
         "strength_momentum": "strength_momentum",

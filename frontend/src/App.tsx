@@ -816,6 +816,7 @@ function AssetDetailPanel({
       )}
       <div className="detail-grid">
         <Metric label="趋势分" value={item.trend_score} />
+        <Metric label="收盘价对比60日位置" value={formatClosePosition(item.close_position_vs_60d)} />
         <Metric label="比价强度" value={item.rs_score} />
         <Metric label="杠杆资金水平" value={item.leverage_value} />
         <Metric label="比价状态" value={item.rs_state} />
@@ -1114,4 +1115,9 @@ function formatTrendValue(value?: string | null) {
   if (normalized === "down") return "下行";
   if (normalized === "neutral") return "无趋势";
   return value || "-";
+}
+
+function formatClosePosition(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return value.toFixed(4);
 }

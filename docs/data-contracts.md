@@ -20,6 +20,8 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 每个资产日期必须包含趋势分与状态、月周日趋势、相对强度分与状态、相对强度分项、
 资金分与方向。交易机会 tab 还读取 `funding_current_leverage_state_duration` 和
 `funding_signal_strength`；这两个字段在 API 中为可空字段，缺失时不影响 Market Map 行加载。
+原始 series 中的 `close_position_vs_60d` 会原值透传到 processed series；旧 processed 数据
+缺少该指标时仍可加载，对应 API 字段返回 `null`。
 dashboard 使用的 `trend_score` 来自 `capped_final_trend_score`，该字段表示月/周/日趋势
 结构的 duration-only 成熟度分。`transition_score`、`raw_transition_score` 和
 `transition_label` 仍保留在 processed series 中，用于后续交易机会筛选，不属于当前
@@ -47,6 +49,8 @@ dashboard/API 展示字段。
 单日宽表和 playback item 保留原有字段，并额外返回：
 
 - `is_gs_exempt`：布尔值，表示该行情记录的 symbol 是否在公司批准名单中；前端据此筛选已有数据，不把名单中无行情的 symbol 补进响应。
+
+- `close_position_vs_60d`：原始“收盘价对比60日位置”，用于资产详情面板展示；历史 processed 数据缺失时为 `null`。
 
 - `leverage_duration`：来自 `funding_current_leverage_state_duration`，用于机会排序和表格展示。
 - `funding_signal_strength`：来自同名 processed metric，用于机会排序；不替代现有

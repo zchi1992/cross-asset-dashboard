@@ -64,6 +64,7 @@ class SnapshotItem(BaseModel):
     asset_class: str
     is_gs_exempt: bool = False
     trend_score: float
+    close_position_vs_60d: float | None = None
     rs_score: float
     early_reversal: float
     strength_momentum: float

@@ -93,11 +93,13 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
         "relative_strength",
         "rs_state",
         "trend_score",
+        "close_position_vs_60d",
         "leverage_duration",
         "funding_signal_strength",
         "is_gs_exempt",
     } <= set(snapshot["items"][0])
     assert snapshot["items"][0]["leverage_duration"] == 2
+    assert snapshot["items"][0]["close_position_vs_60d"] == 0.734
     assert snapshot["items"][0]["funding_signal_strength"] == 68
     assert snapshot["items"][0]["is_gs_exempt"] is True
 
