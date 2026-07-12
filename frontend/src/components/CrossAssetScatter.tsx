@@ -40,6 +40,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   const elementRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
   const isDense = items.length >= DENSE_ASSET_THRESHOLD;
+  const useProgressive = isDense && !selectedSymbol;
 
   const assetData = useMemo(() => {
     const visibleItems = selectedSymbol
@@ -164,7 +165,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           type: "scatter",
           symbol: "circle",
           symbolSize: isDense ? DENSE_SYMBOL_SIZE : NORMAL_SYMBOL_SIZE,
-          progressive: isDense ? 600 : 0,
+          progressive: useProgressive ? 600 : 0,
           progressiveThreshold: DENSE_ASSET_THRESHOLD,
           progressiveChunkMode: "mod",
           itemStyle: {
@@ -217,7 +218,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [assetData, isDense, itemBySymbol, opportunityMarkers]);
+  }, [assetData, isDense, itemBySymbol, opportunityMarkers, useProgressive]);
 
   const selectedTrajectory = useMemo(
     () =>
@@ -296,6 +297,14 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     };
   }, [itemBySymbol, selectedSymbol, selectedTrajectory, duplicateAssetKeys]);
 
+  const chartOption = useMemo<EChartsOption>(
+    () => ({
+      ...baseOption,
+      series: [...toSeriesArray(baseOption.series), ...toSeriesArray(dynamicOption.series)],
+    }),
+    [baseOption, dynamicOption],
+  );
+
   useEffect(() => {
     if (!elementRef.current) return;
     chartRef.current = echarts.init(elementRef.current, "dark", {
@@ -317,12 +326,14 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    chart.setOption(baseOption, { notMerge: false, lazyUpdate: true });
-  }, [baseOption]);
-
-  useEffect(() => {
-    chartRef.current?.setOption(dynamicOption, { notMerge: false, lazyUpdate: true });
-  }, [dynamicOption]);
+    chart.dispatchAction({ type: "downplay", seriesId: "assets" });
+    chart.dispatchAction({ type: "hideTip" });
+    chart.setOption(chartOption, {
+      notMerge: false,
+      replaceMerge: ["series"],
+      lazyUpdate: false,
+    });
+  }, [chartOption]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -376,6 +387,11 @@ function formatAxisLabel(value: number | string) {
   if (Math.abs(numeric) >= 1000) return numeric.toFixed(0);
   if (Math.abs(numeric) >= 100) return numeric.toFixed(1);
   return numeric.toFixed(1).replace(/\.0$/, "");
+}
+
+function toSeriesArray(series: EChartsOption["series"]) {
+  if (!series) return [];
+  return Array.isArray(series) ? series : [series];
 }
 
 function clamp(value: number, range: readonly number[]) {
