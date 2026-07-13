@@ -277,6 +277,7 @@ class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
         self.assertIn("raw_final_trend_score", metric_names)
         self.assertIn("capped_final_trend_score", metric_names)
         self.assertIn("transition_label", metric_names)
+        self.assertIn("close_position_vs_60d", metric_names)
         self.assertIn("rs_score", metric_names)
         self.assertIn("state_transition", metric_names)
         self.assertIn("relative_signal_type", metric_names)
@@ -289,6 +290,11 @@ class ProcessedTrendScoreIntegrationTests(unittest.TestCase):
         self.assertIn("funding_direction", metric_names)
         self.assertIn("position_score", metric_names)
         self.assertIn("maturity_score", metric_names)
+        processed_rows = _read_csv(processed_file)
+        self.assertEqual(
+            _metric_value(processed_rows, "2026-05-27", "close_position_vs_60d"),
+            "0.6719242902208201",
+        )
 
 
 def _trend_rows(records: list[tuple[str, str, str, str, int, int, int]]) -> list[dict[str, str]]:

@@ -58,6 +58,7 @@ export type SnapshotItem = {
   tertiary_categories: string[];
   regions: string[];
   trend_score: number;
+  close_position_vs_60d?: number | null;
   rs_score: number;
   early_reversal: number;
   strength_momentum: number;
@@ -82,3 +83,68 @@ export type DatesResponse = { dates: string[] };
 export type AssetsResponse = { assets: AssetMetadata[] };
 export type SnapshotResponse = { date: string; items: SnapshotItem[] };
 export type PlaybackResponse = { dates: string[]; frames: Record<string, SnapshotItem[]> };
+
+export type MacroSourceStatus = {
+  source_id: string;
+  source_name: string;
+  status: "fresh" | "lagging" | "error" | "unconfigured" | string;
+  last_success_at?: string | null;
+  latest_observation_at?: string | null;
+  message?: string | null;
+};
+
+export type MacroChanges = {
+  change_1?: number | null;
+  change_4?: number | null;
+  change_5?: number | null;
+  change_20?: number | null;
+};
+
+export type MacroFactor = {
+  series_id: string;
+  label: string;
+  value: number;
+  unit: string;
+  changes: MacroChanges;
+  status: string;
+};
+
+export type MacroCurve = {
+  region: string;
+  region_name: string;
+  observed_at: string;
+  curve_type: string;
+  source_id: string;
+  source_name: string;
+  source_url: string;
+  points: { tenor_years: number; value: number }[];
+  factors: MacroFactor[];
+};
+
+export type MacroCredit = {
+  series_id: string;
+  label: string;
+  observed_at: string;
+  value: number;
+  unit: string;
+  frequency: string;
+  source_id: string;
+  source_name: string;
+  source_url: string;
+  changes: MacroChanges;
+  status: string;
+};
+
+export type MacroOverviewResponse = {
+  as_of?: string | null;
+  curves: MacroCurve[];
+  credit: MacroCredit[];
+  sources: MacroSourceStatus[];
+};
+
+export type MacroHistoryResponse = {
+  series_id: string;
+  label: string;
+  unit: string;
+  points: { date: string; value: number }[];
+};

@@ -39,6 +39,17 @@
     ]
   },
   "dashboard": {
+    "macro": {
+      "enabled": true,
+      "processed_path": "processed/macro",
+      "source_state_path": "../state/macro_sources.json",
+      "thresholds": {
+        "curve_change_bp": 10,
+        "credit_spread_change_bp": 10,
+        "stress_index_change": 0.25,
+        "sloos_change_pp": 5
+      }
+    },
     "market_map": {
       "dataset_types": [
         "core",
@@ -51,6 +62,7 @@
         "asset_class": "dataset_type",
         "trend_score": "capped_final_trend_score",
         "trend_state": "state_name",
+        "close_position_vs_60d": "close_position_vs_60d",
         "rs_score": "rs_score",
         "early_reversal": "early_reversal",
         "strength_momentum": "strength_momentum",

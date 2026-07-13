@@ -31,6 +31,7 @@ class MarketMapDashboardTests(unittest.TestCase):
                     ("2026-06-04", "AAA", "Asset A", "monthly_trend", "up"),
                     ("2026-06-04", "AAA", "Asset A", "weekly_trend", "up"),
                     ("2026-06-04", "AAA", "Asset A", "daily_trend", "up"),
+                    ("2026-06-04", "AAA", "Asset A", "close_position_vs_60d", "0.734"),
                     ("2026-06-04", "AAA", "Asset A", "rs_score", "82"),
                     ("2026-06-04", "AAA", "Asset A", "early_reversal", "80"),
                     ("2026-06-04", "AAA", "Asset A", "strength_momentum", "83"),
@@ -58,6 +59,7 @@ class MarketMapDashboardTests(unittest.TestCase):
         self.assertEqual(row["tertiary_categories"], [])
         self.assertEqual(row["regions"], [])
         self.assertEqual(row["trend_score"], 75)
+        self.assertEqual(row["close_position_vs_60d"], 0.734)
         self.assertEqual(row["monthly_trend"], "up")
         self.assertEqual(row["weekly_trend"], "up")
         self.assertEqual(row["daily_trend"], "up")

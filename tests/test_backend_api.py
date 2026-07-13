@@ -101,6 +101,7 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
         "relative_strength",
         "rs_state",
         "trend_score",
+        "close_position_vs_60d",
         "leverage_duration",
         "funding_signal_strength",
         "is_gs_exempt",
@@ -110,6 +111,7 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
         "regions",
     } <= set(snapshot["items"][0])
     assert snapshot["items"][0]["leverage_duration"] == 2
+    assert snapshot["items"][0]["close_position_vs_60d"] == 0.734
     assert snapshot["items"][0]["funding_signal_strength"] == 68
     assert snapshot["items"][0]["is_gs_exempt"] is True
     assert snapshot["items"][0]["primary_category"] == "equity"
@@ -128,6 +130,36 @@ def test_snapshot_rejects_unknown_date() -> None:
     response = client.get("/api/snapshot", params={"date": "1900-01-01"})
 
     assert response.status_code == 404
+
+
+def test_macro_ready_overview_and_history_contracts() -> None:
+    readiness = client.get("/api/macro/ready")
+    assert readiness.status_code == 200
+    assert readiness.json()["status"] == "ready"
+    assert readiness.json()["curve_count"] == 5
+
+    overview = client.get("/api/macro/overview")
+    assert overview.status_code == 200
+    payload = overview.json()
+    assert payload["as_of"] == "2026-06-28"
+    assert len(payload["curves"]) == 5
+    assert {item["series_id"] for item in payload["credit"]} >= {"HY_OAS", "IG_OAS", "HY_IG", "NFCI", "OFR_FSI", "SLOOS"}
+    assert payload["curves"][0]["factors"][0]["changes"]
+
+    history = client.get("/api/macro/history", params={"series_id": "CURVE.US.level_10y"})
+    assert history.status_code == 200
+    assert history.json()["points"][-1] == {"date": "2026-06-28", "value": 4.5}
+    assert client.get("/api/macro/history", params={"series_id": "UNKNOWN"}).status_code == 404
+
+
+def test_macro_readiness_is_independent_from_market_map(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"storage_root": ".", "dashboard": {"market_map": {}, "macro": {}}}), encoding="utf-8")
+    empty_client = TestClient(main_module.create_app(config_path))
+
+    assert empty_client.get("/api/ready").status_code == 503
+    assert empty_client.get("/api/macro/ready").status_code == 503
+    assert empty_client.get("/api/health").status_code == 200
 
 
 def test_playback_frames_are_cached_by_data_signature(monkeypatch) -> None:

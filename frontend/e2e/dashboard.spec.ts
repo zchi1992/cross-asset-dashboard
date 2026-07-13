@@ -3,6 +3,20 @@ import { expect, test } from "@playwright/test";
 test("loads fixture data and supports filters and playback controls", async ({ page }) => {
   await page.goto("/");
 
+  const tabs = page.getByRole("tab");
+  await expect(tabs).toHaveCount(3);
+  await expect(tabs.nth(0)).toHaveText("宏观地图");
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(1)).toHaveText("Market Map");
+  await expect(page.getByRole("heading", { name: "宏观地图" })).toBeVisible();
+  await expect(page.getByText("5/5", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "美国 yield curve" })).toBeVisible();
+  await expect(page.getByText("HY - IG OAS", { exact: true })).toBeVisible();
+  await expect(page.locator(".macro-history-chart canvas")).toBeVisible();
+  await expect(page.getByRole("button", { name: "First" })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Market Map" }).click();
+
   const topline = page.locator(".workspace-topline");
   await expect(topline).toContainText("2026-06-28");
   await expect(topline).toContainText("12 visible / 13 frame / 13 assets / 11 dates");
@@ -70,7 +84,7 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   const detailPanel = page.locator(".detail-panel");
   await expect(detailPanel).toBeVisible();
   await expect(detailPanel.getByText("Fixture Alpha")).toBeVisible();
-  await expect(detailPanel.getByText("高置信多头", { exact: true })).toBeVisible();
+  await expect(detailPanel.getByText("高置信做多", { exact: true })).toBeVisible();
   await expect(detailPanel.getByText("快速加杠杆", { exact: true })).toBeVisible();
   await expect(detailPanel.getByText("资金加杠杆", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("比价领先", { exact: true })).toHaveCount(0);
@@ -78,6 +92,8 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(detailPanel.getByText("比价改善", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("观察", { exact: true })).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆资金水平")).toBeVisible();
+  await expect(detailPanel.getByText("收盘价对比60日位置")).toBeVisible();
+  await expect(detailPanel.getByText("0.7340", { exact: true })).toBeVisible();
   await expect(detailPanel.getByText("杠杆速率分")).toHaveCount(0);
   await expect(detailPanel.getByText("杠杆速率", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "比价分变化" })).toBeVisible();
@@ -117,6 +133,10 @@ test("loads fixture data and supports filters and playback controls", async ({ p
 
   await page.getByRole("tab", { name: "交易机会" }).click();
   await expect(page.getByRole("group", { name: "一级类别 / Primary" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "强势做多" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "候选做多" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "强势做空" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "候选做空" })).toBeVisible();
   await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
   await expect(page.getByTestId("candidate-long-section")).toContainText("11 total / top 10 shown");
   await expect(page.getByTestId("strong-short-section")).toContainText("1 total / top 1 shown");

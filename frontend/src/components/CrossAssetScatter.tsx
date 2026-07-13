@@ -40,6 +40,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   const elementRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
   const isDense = items.length >= DENSE_ASSET_THRESHOLD;
+  const useProgressive = isDense && !selectedSymbol;
 
   const assetData = useMemo(() => {
     const visibleItems = selectedSymbol
@@ -164,7 +165,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
           type: "scatter",
           symbol: "circle",
           symbolSize: isDense ? DENSE_SYMBOL_SIZE : NORMAL_SYMBOL_SIZE,
-          progressive: isDense ? 600 : 0,
+          progressive: useProgressive ? 600 : 0,
           progressiveThreshold: DENSE_ASSET_THRESHOLD,
           progressiveChunkMode: "mod",
           itemStyle: {
@@ -193,8 +194,10 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
             textShadowBlur: 7,
             textShadowColor: "#000000",
             rich: {
-              strongLong: { color: "#ffbf47", fontWeight: 800 },
-              candidateLong: { color: "#65d6b2", fontWeight: 800 },
+              strongLong: { color: "#ff5d5d", fontWeight: 800 },
+              candidateLong: { color: "#ffbf47", fontWeight: 800 },
+              strongShort: { color: "#00b36b", fontWeight: 800 },
+              candidateShort: { color: "#8bd450", fontWeight: 800 },
             },
           },
           data: assetData,
@@ -215,7 +218,7 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
         },
       ],
     };
-  }, [assetData, isDense, itemBySymbol, opportunityMarkers]);
+  }, [assetData, isDense, itemBySymbol, opportunityMarkers, useProgressive]);
 
   const selectedTrajectory = useMemo(
     () =>
@@ -294,6 +297,14 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
     };
   }, [itemBySymbol, selectedSymbol, selectedTrajectory, duplicateAssetKeys]);
 
+  const chartOption = useMemo<EChartsOption>(
+    () => ({
+      ...baseOption,
+      series: [...toSeriesArray(baseOption.series), ...toSeriesArray(dynamicOption.series)],
+    }),
+    [baseOption, dynamicOption],
+  );
+
   useEffect(() => {
     if (!elementRef.current) return;
     chartRef.current = echarts.init(elementRef.current, "dark", {
@@ -315,12 +326,14 @@ export const CrossAssetScatter = memo(function CrossAssetScatter({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    chart.setOption(baseOption, { notMerge: false, lazyUpdate: true });
-  }, [baseOption]);
-
-  useEffect(() => {
-    chartRef.current?.setOption(dynamicOption, { notMerge: false, lazyUpdate: true });
-  }, [dynamicOption]);
+    chart.dispatchAction({ type: "downplay", seriesId: "assets" });
+    chart.dispatchAction({ type: "hideTip" });
+    chart.setOption(chartOption, {
+      notMerge: false,
+      replaceMerge: ["series"],
+      lazyUpdate: false,
+    });
+  }, [chartOption]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -356,8 +369,10 @@ function trendColor(score: number) {
 function formatOpportunityLabel(symbol: string, marker?: OpportunityMarker) {
   if (!marker) return symbol;
   const labels = [
-    marker.strongLong ? "{strongLong|强势多头}" : "",
-    marker.candidateLong ? "{candidateLong|候选多头}" : "",
+    marker.strongLong ? "{strongLong|强势做多}" : "",
+    marker.candidateLong ? "{candidateLong|候选做多}" : "",
+    marker.strongShort ? "{strongShort|强势做空}" : "",
+    marker.candidateShort ? "{candidateShort|候选做空}" : "",
   ].filter(Boolean);
   return `${symbol} ${labels.join(" / ")}`;
 }
@@ -372,6 +387,11 @@ function formatAxisLabel(value: number | string) {
   if (Math.abs(numeric) >= 1000) return numeric.toFixed(0);
   if (Math.abs(numeric) >= 100) return numeric.toFixed(1);
   return numeric.toFixed(1).replace(/\.0$/, "");
+}
+
+function toSeriesArray(series: EChartsOption["series"]) {
+  if (!series) return [];
+  return Array.isArray(series) ? series : [series];
 }
 
 function clamp(value: number, range: readonly number[]) {

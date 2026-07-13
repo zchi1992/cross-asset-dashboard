@@ -212,6 +212,7 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 2026-06-28,core,AAA,Fixture Alpha,monthly_trend,up
 2026-06-28,core,AAA,Fixture Alpha,weekly_trend,up
 2026-06-28,core,AAA,Fixture Alpha,daily_trend,up
+2026-06-28,core,AAA,Fixture Alpha,close_position_vs_60d,0.734
 2026-06-28,core,AAA,Fixture Alpha,rs_score,84
 2026-06-28,core,AAA,Fixture Alpha,early_reversal,109
 2026-06-28,core,AAA,Fixture Alpha,strength_momentum,88

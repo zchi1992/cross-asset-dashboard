@@ -25,6 +25,8 @@ make taxonomy-check
 - E2E：真实静态前端、FastAPI 和可版本控制数据。
 - 真实分类覆盖率使用 `scripts/audit_asset_taxonomy.py --config <config> --catalog <catalog> --registry <registry>`
   单独核验；该命令是发布证据，不替代 fixture 测试。
+- 宏观测试使用 `tests/fixtures/dashboard/processed/macro/` 的合成曲线与信用数据；不得把
+  FRED、ICE、ChinaBond 或其他真实供应商值提交为 fixture。
 
 Playwright 失败证据位于 `frontend/test-results/` 和
 `frontend/playwright-report/`，这些目录不进入 Git。

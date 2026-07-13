@@ -18,6 +18,9 @@ from .schemas import (
     ConfigResponse,
     DatesResponse,
     HealthResponse,
+    MacroHistoryResponse,
+    MacroOverviewResponse,
+    MacroReadinessResponse,
     PlaybackResponse,
     ReadinessResponse,
     SnapshotResponse,
@@ -127,6 +130,32 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
             resolved_config_path,
         )
         return PlaybackResponse(dates=dates, frames=frames)
+
+    @app.get(
+        "/api/macro/ready",
+        response_model=MacroReadinessResponse,
+        responses={503: {"model": MacroReadinessResponse}},
+    )
+    def macro_ready(response: Response) -> MacroReadinessResponse:
+        readiness = MacroReadinessResponse(**data_service.get_macro_readiness(resolved_config_path))
+        if readiness.status == "not_ready":
+            response.status_code = 503
+        return readiness
+
+    @app.get("/api/macro/overview", response_model=MacroOverviewResponse)
+    def macro_overview(as_of: str | None = None) -> MacroOverviewResponse:
+        return MacroOverviewResponse(**data_service.get_macro_overview(as_of, resolved_config_path))
+
+    @app.get("/api/macro/history", response_model=MacroHistoryResponse)
+    def macro_history(
+        series_id: str = Query(...),
+        start: str | None = None,
+        end: str | None = None,
+    ) -> MacroHistoryResponse:
+        history = data_service.get_macro_history(series_id, start, end, resolved_config_path)
+        if history is None:
+            raise HTTPException(status_code=404, detail=f"Unknown macro series {series_id}")
+        return MacroHistoryResponse(**history)
 
     if FRONTEND_DIST.exists():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

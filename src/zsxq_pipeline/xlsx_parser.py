@@ -43,18 +43,24 @@ def _shared_strings(archive: ZipFile) -> list[str]:
     return values
 
 
-def _first_sheet_path(archive: ZipFile) -> tuple[str, str]:
+def _sheet_paths(archive: ZipFile) -> list[tuple[str, str]]:
     workbook = ET.fromstring(archive.read("xl/workbook.xml"))
     rels = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
     rel_map = {
         rel.attrib["Id"]: _normalize_target(rel.attrib["Target"])
         for rel in rels.findall("pkgrel:Relationship", NS)
     }
-    first_sheet = workbook.find("main:sheets", NS)[0]
-    rel_id = first_sheet.attrib[
-        "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+    return [
+        (
+            sheet.attrib["name"],
+            rel_map[
+                sheet.attrib[
+                    "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+                ]
+            ],
+        )
+        for sheet in workbook.find("main:sheets", NS)
     ]
-    return first_sheet.attrib["name"], rel_map[rel_id]
 
 
 def _cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
@@ -71,10 +77,21 @@ def _cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
 
 
 def read_first_sheet(path: str | Path) -> tuple[str, list[list[str]]]:
+    return read_sheet(path)
+
+
+def read_sheet(path: str | Path, sheet_name: str | None = None) -> tuple[str, list[list[str]]]:
     file_path = Path(path)
     with ZipFile(file_path) as archive:
         shared = _shared_strings(archive)
-        sheet_name, sheet_path = _first_sheet_path(archive)
+        sheets = _sheet_paths(archive)
+        if sheet_name is None:
+            selected_name, sheet_path = sheets[0]
+        else:
+            try:
+                selected_name, sheet_path = next(item for item in sheets if item[0] == sheet_name)
+            except StopIteration as exc:
+                raise ValueError(f"Excel 中不存在工作表 {sheet_name}: {path}") from exc
         sheet_xml = ET.fromstring(archive.read(sheet_path))
         rows: list[list[str]] = []
         for row in sheet_xml.findall(".//main:sheetData/main:row", NS):
@@ -88,7 +105,7 @@ def read_first_sheet(path: str | Path) -> tuple[str, list[list[str]]]:
                     rendered.append("")
                 rendered[index] = _cell_value(cell, shared)
             rows.append(rendered)
-        return sheet_name, rows
+        return selected_name, rows
 
 
 def parse_metrics_from_workbook(

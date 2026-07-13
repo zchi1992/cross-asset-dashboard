@@ -18,6 +18,7 @@ DEFAULT_MARKET_MAP_CONFIG: dict[str, Any] = {
         "asset_class": "dataset_type",
         "trend_score": "capped_final_trend_score",
         "trend_state": "state_name",
+        "close_position_vs_60d": "close_position_vs_60d",
         "rs_score": "rs_score",
         "early_reversal": "early_reversal",
         "strength_momentum": "strength_momentum",
@@ -58,11 +59,29 @@ DEFAULT_MARKET_MAP_CONFIG: dict[str, Any] = {
     },
 }
 
+DEFAULT_MACRO_CONFIG: dict[str, Any] = {
+    "enabled": True,
+    "processed_path": "processed/macro",
+    "source_state_path": "../state/macro_sources.json",
+    "thresholds": {
+        "curve_change_bp": 10.0,
+        "credit_spread_change_bp": 10.0,
+        "stress_index_change": 0.25,
+        "sloos_change_pp": 5.0,
+    },
+    "freshness_days": {
+        "daily": 4,
+        "weekly": 10,
+        "quarterly": 120,
+    },
+}
+
 
 @dataclass(frozen=True)
 class DashboardConfig:
     repo_config: Config
     market_map: dict[str, Any]
+    macro: dict[str, Any]
 
     @property
     def storage_root(self) -> Path:
@@ -89,6 +108,7 @@ def load_dashboard_config(path: str | Path = "config.yaml") -> DashboardConfig:
     return DashboardConfig(
         repo_config=repo_config,
         market_map=_deep_merge(DEFAULT_MARKET_MAP_CONFIG, market_map_raw),
+        macro=_deep_merge(DEFAULT_MACRO_CONFIG, dashboard_raw.get("macro", {})),
     )
 
 

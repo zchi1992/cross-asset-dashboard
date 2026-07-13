@@ -1,0 +1,11 @@
+date,series_id,label,value,unit,frequency,source_id,source_name,source_url
+2026-06-24,HY_OAS,HY OAS,3.00,percent,daily,fred,FRED,https://fred.stlouisfed.org/series/BAMLH0A0HYM2
+2026-06-28,HY_OAS,HY OAS,2.80,percent,daily,fred,FRED,https://fred.stlouisfed.org/series/BAMLH0A0HYM2
+2026-06-24,IG_OAS,IG OAS,0.85,percent,daily,fred,FRED,https://fred.stlouisfed.org/series/BAMLC0A0CM
+2026-06-28,IG_OAS,IG OAS,0.75,percent,daily,fred,FRED,https://fred.stlouisfed.org/series/BAMLC0A0CM
+2026-06-20,NFCI,Chicago Fed NFCI,-0.40,index,weekly,fred,FRED,https://fred.stlouisfed.org/series/NFCI
+2026-06-27,NFCI,Chicago Fed NFCI,-0.50,index,weekly,fred,FRED,https://fred.stlouisfed.org/series/NFCI
+2026-03-31,SLOOS,SLOOS C&I Tightening,12.0,pp,quarterly,fred,FRED,https://fred.stlouisfed.org/series/DRTSCILM
+2026-06-28,SLOOS,SLOOS C&I Tightening,8.0,pp,quarterly,fred,FRED,https://fred.stlouisfed.org/series/DRTSCILM
+2026-06-24,OFR_FSI,OFR Financial Stress Index,-1.80,index,daily,ofr,Office of Financial Research,https://www.financialresearch.gov/financial-stress-index/
+2026-06-28,OFR_FSI,OFR Financial Stress Index,-2.10,index,daily,ofr,Office of Financial Research,https://www.financialresearch.gov/financial-stress-index/

@@ -89,6 +89,9 @@ def main() -> int:
             "/api/dates": 200,
             "/api/assets": 200,
             "/api/playback": 200,
+            "/api/macro/ready": 200,
+            "/api/macro/overview": 200,
+            "/api/macro/history?series_id=CURVE.US.level_10y": 200,
         }
         for path, expected_status in expected.items():
             status, _payload = get_json(f"{base_url}{path}")

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchAssets, fetchConfig, fetchDates, fetchPlayback } from "./services/api";
 import type { FundingState, RelativeStrengthState, SnapshotItem, TaxonomyOptions } from "./services/contracts";
 import { CrossAssetScatter } from "./components/CrossAssetScatter";
+import { MacroMap } from "./components/MacroMap";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
@@ -51,7 +52,7 @@ const EMPTY_TAXONOMY_OPTIONS: TaxonomyOptions = {
   regions: [],
 };
 
-type ActiveView = "marketMap" | "opportunities";
+type ActiveView = "macroMap" | "marketMap" | "opportunities";
 
 export function App() {
   const refreshPolicy = {
@@ -100,7 +101,7 @@ export function App() {
   const selectSymbol = useSelectionStore((state) => state.selectSymbol);
   const clearSelection = useSelectionStore((state) => state.clearSelection);
   const [detailPanelWidth, setDetailPanelWidth] = useState(360);
-  const [activeView, setActiveView] = useState<ActiveView>("marketMap");
+  const [activeView, setActiveView] = useState<ActiveView>("macroMap");
   const [opportunityAssetFilter, setOpportunityAssetFilter] = useState("");
 
   useEffect(() => {
@@ -257,10 +258,6 @@ export function App() {
     () => buildRankedOpportunityRows(opportunityCurrentItems, candidateLongRankChanges, rankCandidateLongOpportunities),
     [candidateLongRankChanges, opportunityCurrentItems],
   );
-  const opportunityMarkers = useMemo(
-    () => buildOpportunityMarkers(strongLongRows, candidateLongRows),
-    [candidateLongRows, strongLongRows],
-  );
   const strongShortRows = useMemo(
     () => buildRankedOpportunityRows(opportunityCurrentItems, strongShortRankChanges, rankStrongShortOpportunities),
     [opportunityCurrentItems, strongShortRankChanges],
@@ -268,6 +265,10 @@ export function App() {
   const candidateShortRows = useMemo(
     () => buildRankedOpportunityRows(opportunityCurrentItems, candidateShortRankChanges, rankCandidateShortOpportunities),
     [candidateShortRankChanges, opportunityCurrentItems],
+  );
+  const opportunityMarkers = useMemo(
+    () => buildOpportunityMarkers(strongLongRows, candidateLongRows, strongShortRows, candidateShortRows),
+    [candidateLongRows, candidateShortRows, strongLongRows, strongShortRows],
   );
 
   const isBootLoading = configQuery.isLoading || datesQuery.isLoading;
@@ -298,7 +299,9 @@ export function App() {
     <main className="terminal-shell">
       <ViewTabs activeView={activeView} onChange={setActiveView} />
 
-      {activeView === "marketMap" ? (
+      <MacroMap active={activeView === "macroMap"} />
+
+      {activeView === "macroMap" ? null : activeView === "marketMap" ? (
         <section className="filter-bar">
           <SearchControl value={searchText} onCommit={setSearchText} />
           <label>
@@ -390,7 +393,7 @@ export function App() {
         </section>
       )}
 
-      {activeView === "marketMap" ? (
+      {activeView === "macroMap" ? null : activeView === "marketMap" ? (
         <section className="workspace">
           <div className="workspace-topline">
             <span>{currentDate}</span>
@@ -456,7 +459,7 @@ export function App() {
         />
       )}
 
-      <section className="playback-bar">
+      {activeView !== "macroMap" && <section className="playback-bar">
         <button onClick={first} disabled={!canUsePlayback}>First</button>
         <button onClick={previous} disabled={!canUsePlayback}>Previous</button>
         <button className="primary-button" onClick={() => (isPlaying ? setPlaying(false) : playFromStart())} disabled={!canUsePlayback}>
@@ -493,7 +496,7 @@ export function App() {
           }}
         />
         <strong>{currentDate}</strong>
-      </section>
+      </section>}
     </main>
   );
 }
@@ -501,6 +504,15 @@ export function App() {
 function ViewTabs({ activeView, onChange }: { activeView: ActiveView; onChange: (view: ActiveView) => void }) {
   return (
     <section className="view-tabs" role="tablist" aria-label="Dashboard views">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeView === "macroMap"}
+        className={activeView === "macroMap" ? "active" : ""}
+        onClick={() => onChange("macroMap")}
+      >
+        宏观地图
+      </button>
       <button
         type="button"
         role="tab"
@@ -572,12 +584,12 @@ function OpportunitiesWorkspace({
       >
         <div className="opportunities-layout">
           <div className="opportunity-row">
-            <OpportunitySection title="强势多头" rows={strongLongRows} testId="strong-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
-            <OpportunitySection title="候选多头" rows={candidateLongRows} testId="candidate-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="强势做多" rows={strongLongRows} testId="strong-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="候选做多" rows={candidateLongRows} testId="candidate-long" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
           </div>
           <div className="opportunity-row">
-            <OpportunitySection title="强势空头" rows={strongShortRows} testId="strong-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
-            <OpportunitySection title="候选空头" rows={candidateShortRows} testId="candidate-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="强势做空" rows={strongShortRows} testId="strong-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
+            <OpportunitySection title="候选做空" rows={candidateShortRows} testId="candidate-short" selectedSymbol={selectedSymbol} duplicateAssetKeys={duplicateAssetKeys} onSelect={onSelect} />
           </div>
         </div>
         {selectedItem && (
@@ -871,8 +883,8 @@ function buildHistoryBySymbol(
 
 function classifyAsset(item: SnapshotItem) {
   const tags: string[] = [];
-  if (item.trend_score >= 70 && item.rs_score >= 70 && item.leverage_velocity_score >= 70) tags.push("高置信多头");
-  if (item.trend_score <= -70 && item.rs_score <= -70 && item.leverage_velocity_score <= -70) tags.push("高置信空头");
+  if (item.trend_score >= 70 && item.rs_score >= 70 && item.leverage_velocity_score >= 70) tags.push("高置信做多");
+  if (item.trend_score <= -70 && item.rs_score <= -70 && item.leverage_velocity_score <= -70) tags.push("高置信做空");
   if (item.leverage_velocity_score >= 70) tags.push("快速加杠杆");
   if (item.leverage_velocity_score <= -70) tags.push("快速去杠杆");
   return tags;
@@ -930,6 +942,7 @@ function AssetDetailPanel({
       )}
       <div className="detail-grid">
         <Metric label="趋势分" value={item.trend_score} />
+        <Metric label="收盘价对比60日位置" value={formatClosePosition(item.close_position_vs_60d)} />
         <Metric label="比价强度" value={item.rs_score} />
         <Metric label="杠杆资金水平" value={item.leverage_value} />
         <Metric label="比价状态" value={item.rs_state} />
@@ -1228,4 +1241,9 @@ function formatTrendValue(value?: string | null) {
   if (normalized === "down") return "下行";
   if (normalized === "neutral") return "无趋势";
   return value || "-";
+}
+
+function formatClosePosition(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return value.toFixed(4);
 }

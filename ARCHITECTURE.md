@@ -30,6 +30,20 @@ backend/app/data_service.py -> FastAPI /api/*
 frontend React + ECharts
 ```
 
+宏观地图使用与资产横截面隔离的数据流：
+
+```text
+US Treasury / ECB / ChinaBond / Japan MOF / BoE / FRED / OFR
+       |
+       v
+src/macro_pipeline -> data/{raw,processed}/macro
+       |
+       v
+dashboard/macro_loader.py -> backend /api/macro/* -> frontend 宏观地图
+```
+
+宏观来源失败不改变资产 `/api/ready`；宏观数据由 `/api/macro/ready` 独立报告。
+
 运行时 `data/` 是本机数据，不进入 Git。测试和浏览器验证改用
 `tests/fixtures/dashboard/` 中的最小 processed-series 数据。
 
@@ -41,7 +55,7 @@ frontend React + ECharts
 src/zsxq_pipeline <- dashboard <- backend <- frontend HTTP client
 ```
 
-- `src/zsxq_pipeline` 不得依赖 `dashboard` 或 `backend`。
+- `src/zsxq_pipeline` 和 `src/macro_pipeline` 不得依赖 `dashboard` 或 `backend`。
 - `dashboard` 不得依赖 `backend`。
 - `backend` 仅允许 `backend/app/data_service.py` 通过
   `dashboard.config` 和 `dashboard.data_loader` 读取 dashboard 数据层。

@@ -20,6 +20,8 @@ date,dataset_type,asset_code,asset_name,metric_name,metric_value
 每个资产日期必须包含趋势分与状态、月周日趋势、相对强度分与状态、相对强度分项、
 资金分与方向。交易机会 tab 还读取 `funding_current_leverage_state_duration` 和
 `funding_signal_strength`；这两个字段在 API 中为可空字段，缺失时不影响 Market Map 行加载。
+原始 series 中的 `close_position_vs_60d` 会原值透传到 processed series；旧 processed 数据
+缺少该指标时仍可加载，对应 API 字段返回 `null`。
 dashboard 使用的 `trend_score` 来自 `capped_final_trend_score`，该字段表示月/周/日趋势
 结构的 duration-only 成熟度分。`transition_score`、`raw_transition_score` 和
 `transition_label` 仍保留在 processed series 中，用于后续交易机会筛选，不属于当前
@@ -73,12 +75,32 @@ dataset_type,symbol,asset_name,primary_category,secondary_category,tertiary_cate
   `CN`、`APAC`、`EM`，货币对可包含两个地区。全球或无法归入单一区域的资产返回空列表。
   注册表按 `US`、`CN` 优先，其余区域随后排列。
 
+- `close_position_vs_60d`：原始“收盘价对比60日位置”，用于资产详情面板展示；历史 processed 数据缺失时为 `null`。
+
 - `leverage_duration`：来自 `funding_current_leverage_state_duration`，用于机会排序和表格展示。
 - `funding_signal_strength`：来自同名 processed metric，用于机会排序；不替代现有
   `funding_score` 字段。
 
 字段由 `backend/app/schemas.py` 定义，前端镜像位于
 `frontend/src/services/contracts.ts`。改变字段时必须同步两端并增加契约测试。
+
+## Macro processed data and API
+
+宏观地图输入与资产 processed series 隔离：
+
+- `data/processed/macro/curve_points.csv`：`date,region,region_name,tenor_years,value,unit,curve_type,source_id,source_name,source_url`。
+- `data/processed/macro/credit.csv`：`date,series_id,label,value,unit,frequency,source_id,source_name,source_url`。
+- `state/macro_sources.json`：每个来源的抓取状态、最后成功时间、最新观察日期和错误信息。
+
+曲线 factor 只在同一 `region + date` 同时存在 2Y/5Y/10Y 时生成；不跨日补期限。
+Level 为 10Y，Slope 为 `(10Y-2Y)×100bp`，Curvature 为 `(2×5Y-2Y-10Y)×100bp`。
+HY-IG 只对齐相同日期的 HY/IG OAS。
+
+- `GET /api/macro/ready`：宏观独立 readiness 和 source status。
+- `GET /api/macro/overview?as_of=`：G5 曲线、factor、变化、信用卡片及来源。
+- `GET /api/macro/history?series_id=&start=&end=`：稳定 series ID 的历史点。
+
+现有资产 API 不增加宏观字段，宏观数据缺失或失败不改变 `/api/ready`。
 
 ## Cache invalidation
 

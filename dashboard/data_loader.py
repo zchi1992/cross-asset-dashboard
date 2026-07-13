@@ -21,6 +21,7 @@ MARKET_MAP_COLUMNS = [
     "tertiary_categories",
     "regions",
     "trend_score",
+    "close_position_vs_60d",
     "rs_score",
     "flow_score",
     "leverage_value",
@@ -76,6 +77,7 @@ def load_market_map_rows(
         fields["leverage_velocity_score"],
     }
     optional_metrics = {
+        fields.get("close_position_vs_60d", "close_position_vs_60d"),
         fields.get("leverage_duration", "funding_current_leverage_state_duration"),
         fields.get("funding_signal_strength", "funding_signal_strength"),
     }
@@ -131,6 +133,9 @@ def load_market_map_rows(
                 "is_gs_exempt": str(item["asset_id"]).strip().upper() in gs_exempt_tickers,
                 **taxonomy_metadata,
                 "trend_score": _parse_float(metrics[fields["trend_score"]]),
+                "close_position_vs_60d": _parse_optional_float(
+                    metrics.get(fields.get("close_position_vs_60d", "close_position_vs_60d"))
+                ),
                 "rs_score": _parse_float(metrics[fields["rs_score"]]),
                 "flow_score": _parse_float(metrics[fields["flow_score"]]),
                 "leverage_value": _parse_float(metrics[fields["leverage_value"]]),
