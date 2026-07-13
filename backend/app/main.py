@@ -13,6 +13,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import data_service
+from .portfolio_service import PortfolioService, PortfolioServiceError, load_portfolio_settings
 from .schemas import (
     AssetsResponse,
     ConfigResponse,
@@ -22,8 +23,10 @@ from .schemas import (
     MacroOverviewResponse,
     MacroReadinessResponse,
     PlaybackResponse,
+    PortfolioResponse,
     ReadinessResponse,
     SnapshotResponse,
+    StopLossUpdate,
 )
 
 
@@ -42,11 +45,21 @@ def _configure_request_logger() -> None:
     REQUEST_LOGGER.propagate = False
 
 
-def create_app(config_path: str | Path | None = None) -> FastAPI:
+def create_app(
+    config_path: str | Path | None = None,
+    portfolio_service: PortfolioService | None = None,
+) -> FastAPI:
     resolved_config_path = data_service.resolve_config_path(config_path)
+    if portfolio_service is None:
+        storage_root, state_root, portfolio_config = data_service.get_portfolio_context(resolved_config_path)
+        portfolio_service = PortfolioService(
+            load_portfolio_settings(storage_root, state_root, portfolio_config),
+            assets_provider=lambda: data_service.get_asset_identities(resolved_config_path),
+        )
     _configure_request_logger()
     app = FastAPI(title="Local Asset Terminal", version="1.0.0")
     app.state.config_path = resolved_config_path
+    app.state.portfolio_service = portfolio_service
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
         CORSMiddleware,
@@ -156,6 +169,26 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
         if history is None:
             raise HTTPException(status_code=404, detail=f"Unknown macro series {series_id}")
         return MacroHistoryResponse(**history)
+
+    @app.get("/api/portfolio", response_model=PortfolioResponse)
+    def portfolio() -> PortfolioResponse:
+        return app.state.portfolio_service.get_portfolio()
+
+    @app.post("/api/portfolio/sync", response_model=PortfolioResponse)
+    def sync_portfolio() -> PortfolioResponse:
+        try:
+            return app.state.portfolio_service.sync("manual", lock_timeout=0)
+        except PortfolioServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    @app.put("/api/portfolio/positions/{conid}/stop-loss", response_model=PortfolioResponse)
+    def update_stop_loss(conid: str, update: StopLossUpdate) -> PortfolioResponse:
+        try:
+            return app.state.portfolio_service.update_stop_loss(conid, update.stop_loss_price)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="最新持仓快照中不存在该合约") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     if FRONTEND_DIST.exists():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

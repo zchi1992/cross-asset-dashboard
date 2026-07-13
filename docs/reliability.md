@@ -33,6 +33,25 @@
 - `scripts/run_macro_poll.sh` 是一次性、带锁的宏观刷新入口；launchd 每天本地时间
   09:00 和 20:30 调用，stdout/stderr 写入 `logs/macro-poll.*.log`。
 
+## IBKR 快照
+
+- `com.chizhi.ibkr.portfolio-snapshot` 每天 20:00 与 23:30 各运行一次。手工同步和定时同步
+  共享 `state/ibkr_portfolio_sync.lock`，避免同时覆盖文件。
+- 同步只有在账户摘要和完整持仓均成功时才原子替换当日 CSV；失败、超时、账户不匹配或部分
+  响应必须保留最近一次成功快照。
+- 快照超过 30 小时标记为 `stale`。IBKR 缺失不影响 `/api/ready`，后者仍只表示 market data
+  可用。
+
+本机启用步骤：
+
+1. 从 IBKR 官方下载与 TWS 相同版本的 TWS API，并将其中 `source/pythonclient` 安装到项目
+   `.venv`；非官方 PyPI `ibapi` 不属于受支持安装来源。
+2. 将 `examples/ibkr.env.example` 复制为忽略版本控制的 `state/ibkr.env`，填写
+   `IBKR_ACCOUNT_ID`；运行脚本会把文件权限收紧为 `0600`。
+3. 登录 TWS Live，启用 Read-Only、localhost-only Socket API 和 7496 端口。
+4. 先执行 `IBKR_SYNC_SOURCE=manual scripts/run_ibkr_portfolio_snapshot.sh` 验证快照，再运行
+   `scripts/install_ibkr_portfolio_launchd.sh` 安装每天 20:00 和 23:30 的任务。
+
 ## 浏览器证据
 
 Playwright 失败时保留 trace、截图和视频；成功运行不保留大体积证据。完整 traces/metrics

@@ -162,6 +162,23 @@ def test_macro_readiness_is_independent_from_market_map(tmp_path) -> None:
     assert empty_client.get("/api/health").status_code == 200
 
 
+def test_portfolio_fixture_contract_and_manual_sync() -> None:
+    response = client.get("/api/portfolio")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] in {"ready", "stale"}
+    assert payload["account"]["account_id_masked"] == "****4567"
+    assert payload["account"]["net_liquidation"] == 100000
+    assert len(payload["positions"]) == 4
+    assert payload["positions"][0]["linked_asset"]["symbol"] == "AAA"
+    assert payload["positions"][2]["risk_eligible"] is False
+
+    synced = client.post("/api/portfolio/sync")
+    assert synced.status_code == 200
+    assert synced.json()["sync_source"] == "manual"
+
+
 def test_playback_frames_are_cached_by_data_signature(monkeypatch) -> None:
     calls = 0
     rows = [

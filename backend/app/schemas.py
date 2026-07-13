@@ -199,3 +199,84 @@ class MacroHistoryResponse(BaseModel):
     label: str
     unit: str
     points: list[MacroHistoryPoint]
+
+
+class PortfolioAccount(BaseModel):
+    account_id_masked: str
+    base_currency: str
+    net_liquidation: float | None = None
+    maint_margin_req: float | None = None
+    sma: float | None = None
+    excess_liquidity: float | None = None
+    available_funds: float | None = None
+    buying_power: float | None = None
+    gross_position_value: float | None = None
+    cushion: float | None = None
+
+
+class PortfolioAssetLink(BaseModel):
+    symbol: str
+    name: str
+    asset_class: str
+
+
+class PortfolioPosition(BaseModel):
+    conid: str
+    symbol: str
+    local_symbol: str
+    sec_type: str
+    last_trade_date_or_contract_month: str = ""
+    strike: float | None = None
+    right: str = ""
+    multiplier: float | None = None
+    exchange: str = ""
+    primary_exchange: str = ""
+    currency: str = ""
+    quantity: float
+    market_price: float | None = None
+    market_value: float | None = None
+    average_cost: float | None = None
+    unrealized_pnl: float | None = None
+    realized_pnl: float | None = None
+    option_delta: float | None = None
+    option_gamma: float | None = None
+    option_theta: float | None = None
+    option_vega: float | None = None
+    portfolio_weight: float | None = None
+    stop_loss_price: float | None = None
+    stop_status: str
+    planned_loss_at_stop: float | None = None
+    remaining_risk_to_stop: float | None = None
+    risk_eligible: bool
+    link_status: str
+    linked_asset: PortfolioAssetLink | None = None
+
+
+class PortfolioRiskSummary(BaseModel):
+    leverage_ratio: float | None = None
+    maintenance_margin_ratio: float | None = None
+    excess_liquidity_ratio: float | None = None
+    largest_position_concentration: float | None = None
+    planned_loss_at_stop: float
+    remaining_risk_to_stop: float
+    eligible_position_count: int
+    covered_position_count: int
+    eligible_market_value: float
+    covered_market_value: float
+    coverage_ratio: float | None = None
+
+
+class PortfolioResponse(BaseModel):
+    status: str
+    message: str | None = None
+    snapshot_date: str | None = None
+    captured_at: str | None = None
+    sync_source: str | None = None
+    source_file: str | None = None
+    account: PortfolioAccount | None = None
+    risk: PortfolioRiskSummary | None = None
+    positions: list[PortfolioPosition] = Field(default_factory=list)
+
+
+class StopLossUpdate(BaseModel):
+    stop_loss_price: float | None = None

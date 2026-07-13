@@ -4,6 +4,9 @@
     "market_map": {},
     "macro": {
       "source_state_path": "macro_sources.json"
+    },
+    "portfolio": {
+      "fixture_sync": true
     }
   }
 }

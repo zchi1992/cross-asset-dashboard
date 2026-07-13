@@ -2,9 +2,10 @@ import { memo, useEffect, useState, useMemo } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAssets, fetchConfig, fetchDates, fetchPlayback } from "./services/api";
-import type { FundingState, RelativeStrengthState, SnapshotItem, TaxonomyOptions } from "./services/contracts";
+import type { FundingState, PortfolioAssetLink, RelativeStrengthState, SnapshotItem, TaxonomyOptions } from "./services/contracts";
 import { CrossAssetScatter } from "./components/CrossAssetScatter";
 import { MacroMap } from "./components/MacroMap";
+import { PortfolioWorkspace } from "./components/PortfolioWorkspace";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
@@ -52,7 +53,7 @@ const EMPTY_TAXONOMY_OPTIONS: TaxonomyOptions = {
   regions: [],
 };
 
-type ActiveView = "macroMap" | "marketMap" | "opportunities";
+type ActiveView = "macroMap" | "marketMap" | "opportunities" | "portfolio";
 
 export function App() {
   const refreshPolicy = {
@@ -372,7 +373,7 @@ export function App() {
             Reset
           </button>
         </section>
-      ) : (
+      ) : activeView === "opportunities" ? (
         <section className="opportunity-bar">
           <label>
             <span>Asset Class</span>
@@ -391,7 +392,7 @@ export function App() {
           </strong>
           <span>{opportunityCurrentItems.length} selected / {currentItems.length} frame assets</span>
         </section>
-      )}
+      ) : null}
 
       {activeView === "macroMap" ? null : activeView === "marketMap" ? (
         <section className="workspace">
@@ -438,7 +439,7 @@ export function App() {
           </div>
           {!chartItems.length && <div className="empty-state">{emptyMessage}</div>}
         </section>
-      ) : (
+      ) : activeView === "opportunities" ? (
         <OpportunitiesWorkspace
           currentDate={currentDate}
           selectedAssetCount={opportunityCurrentItems.length}
@@ -457,9 +458,18 @@ export function App() {
           onClose={clearSelection}
           onResize={(event) => startPanelResize(event, detailPanelWidth, setDetailPanelWidth)}
         />
+      ) : (
+        <PortfolioWorkspace
+          onOpenAsset={(asset: PortfolioAssetLink) => {
+            latest();
+            const baseKey = `${asset.asset_class}::${asset.symbol}`;
+            selectSymbol(duplicateAssetKeys.has(baseKey) ? `${baseKey}::${asset.name}` : baseKey);
+            setActiveView("marketMap");
+          }}
+        />
       )}
 
-      {activeView !== "macroMap" && <section className="playback-bar">
+      {activeView !== "macroMap" && activeView !== "portfolio" && <section className="playback-bar">
         <button onClick={first} disabled={!canUsePlayback}>First</button>
         <button onClick={previous} disabled={!canUsePlayback}>Previous</button>
         <button className="primary-button" onClick={() => (isPlaying ? setPlaying(false) : playFromStart())} disabled={!canUsePlayback}>
@@ -530,6 +540,15 @@ function ViewTabs({ activeView, onChange }: { activeView: ActiveView; onChange: 
         onClick={() => onChange("opportunities")}
       >
         Opportunities
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeView === "portfolio"}
+        className={activeView === "portfolio" ? "active" : ""}
+        onClick={() => onChange("portfolio")}
+      >
+        持仓
       </button>
     </section>
   );
