@@ -35,6 +35,20 @@ class PlaybackSettings(BaseModel):
     loop_playback: bool = False
 
 
+class TaxonomyOption(BaseModel):
+    code: str
+    label_en: str
+    label_zh: str
+    parent_codes: list[str] = Field(default_factory=list)
+
+
+class TaxonomyOptions(BaseModel):
+    primary_categories: list[TaxonomyOption] = Field(default_factory=list)
+    secondary_categories: list[TaxonomyOption] = Field(default_factory=list)
+    tertiary_categories: list[TaxonomyOption] = Field(default_factory=list)
+    regions: list[TaxonomyOption] = Field(default_factory=list)
+
+
 class ConfigResponse(BaseModel):
     score_ranges: ScoreRanges
     default_filters: DefaultFilters
@@ -42,6 +56,7 @@ class ConfigResponse(BaseModel):
     asset_classes: list[str]
     funding_states: list[str]
     rs_states: list[str]
+    taxonomy: TaxonomyOptions = Field(default_factory=TaxonomyOptions)
 
 
 class DatesResponse(BaseModel):
@@ -52,6 +67,10 @@ class AssetMetadata(BaseModel):
     symbol: str
     name: str
     asset_class: str
+    primary_category: str = "unclassified"
+    secondary_category: str | None = None
+    tertiary_categories: list[str] = Field(default_factory=list)
+    regions: list[str] = Field(default_factory=list)
 
 
 class AssetsResponse(BaseModel):
@@ -63,6 +82,10 @@ class SnapshotItem(BaseModel):
     asset_name: str
     asset_class: str
     is_gs_exempt: bool = False
+    primary_category: str = "unclassified"
+    secondary_category: str | None = None
+    tertiary_categories: list[str] = Field(default_factory=list)
+    regions: list[str] = Field(default_factory=list)
     trend_score: float
     rs_score: float
     early_reversal: float

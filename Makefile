@@ -1,7 +1,7 @@
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/python -m pip
 
-.PHONY: setup check smoke e2e test-python test-frontend build-frontend docs-check architecture-check
+.PHONY: setup check smoke e2e test-python test-frontend build-frontend docs-check architecture-check taxonomy-check
 
 setup:
 	test -x .venv/bin/python || python3 -m venv .venv
@@ -24,7 +24,10 @@ docs-check:
 architecture-check:
 	$(PYTHON) -m pytest -q tests/test_architecture.py
 
-check: test-python test-frontend build-frontend docs-check
+taxonomy-check:
+	$(PYTHON) scripts/audit_asset_taxonomy.py --catalog-only
+
+check: test-python test-frontend build-frontend docs-check taxonomy-check
 
 smoke:
 	$(PYTHON) scripts/smoke_dashboard.py

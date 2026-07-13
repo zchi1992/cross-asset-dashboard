@@ -2,7 +2,7 @@ import { memo, useEffect, useState, useMemo } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAssets, fetchConfig, fetchDates, fetchPlayback } from "./services/api";
-import type { FundingState, RelativeStrengthState, SnapshotItem } from "./services/contracts";
+import type { FundingState, RelativeStrengthState, SnapshotItem, TaxonomyOptions } from "./services/contracts";
 import { CrossAssetScatter } from "./components/CrossAssetScatter";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
@@ -10,11 +10,13 @@ import { useSelectionStore } from "./stores/selectionStore";
 import {
   assetKeyWithCollisions,
   duplicateAssetBaseKeys,
+  CN_REGION_FILTER,
   filterFramesByAssetFilter,
   filterItems,
   GS_EXEMPT_FILTER,
   matchesSearch,
 } from "./utils/filtering";
+import { buildAvailableTaxonomyOptions, pruneSelection, taxonomyOptionLabel } from "./utils/taxonomy";
 import {
   buildOpportunityMarkers,
   buildRankChanges,
@@ -42,6 +44,12 @@ const MINI_CHART_PLOT = {
   left: 42,
 };
 const RS_THRESHOLD_VALUES = [120, 100, 80];
+const EMPTY_TAXONOMY_OPTIONS: TaxonomyOptions = {
+  primary_categories: [],
+  secondary_categories: [],
+  tertiary_categories: [],
+  regions: [],
+};
 
 type ActiveView = "marketMap" | "opportunities";
 
@@ -59,10 +67,18 @@ export function App() {
   const assetClass = useFilterStore((state) => state.assetClass);
   const fundingStates = useFilterStore((state) => state.fundingStates);
   const rsStates = useFilterStore((state) => state.rsStates);
+  const primaryCategories = useFilterStore((state) => state.primaryCategories);
+  const secondaryCategories = useFilterStore((state) => state.secondaryCategories);
+  const tertiaryCategories = useFilterStore((state) => state.tertiaryCategories);
+  const regions = useFilterStore((state) => state.regions);
   const searchText = useFilterStore((state) => state.searchText);
   const setAssetClass = useFilterStore((state) => state.setAssetClass);
   const setFundingStates = useFilterStore((state) => state.setFundingStates);
   const setRsStates = useFilterStore((state) => state.setRsStates);
+  const setPrimaryCategories = useFilterStore((state) => state.setPrimaryCategories);
+  const setSecondaryCategories = useFilterStore((state) => state.setSecondaryCategories);
+  const setTertiaryCategories = useFilterStore((state) => state.setTertiaryCategories);
+  const setRegions = useFilterStore((state) => state.setRegions);
   const setSearchText = useFilterStore((state) => state.setSearchText);
   const resetFilters = useFilterStore((state) => state.resetFilters);
 
@@ -148,6 +164,20 @@ export function App() {
 
   const currentDate = availableDates[currentIndex] ?? "";
   const frames = playbackQuery.data?.frames ?? {};
+  const allPlaybackItems = useMemo(() => Object.values(frames).flat(), [frames]);
+  const taxonomySelection = useMemo(
+    () => ({ primaryCategories, secondaryCategories, tertiaryCategories, regions }),
+    [primaryCategories, regions, secondaryCategories, tertiaryCategories],
+  );
+  const availableTaxonomyOptions = useMemo(
+    () =>
+      buildAvailableTaxonomyOptions(
+        allPlaybackItems,
+        configQuery.data?.taxonomy ?? EMPTY_TAXONOMY_OPTIONS,
+        taxonomySelection,
+      ),
+    [allPlaybackItems, configQuery.data?.taxonomy, taxonomySelection],
+  );
   const opportunityFrames = useMemo(
     () => filterFramesByAssetFilter(frames, opportunityAssetFilter),
     [frames, opportunityAssetFilter],
@@ -168,9 +198,32 @@ export function App() {
     () =>
       hasSearch
         ? currentItems.filter((item) => matchesSearch(item, searchText))
-        : filterItems(currentItems, assetClass, fundingStates, rsStates),
-    [assetClass, currentItems, fundingStates, hasSearch, rsStates, searchText],
+        : filterItems(currentItems, assetClass, fundingStates, rsStates, taxonomySelection),
+    [assetClass, currentItems, fundingStates, hasSearch, rsStates, searchText, taxonomySelection],
   );
+
+  useEffect(() => {
+    if (!playbackQuery.data) return;
+    const nextPrimary = pruneSelection(primaryCategories, availableTaxonomyOptions.primary_categories);
+    const nextSecondary = pruneSelection(secondaryCategories, availableTaxonomyOptions.secondary_categories);
+    const nextTertiary = pruneSelection(tertiaryCategories, availableTaxonomyOptions.tertiary_categories);
+    const nextRegions = pruneSelection(regions, availableTaxonomyOptions.regions);
+    if (!sameValues(nextPrimary, primaryCategories)) setPrimaryCategories(nextPrimary);
+    if (!sameValues(nextSecondary, secondaryCategories)) setSecondaryCategories(nextSecondary);
+    if (!sameValues(nextTertiary, tertiaryCategories)) setTertiaryCategories(nextTertiary);
+    if (!sameValues(nextRegions, regions)) setRegions(nextRegions);
+  }, [
+    availableTaxonomyOptions,
+    playbackQuery.data,
+    primaryCategories,
+    regions,
+    secondaryCategories,
+    setPrimaryCategories,
+    setRegions,
+    setSecondaryCategories,
+    setTertiaryCategories,
+    tertiaryCategories,
+  ]);
   const selectedCurrentItem = selectedSymbol ? currentItemBySymbol.get(selectedSymbol) ?? null : null;
   const chartItems = filteredItems;
   const selectedHistory = useMemo(
@@ -259,6 +312,38 @@ export function App() {
             </select>
           </label>
           <MultiSelect
+            title="一级类别 / Primary"
+            values={availableTaxonomyOptions.primary_categories.map((option) => option.code)}
+            labels={taxonomyLabels(availableTaxonomyOptions.primary_categories)}
+            selected={primaryCategories}
+            onChange={setPrimaryCategories}
+            compact
+          />
+          <MultiSelect
+            title="二级类别 / Secondary"
+            values={availableTaxonomyOptions.secondary_categories.map((option) => option.code)}
+            labels={taxonomyLabels(availableTaxonomyOptions.secondary_categories)}
+            selected={secondaryCategories}
+            onChange={setSecondaryCategories}
+            compact
+          />
+          <MultiSelect
+            title="三级类别 / Tertiary"
+            values={availableTaxonomyOptions.tertiary_categories.map((option) => option.code)}
+            labels={taxonomyLabels(availableTaxonomyOptions.tertiary_categories)}
+            selected={tertiaryCategories}
+            onChange={setTertiaryCategories}
+            compact
+          />
+          <MultiSelect
+            title="地区 / Region"
+            values={availableTaxonomyOptions.regions.map((option) => option.code)}
+            labels={taxonomyLabels(availableTaxonomyOptions.regions)}
+            selected={regions}
+            onChange={setRegions}
+            compact
+          />
+          <MultiSelect
             title="Funding State"
             values={config.funding_states}
             selected={fundingStates}
@@ -290,7 +375,7 @@ export function App() {
             <span>Asset Class</span>
             <select value={opportunityAssetFilter} onChange={(event) => setOpportunityAssetFilter(event.target.value)}>
               <option value="">All Assets</option>
-              {buildAssetFilterOptions(config.asset_classes).map((value) => (
+              {buildOpportunityAssetFilterOptions(config.asset_classes).map((value) => (
                 <option key={value} value={value}>
                   {formatAssetClass(value)}
                 </option>
@@ -432,7 +517,7 @@ function ViewTabs({ activeView, onChange }: { activeView: ActiveView; onChange: 
         className={activeView === "opportunities" ? "active" : ""}
         onClick={() => onChange("opportunities")}
       >
-        Opportunities
+        交易机会
       </button>
     </section>
   );
@@ -628,34 +713,58 @@ function OpportunityRankCell({ value }: { value: string }) {
 function MultiSelect({
   title,
   values,
+  labels = {},
+  compact = false,
   selected,
   onChange,
 }: {
   title: string;
   values: string[];
+  labels?: Record<string, string>;
+  compact?: boolean;
   selected: string[];
   onChange: (selected: string[]) => void;
 }) {
+  const choices = values.map((value) => (
+    <label key={value}>
+      <input
+        type="checkbox"
+        checked={selected.includes(value)}
+        onChange={(event) => {
+          const next = event.target.checked ? [...selected, value] : selected.filter((item) => item !== value);
+          onChange(next);
+        }}
+      />
+      <span>{labels[value] ?? value}</span>
+    </label>
+  ));
+  if (compact) {
+    return (
+      <div className="multi-select compact" role="group" aria-label={title}>
+        <span className="control-title">{title}</span>
+        <details>
+          <summary>{selected.length ? `${selected.length} selected` : "All"}</summary>
+          <div className="multi-options">{choices}</div>
+        </details>
+      </div>
+    );
+  }
   return (
     <div className="multi-select" role="group" aria-label={title}>
       <span className="control-title">{title}</span>
       <div className="multi-options">
-        {values.map((value) => (
-          <label key={value}>
-            <input
-              type="checkbox"
-              checked={selected.includes(value)}
-              onChange={(event) => {
-                const next = event.target.checked ? [...selected, value] : selected.filter((item) => item !== value);
-                onChange(next);
-              }}
-            />
-            <span>{value}</span>
-          </label>
-        ))}
+        {choices}
       </div>
     </div>
   );
+}
+
+function taxonomyLabels(options: TaxonomyOptions[keyof TaxonomyOptions]) {
+  return Object.fromEntries(options.map((option) => [option.code, taxonomyOptionLabel(option)]));
+}
+
+function sameValues(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 const SearchControl = memo(function SearchControl({
@@ -699,6 +808,7 @@ const SearchControl = memo(function SearchControl({
 
 function formatAssetClass(value: string) {
   if (value === GS_EXEMPT_FILTER) return "GS Exempt";
+  if (value === CN_REGION_FILTER) return "中国";
   return value
     .split(/[_-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -707,6 +817,10 @@ function formatAssetClass(value: string) {
 
 function buildAssetFilterOptions(assetClasses: string[]) {
   return [...assetClasses, GS_EXEMPT_FILTER];
+}
+
+function buildOpportunityAssetFilterOptions(assetClasses: string[]) {
+  return [...assetClasses, CN_REGION_FILTER, GS_EXEMPT_FILTER];
 }
 
 function formatMaybeNumber(value?: number | null) {

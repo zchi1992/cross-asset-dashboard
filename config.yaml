@@ -44,6 +44,7 @@
         "core",
         "instruments"
       ],
+      "taxonomy_path": "metadata/asset_taxonomy.csv",
       "fields": {
         "asset_id": "asset_code",
         "asset_name": "asset_name",

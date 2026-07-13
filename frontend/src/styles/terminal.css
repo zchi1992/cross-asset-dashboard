@@ -240,7 +240,18 @@ select {
 }
 
 .filter-bar {
-  grid-template-columns: minmax(170px, 1.2fr) minmax(122px, 0.8fr) max-content max-content minmax(126px, 0.8fr) 84px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.filter-bar > label:first-child {
+  flex: 1 1 180px;
+}
+
+.filter-bar > label:not(:first-child),
+.filter-bar > .multi-select.compact {
+  flex: 0 1 170px;
 }
 
 .playback-bar {
@@ -398,6 +409,54 @@ button:disabled:hover {
   width: 14px;
   height: 14px;
   padding: 0;
+}
+
+.multi-select.compact {
+  position: relative;
+  min-width: 150px;
+}
+
+.multi-select.compact details {
+  position: relative;
+  height: var(--control-height);
+}
+
+.multi-select.compact summary {
+  box-sizing: border-box;
+  height: var(--control-height);
+  padding: 8px 24px 0 10px;
+  border: 1px solid #373737;
+  background: var(--bg-control);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  list-style-position: inside;
+  white-space: nowrap;
+}
+
+.multi-select.compact .multi-options {
+  position: absolute;
+  z-index: 40;
+  top: calc(var(--control-height) + 2px);
+  left: 0;
+  display: grid;
+  width: max-content;
+  min-width: 230px;
+  max-width: min(420px, 85vw);
+  height: auto;
+  max-height: 320px;
+  gap: 0;
+  overflow: auto;
+  border: 1px solid #484848;
+  background: #090909;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 65%);
+}
+
+.multi-select.compact .multi-options label {
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid #202020;
+  white-space: normal;
 }
 
 .workspace {
