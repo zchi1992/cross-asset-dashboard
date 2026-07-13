@@ -45,6 +45,33 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(topline).toContainText("1 visible / 13 frame");
   await expect(page.getByLabel("Velocity")).toHaveCount(0);
 
+  await page.getByLabel("Asset Class").selectOption("core");
+  const primaryCategory = page.getByRole("group", { name: "一级类别 / Primary" });
+  await primaryCategory.locator("summary").click();
+  await primaryCategory.getByLabel("股票 Equity").check();
+  await primaryCategory.locator("summary").click();
+  await expect(topline).toContainText("12 visible / 13 frame");
+
+  const secondaryCategory = page.getByRole("group", { name: "二级类别 / Secondary" });
+  await secondaryCategory.locator("summary").click();
+  await secondaryCategory.getByLabel("大盘 Large Cap").check();
+  await secondaryCategory.locator("summary").click();
+  await expect(topline).toContainText("1 visible / 13 frame");
+
+  const tertiaryCategory = page.getByRole("group", { name: "三级类别 / Tertiary" });
+  await tertiaryCategory.locator("summary").click();
+  await tertiaryCategory.getByLabel("成长 Growth").check();
+  await tertiaryCategory.locator("summary").click();
+
+  const region = page.getByRole("group", { name: "地区 / Region" });
+  await region.locator("summary").click();
+  await region.getByLabel("美国 US").check();
+  await region.locator("summary").click();
+  await expect(topline).toContainText("1 visible / 13 frame");
+
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(topline).toContainText("12 visible / 13 frame");
+
   await page.getByLabel("Asset Class").selectOption("gs_exempt");
   await expect(topline).toContainText("1 visible / 13 frame");
 
@@ -109,6 +136,7 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(page.getByRole("heading", { name: "候选做多" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "强势做空" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "候选做空" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "一级类别 / Primary" })).toHaveCount(0);
   await expect(page.getByTestId("strong-long-section")).toContainText("12 total / top 10 shown");
   await expect(page.getByTestId("candidate-long-section")).toContainText("11 total / top 10 shown");
   await expect(page.getByTestId("strong-short-section")).toContainText("1 total / top 1 shown");
@@ -141,6 +169,11 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await expect(page.getByTestId("candidate-long-section")).toContainText("0 total / top 0 shown");
   await expect(page.getByTestId("strong-long-table")).toContainText("Fixture Alpha");
   await expect(page.getByTestId("strong-long-row")).toHaveCount(1);
+
+  await page.getByLabel("Asset Class").selectOption("region_cn");
+  await expect(page.getByTestId("strong-long-section")).toContainText("0 total / top 0 shown");
+  await expect(page.getByTestId("strong-short-section")).toContainText("1 total / top 1 shown");
+  await expect(page.getByTestId("strong-short-table")).toContainText("Fixture Beta");
 });
 
 test("renders an actionable backend error state", async ({ page }) => {

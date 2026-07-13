@@ -64,6 +64,12 @@ def test_config_endpoint_has_terminal_defaults() -> None:
     assert payload["funding_states"] == ["Leveraging", "Deleveraging"]
     assert payload["rs_states"] == ["Lag", "Weakening", "Improving", "Lead"]
     assert payload["playback"]["default_speed"] == 1
+    assert payload["taxonomy"]["primary_categories"][0] == {
+        "code": "equity",
+        "label_en": "Equity",
+        "label_zh": "股票",
+        "parent_codes": [],
+    }
 
 
 def test_dates_assets_snapshot_and_playback_contracts() -> None:
@@ -76,7 +82,9 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
 
     assets_response = client.get("/api/assets")
     assert assets_response.status_code == 200
-    assert assets_response.json()["assets"]
+    assets = assets_response.json()["assets"]
+    assert assets
+    assert {"primary_category", "secondary_category", "tertiary_categories", "regions"} <= set(assets[0])
 
     snapshot_response = client.get("/api/snapshot", params={"date": dates[-1]})
     assert snapshot_response.status_code == 200
@@ -97,11 +105,18 @@ def test_dates_assets_snapshot_and_playback_contracts() -> None:
         "leverage_duration",
         "funding_signal_strength",
         "is_gs_exempt",
+        "primary_category",
+        "secondary_category",
+        "tertiary_categories",
+        "regions",
     } <= set(snapshot["items"][0])
     assert snapshot["items"][0]["leverage_duration"] == 2
     assert snapshot["items"][0]["close_position_vs_60d"] == 0.734
     assert snapshot["items"][0]["funding_signal_strength"] == 68
     assert snapshot["items"][0]["is_gs_exempt"] is True
+    assert snapshot["items"][0]["primary_category"] == "equity"
+    assert snapshot["items"][0]["tertiary_categories"] == ["style.growth"]
+    assert snapshot["items"][0]["regions"] == ["US"]
 
     playback_response = client.get("/api/playback", params={"start": dates[-2], "end": dates[-1]})
     assert playback_response.status_code == 200
@@ -215,6 +230,65 @@ def test_data_signature_changes_when_processed_file_changes(tmp_path) -> None:
 
     assert third != second
     assert fourth != third
+
+
+def test_cache_context_changes_when_taxonomy_file_changes(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "storage_root": "data",
+                "dashboard": {"market_map": {"taxonomy_path": "metadata/asset_taxonomy.csv"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    metadata_dir = tmp_path / "metadata"
+    metadata_dir.mkdir()
+    catalog_path = metadata_dir / "asset_taxonomy.csv"
+    registry_path = metadata_dir / "taxonomy_registry.json"
+    catalog_path.write_text("first", encoding="utf-8")
+    registry_path.write_text("first", encoding="utf-8")
+
+    first = data_service._cache_context(config_path)[1]
+    catalog_path.write_text("second-version", encoding="utf-8")
+    second = data_service._cache_context(config_path)[1]
+    registry_path.write_text("second-version", encoding="utf-8")
+    third = data_service._cache_context(config_path)[1]
+
+    assert second != first
+    assert third != second
+
+
+def test_assets_preserve_same_symbol_with_different_asset_names(monkeypatch) -> None:
+    rows = (
+        {
+            "asset_id": "PL1!",
+            "asset_name": "Platinum Futures",
+            "asset_class": "core",
+            "primary_category": "commodity",
+            "secondary_category": "commodity.precious_metals",
+            "tertiary_categories": ["commodity.platinum_group"],
+            "regions": [],
+        },
+        {
+            "asset_id": "PL1!",
+            "asset_name": "Propylene Futures",
+            "asset_class": "core",
+            "primary_category": "commodity",
+            "secondary_category": "commodity.energy_chemicals",
+            "tertiary_categories": ["commodity.chemicals"],
+            "regions": [],
+        },
+    )
+    monkeypatch.setattr(data_service, "load_rows", lambda config_path=None: rows)
+
+    assets = data_service.get_assets()
+
+    assert [(asset.symbol, asset.name) for asset in assets] == [
+        ("PL1!", "Platinum Futures"),
+        ("PL1!", "Propylene Futures"),
+    ]
 
 
 def test_large_playback_response_is_gzipped(monkeypatch) -> None:

@@ -6,9 +6,12 @@ from typing import Any
 
 from src.zsxq_pipeline.config import Config, load_config
 
+from .taxonomy import load_taxonomy_registry, taxonomy_api_options
+
 
 DEFAULT_MARKET_MAP_CONFIG: dict[str, Any] = {
     "dataset_types": ["core", "instruments"],
+    "taxonomy_path": "metadata/asset_taxonomy.csv",
     "fields": {
         "asset_id": "asset_code",
         "asset_name": "asset_name",
@@ -83,6 +86,19 @@ class DashboardConfig:
     @property
     def storage_root(self) -> Path:
         return self.repo_config.storage_root
+
+    @property
+    def taxonomy_path(self) -> Path:
+        configured = self.market_map.get("taxonomy_path", "metadata/asset_taxonomy.csv")
+        return (self.repo_config.path.parent / str(configured)).resolve()
+
+    @property
+    def taxonomy_registry_path(self) -> Path:
+        return self.taxonomy_path.with_name("taxonomy_registry.json")
+
+    @property
+    def taxonomy_options(self) -> dict[str, list[dict[str, Any]]]:
+        return taxonomy_api_options(load_taxonomy_registry(self.taxonomy_registry_path))
 
 
 def load_dashboard_config(path: str | Path = "config.yaml") -> DashboardConfig:

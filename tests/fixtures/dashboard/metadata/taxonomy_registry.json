@@ -1,0 +1,22 @@
+{
+  "version": "fixture",
+  "standards": {},
+  "primary_categories": [
+    {"code": "equity", "label_en": "Equity", "label_zh": "股票", "parent_codes": []},
+    {"code": "bond", "label_en": "Bond", "label_zh": "债券", "parent_codes": []},
+    {"code": "unclassified", "label_en": "Unclassified", "label_zh": "未分类", "parent_codes": []}
+  ],
+  "secondary_categories": [
+    {"code": "equity.large_cap", "label_en": "Large Cap", "label_zh": "大盘", "parent_codes": ["equity"]},
+    {"code": "equity.small_cap", "label_en": "Small Cap", "label_zh": "小盘", "parent_codes": ["equity"]},
+    {"code": "bond.sovereign", "label_en": "Sovereign", "label_zh": "主权债", "parent_codes": ["bond"]}
+  ],
+  "tertiary_categories": [
+    {"code": "style.growth", "label_en": "Growth", "label_zh": "成长", "parent_codes": ["equity.large_cap"]},
+    {"code": "style.value", "label_en": "Value", "label_zh": "价值", "parent_codes": ["equity.small_cap"]}
+  ],
+  "regions": [
+    {"code": "US", "label_en": "US", "label_zh": "美国", "parent_codes": []},
+    {"code": "CN", "label_en": "China", "label_zh": "中国", "parent_codes": []}
+  ]
+}

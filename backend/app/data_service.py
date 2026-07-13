@@ -8,7 +8,15 @@ from dashboard.config import load_dashboard_config
 from dashboard.data_loader import available_dates, load_market_map_rows
 from dashboard.macro_loader import build_macro_history, build_macro_overview, load_macro_dataset
 
-from .schemas import AssetMetadata, ConfigResponse, DefaultFilters, PlaybackSettings, ScoreRanges, SnapshotItem
+from .schemas import (
+    AssetMetadata,
+    ConfigResponse,
+    DefaultFilters,
+    PlaybackSettings,
+    ScoreRanges,
+    SnapshotItem,
+    TaxonomyOptions,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -28,6 +36,8 @@ def resolve_config_path(config_path: str | Path | None = None) -> Path:
 
 def load_config_response(config_path: str | Path | None = None) -> ConfigResponse:
     rows = load_rows(config_path)
+    dashboard_config = load_dashboard_config(resolve_config_path(config_path))
+    taxonomy = dashboard_config.taxonomy_options
     asset_classes = sorted({str(row["asset_class"]) for row in rows}) or ["core", "instruments"]
     return ConfigResponse(
         score_ranges=ScoreRanges(
@@ -45,6 +55,7 @@ def load_config_response(config_path: str | Path | None = None) -> ConfigRespons
         asset_classes=asset_classes,
         funding_states=FUNDING_STATES,
         rs_states=RS_STATES,
+        taxonomy=TaxonomyOptions(**taxonomy),
     )
 
 
@@ -56,7 +67,12 @@ def load_rows(config_path: str | Path | None = None) -> tuple[dict, ...]:
 @lru_cache(maxsize=4)
 def _load_rows_cached(config_path: str, _signature: tuple) -> tuple[dict, ...]:
     dashboard_config = load_dashboard_config(config_path)
-    rows = load_market_map_rows(dashboard_config.storage_root, dashboard_config.market_map)
+    rows = load_market_map_rows(
+        dashboard_config.storage_root,
+        dashboard_config.market_map,
+        taxonomy_path=dashboard_config.taxonomy_path,
+        taxonomy_registry_path=dashboard_config.taxonomy_registry_path,
+    )
     return tuple(rows)
 
 
@@ -66,6 +82,8 @@ def _cache_context(config_path: str | Path | None = None) -> tuple[Path, tuple]:
     signature = (
         _file_signature(resolved_path),
         _data_signature(dashboard_config.storage_root, dashboard_config.market_map),
+        _optional_file_signature(dashboard_config.taxonomy_path),
+        _optional_file_signature(dashboard_config.taxonomy_registry_path),
     )
     return resolved_path, signature
 
@@ -73,6 +91,13 @@ def _cache_context(config_path: str | Path | None = None) -> tuple[Path, tuple]:
 def _file_signature(path: Path) -> tuple[str, int, int]:
     stat = path.stat()
     return (str(path), stat.st_mtime_ns, stat.st_size)
+
+
+def _optional_file_signature(path: Path) -> tuple[str, int, int]:
+    try:
+        return _file_signature(path)
+    except FileNotFoundError:
+        return (str(path), -1, -1)
 
 
 def _data_signature(storage_root: str | Path, market_map_config: dict) -> tuple:
@@ -115,15 +140,23 @@ def get_dates(config_path: str | Path | None = None) -> list[str]:
 
 
 def get_assets(config_path: str | Path | None = None) -> list[AssetMetadata]:
-    latest_by_symbol: dict[str, AssetMetadata] = {}
+    latest_by_identity: dict[tuple[str, str, str], AssetMetadata] = {}
     for row in load_rows(config_path):
         symbol = str(row["asset_id"])
-        latest_by_symbol[symbol] = AssetMetadata(
+        identity = (str(row["asset_class"]), symbol, str(row["asset_name"]))
+        latest_by_identity[identity] = AssetMetadata(
             symbol=symbol,
             name=str(row["asset_name"]),
             asset_class=str(row["asset_class"]),
+            primary_category=str(row.get("primary_category") or "unclassified"),
+            secondary_category=str(row["secondary_category"]) if row.get("secondary_category") else None,
+            tertiary_categories=[str(value) for value in row.get("tertiary_categories", [])],
+            regions=[str(value) for value in row.get("regions", [])],
         )
-    return sorted(latest_by_symbol.values(), key=lambda asset: (asset.asset_class, asset.symbol))
+    return sorted(
+        latest_by_identity.values(),
+        key=lambda asset: (asset.asset_class, asset.symbol, asset.name),
+    )
 
 
 def get_snapshot(date: str, config_path: str | Path | None = None) -> list[SnapshotItem]:
@@ -261,6 +294,10 @@ def _to_snapshot_item(row: dict) -> SnapshotItem:
         asset_name=str(row["asset_name"]),
         asset_class=str(row["asset_class"]),
         is_gs_exempt=bool(row.get("is_gs_exempt")),
+        primary_category=str(row.get("primary_category") or "unclassified"),
+        secondary_category=str(row["secondary_category"]) if row.get("secondary_category") else None,
+        tertiary_categories=[str(value) for value in row.get("tertiary_categories", [])],
+        regions=[str(value) for value in row.get("regions", [])],
         trend_score=float(row["trend_score"]),
         close_position_vs_60d=_optional_float(row.get("close_position_vs_60d")),
         rs_score=float(row["rs_score"]),

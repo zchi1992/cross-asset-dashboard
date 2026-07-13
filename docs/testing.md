@@ -7,12 +7,14 @@ make setup
 make check
 make smoke
 make e2e
+make taxonomy-check
 ```
 
 - `make check`：全量 Python 测试、Vitest、前端类型检查/构建、文档检查。
 - `make smoke`：启动真实 uvicorn 进程，以 fixture 验证 readiness 和核心 API。
 - `make e2e`：构建前端、启动 fixture dashboard，并运行 Chromium Playwright。
 - `make docs-check`：只检查文档、链接和标准 Make target。
+- `make taxonomy-check`：只校验版本化分类表的结构、代码和父子关系，不读取本机 `data/`。
 
 ## 测试分层
 
@@ -23,6 +25,8 @@ make e2e
 - E2E：真实静态前端、FastAPI 和可版本控制数据。
 - 宏观测试使用 `tests/fixtures/dashboard/processed/macro/` 的合成曲线与信用数据；不得把
   FRED、ICE、ChinaBond 或其他真实供应商值提交为 fixture。
+- 真实分类覆盖率使用 `scripts/audit_asset_taxonomy.py --config <config> --catalog <catalog> --registry <registry>`
+  单独核验；该命令是发布证据，不替代 fixture 测试。
 
 Playwright 失败证据位于 `frontend/test-results/` 和
 `frontend/playwright-report/`，这些目录不进入 Git。

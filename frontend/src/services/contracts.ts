@@ -1,6 +1,20 @@
 export type FundingState = "Leveraging" | "Deleveraging";
 export type RelativeStrengthState = "Lag" | "Weakening" | "Improving" | "Lead";
 
+export type TaxonomyOption = {
+  code: string;
+  label_en: string;
+  label_zh: string;
+  parent_codes: string[];
+};
+
+export type TaxonomyOptions = {
+  primary_categories: TaxonomyOption[];
+  secondary_categories: TaxonomyOption[];
+  tertiary_categories: TaxonomyOption[];
+  regions: TaxonomyOption[];
+};
+
 export type ConfigResponse = {
   score_ranges: {
     rs_score: [number, number] | number[];
@@ -21,12 +35,17 @@ export type ConfigResponse = {
   asset_classes: string[];
   funding_states: FundingState[];
   rs_states: RelativeStrengthState[];
+  taxonomy: TaxonomyOptions;
 };
 
 export type AssetMetadata = {
   symbol: string;
   name: string;
   asset_class: string;
+  primary_category: string;
+  secondary_category: string | null;
+  tertiary_categories: string[];
+  regions: string[];
 };
 
 export type SnapshotItem = {
@@ -34,6 +53,10 @@ export type SnapshotItem = {
   asset_name: string;
   asset_class: string;
   is_gs_exempt: boolean;
+  primary_category: string;
+  secondary_category: string | null;
+  tertiary_categories: string[];
+  regions: string[];
   trend_score: number;
   close_position_vs_60d?: number | null;
   rs_score: number;

@@ -7,6 +7,7 @@ from typing import Any, Iterable
 from src.zsxq_pipeline.xlsx_parser import read_first_sheet
 
 from .scoring_rules import is_long_candidate, is_short_candidate, normalize_flow_state
+from .taxonomy import load_asset_taxonomy, load_taxonomy_registry, taxonomy_metadata_for
 
 
 MARKET_MAP_COLUMNS = [
@@ -15,6 +16,10 @@ MARKET_MAP_COLUMNS = [
     "asset_name",
     "asset_class",
     "is_gs_exempt",
+    "primary_category",
+    "secondary_category",
+    "tertiary_categories",
+    "regions",
     "trend_score",
     "close_position_vs_60d",
     "rs_score",
@@ -43,10 +48,14 @@ def load_market_map_rows(
     market_map_config: dict[str, Any],
     *,
     dataset_types: Iterable[str] | None = None,
+    taxonomy_path: str | Path | None = None,
+    taxonomy_registry_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
     """Load processed long-format series into one wide row per asset/date."""
     root = Path(storage_root)
     gs_exempt_tickers = load_gs_exempt_tickers(root)
+    taxonomy_registry = load_taxonomy_registry(taxonomy_registry_path) if taxonomy_registry_path else {}
+    asset_taxonomy = load_asset_taxonomy(taxonomy_path, taxonomy_registry) if taxonomy_path else {}
     selected_dataset_types = list(dataset_types or market_map_config.get("dataset_types", ["core", "instruments"]))
     fields = market_map_config["fields"]
     thresholds = market_map_config["thresholds"]
@@ -110,12 +119,19 @@ def load_market_map_rows(
         if not required_metrics <= set(metrics):
             continue
         try:
+            taxonomy_metadata = taxonomy_metadata_for(
+                asset_taxonomy,
+                item["asset_class"],
+                item["asset_id"],
+                item["asset_name"],
+            )
             output = {
                 "date": item["date"],
                 "asset_id": item["asset_id"],
                 "asset_name": item["asset_name"],
                 "asset_class": item["asset_class"],
                 "is_gs_exempt": str(item["asset_id"]).strip().upper() in gs_exempt_tickers,
+                **taxonomy_metadata,
                 "trend_score": _parse_float(metrics[fields["trend_score"]]),
                 "close_position_vs_60d": _parse_optional_float(
                     metrics.get(fields.get("close_position_vs_60d", "close_position_vs_60d"))
