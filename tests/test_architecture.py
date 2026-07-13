@@ -47,7 +47,7 @@ def test_dashboard_does_not_depend_on_backend() -> None:
 
 
 def test_backend_uses_dashboard_only_through_data_service() -> None:
-    allowed_modules = {"dashboard.config", "dashboard.data_loader"}
+    allowed_modules = {"dashboard.config", "dashboard.data_loader", "dashboard.macro_loader"}
     violations: list[str] = []
     for path in python_files("backend"):
         dashboard_imports = {

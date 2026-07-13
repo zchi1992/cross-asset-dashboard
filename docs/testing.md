@@ -21,6 +21,8 @@ make e2e
 - 架构：AST 检查禁止的 Python 依赖方向。
 - Smoke：真实 loopback HTTP，不使用系统代理。
 - E2E：真实静态前端、FastAPI 和可版本控制数据。
+- 宏观测试使用 `tests/fixtures/dashboard/processed/macro/` 的合成曲线与信用数据；不得把
+  FRED、ICE、ChinaBond 或其他真实供应商值提交为 fixture。
 
 Playwright 失败证据位于 `frontend/test-results/` 和
 `frontend/playwright-report/`，这些目录不进入 Git。

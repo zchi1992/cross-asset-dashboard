@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchAssets, fetchConfig, fetchDates, fetchPlayback } from "./services/api";
 import type { FundingState, RelativeStrengthState, SnapshotItem } from "./services/contracts";
 import { CrossAssetScatter } from "./components/CrossAssetScatter";
+import { MacroMap } from "./components/MacroMap";
 import { useFilterStore } from "./stores/filterStore";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useSelectionStore } from "./stores/selectionStore";
@@ -43,7 +44,7 @@ const MINI_CHART_PLOT = {
 };
 const RS_THRESHOLD_VALUES = [120, 100, 80];
 
-type ActiveView = "marketMap" | "opportunities";
+type ActiveView = "macroMap" | "marketMap" | "opportunities";
 
 export function App() {
   const refreshPolicy = {
@@ -84,7 +85,7 @@ export function App() {
   const selectSymbol = useSelectionStore((state) => state.selectSymbol);
   const clearSelection = useSelectionStore((state) => state.clearSelection);
   const [detailPanelWidth, setDetailPanelWidth] = useState(360);
-  const [activeView, setActiveView] = useState<ActiveView>("marketMap");
+  const [activeView, setActiveView] = useState<ActiveView>("macroMap");
   const [opportunityAssetFilter, setOpportunityAssetFilter] = useState("");
 
   useEffect(() => {
@@ -245,7 +246,9 @@ export function App() {
     <main className="terminal-shell">
       <ViewTabs activeView={activeView} onChange={setActiveView} />
 
-      {activeView === "marketMap" ? (
+      <MacroMap active={activeView === "macroMap"} />
+
+      {activeView === "macroMap" ? null : activeView === "marketMap" ? (
         <section className="filter-bar">
           <SearchControl value={searchText} onCommit={setSearchText} />
           <label>
@@ -305,7 +308,7 @@ export function App() {
         </section>
       )}
 
-      {activeView === "marketMap" ? (
+      {activeView === "macroMap" ? null : activeView === "marketMap" ? (
         <section className="workspace">
           <div className="workspace-topline">
             <span>{currentDate}</span>
@@ -371,7 +374,7 @@ export function App() {
         />
       )}
 
-      <section className="playback-bar">
+      {activeView !== "macroMap" && <section className="playback-bar">
         <button onClick={first} disabled={!canUsePlayback}>First</button>
         <button onClick={previous} disabled={!canUsePlayback}>Previous</button>
         <button className="primary-button" onClick={() => (isPlaying ? setPlaying(false) : playFromStart())} disabled={!canUsePlayback}>
@@ -408,7 +411,7 @@ export function App() {
           }}
         />
         <strong>{currentDate}</strong>
-      </section>
+      </section>}
     </main>
   );
 }
@@ -416,6 +419,15 @@ export function App() {
 function ViewTabs({ activeView, onChange }: { activeView: ActiveView; onChange: (view: ActiveView) => void }) {
   return (
     <section className="view-tabs" role="tablist" aria-label="Dashboard views">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeView === "macroMap"}
+        className={activeView === "macroMap" ? "active" : ""}
+        onClick={() => onChange("macroMap")}
+      >
+        宏观地图
+      </button>
       <button
         type="button"
         role="tab"

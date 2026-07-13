@@ -3,6 +3,20 @@ import { expect, test } from "@playwright/test";
 test("loads fixture data and supports filters and playback controls", async ({ page }) => {
   await page.goto("/");
 
+  const tabs = page.getByRole("tab");
+  await expect(tabs).toHaveCount(3);
+  await expect(tabs.nth(0)).toHaveText("宏观地图");
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(1)).toHaveText("Market Map");
+  await expect(page.getByRole("heading", { name: "宏观地图" })).toBeVisible();
+  await expect(page.getByText("5/5", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "美国 yield curve" })).toBeVisible();
+  await expect(page.getByText("HY - IG OAS", { exact: true })).toBeVisible();
+  await expect(page.locator(".macro-history-chart canvas")).toBeVisible();
+  await expect(page.getByRole("button", { name: "First" })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Market Map" }).click();
+
   const topline = page.locator(".workspace-topline");
   await expect(topline).toContainText("2026-06-28");
   await expect(topline).toContainText("12 visible / 13 frame / 13 assets / 11 dates");

@@ -93,3 +93,86 @@ class SnapshotResponse(BaseModel):
 class PlaybackResponse(BaseModel):
     dates: list[str]
     frames: dict[str, list[SnapshotItem]]
+
+
+class MacroSourceStatus(BaseModel):
+    source_id: str
+    source_name: str
+    status: str
+    last_success_at: str | None = None
+    latest_observation_at: str | None = None
+    message: str | None = None
+
+
+class MacroReadinessResponse(BaseModel):
+    status: str
+    reason: str | None = None
+    curve_count: int = 0
+    credit_count: int = 0
+    sources: list[MacroSourceStatus] = Field(default_factory=list)
+
+
+class MacroChangeSet(BaseModel):
+    change_1: float | None = None
+    change_4: float | None = None
+    change_5: float | None = None
+    change_20: float | None = None
+
+
+class MacroCurvePoint(BaseModel):
+    tenor_years: float
+    value: float
+
+
+class MacroCurveFactor(BaseModel):
+    series_id: str
+    label: str
+    value: float
+    unit: str
+    changes: MacroChangeSet
+    status: str
+
+
+class MacroCurveCard(BaseModel):
+    region: str
+    region_name: str
+    observed_at: str
+    curve_type: str
+    source_id: str
+    source_name: str
+    source_url: str
+    points: list[MacroCurvePoint]
+    factors: list[MacroCurveFactor]
+
+
+class MacroCreditCard(BaseModel):
+    series_id: str
+    label: str
+    observed_at: str
+    value: float
+    unit: str
+    frequency: str
+    source_id: str
+    source_name: str
+    source_url: str
+    changes: MacroChangeSet
+    status: str
+
+
+class MacroOverviewResponse(BaseModel):
+    as_of: str | None = None
+    curves: list[MacroCurveCard]
+    credit: list[MacroCreditCard]
+    sources: list[MacroSourceStatus]
+
+
+class MacroHistoryPoint(BaseModel):
+    date: str
+    value: float
+
+
+class MacroHistoryResponse(BaseModel):
+    series_id: str
+    label: str
+    unit: str
+    points: list[MacroHistoryPoint]
