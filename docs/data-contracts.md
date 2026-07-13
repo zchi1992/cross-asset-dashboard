@@ -50,7 +50,7 @@ dataset_type,symbol,asset_name,primary_category,secondary_category,tertiary_cate
 
 `tertiary_categories` 和 `regions` 使用 `|` 分隔；三级分类最多三个。分类表缺失或某个新资产
 没有精确匹配时，行情仍正常加载，并返回 `primary_category=unclassified`、空二级/三级/地区。
-`scripts/audit_asset_taxonomy.py` 用于校验主表结构，并可与指定配置的有效行情资产做覆盖率比较。
+`scripts/audit_asset_taxonomy.py` 用于校验主表结构、地区非空，并可与指定配置的有效行情资产做覆盖率比较。
 
 ## HTTP API
 
@@ -71,8 +71,8 @@ dataset_type,symbol,asset_name,primary_category,secondary_category,tertiary_cate
 - `primary_category`：一级分类稳定代码。
 - `secondary_category`：可空的单个二级分类代码。
 - `tertiary_categories`：最多三个三级分类代码。
-- `regions`：底层敞口地区代码列表；允许值为 `US`、`US_CA`（仅加拿大）、`LATAM`、`EUROPE`、`JP`、`KR`、
-  `CN`、`APAC`、`EM`，货币对可包含两个地区。全球或无法归入单一区域的资产返回空列表。
+- `regions`：上市地或主要交易市场地区代码列表；允许值为 `US`、`US_CA`（仅加拿大）、`LATAM`、`EUROPE`、`JP`、`KR`、
+  `CN`、`APAC`、`EM`、`GLOBAL`，货币对可包含两个地区；跨地区现货加密资产使用 `GLOBAL`。
   注册表按 `US`、`CN` 优先，其余区域随后排列。
 
 - `close_position_vs_60d`：原始“收盘价对比60日位置”，用于资产详情面板展示；历史 processed 数据缺失时为 `null`。

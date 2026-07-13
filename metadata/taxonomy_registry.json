@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-12",
+  "version": "2026-07-13",
   "standards": {
     "gics": {
       "version": "2024-08",
@@ -1219,6 +1219,12 @@
       "code": "EM",
       "label_en": "Emerging Markets",
       "label_zh": "新兴市场",
+      "parent_codes": []
+    },
+    {
+      "code": "GLOBAL",
+      "label_en": "Global",
+      "label_zh": "全球",
       "parent_codes": []
     }
   ]
