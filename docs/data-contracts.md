@@ -35,20 +35,45 @@ dashboard/API 展示字段。
 
 测试契约数据位于 `tests/fixtures/dashboard/`，不得依赖仓库外或被忽略的本机数据。
 
+## Asset taxonomy
+
+版本化分类主数据位于 `metadata/asset_taxonomy.csv`，通过配置项
+`dashboard.market_map.taxonomy_path` 指定；同目录 `taxonomy_registry.json` 定义可用代码、
+中英文标签、父子关系和分类标准版本。主表键为规范化后的
+`dataset_type + symbol + asset_name`，因此同一 ticker 对应不同资产时不会互相覆盖。
+
+主表列固定为：
+
+```text
+dataset_type,symbol,asset_name,primary_category,secondary_category,tertiary_categories,regions,classification_basis,source_url
+```
+
+`tertiary_categories` 和 `regions` 使用 `|` 分隔；三级分类最多三个。分类表缺失或某个新资产
+没有精确匹配时，行情仍正常加载，并返回 `primary_category=unclassified`、空二级/三级/地区。
+`scripts/audit_asset_taxonomy.py` 用于校验主表结构，并可与指定配置的有效行情资产做覆盖率比较。
+
 ## HTTP API
 
 - `GET /api/health`：进程 liveness，不检查数据。
 - `GET /api/ready`：返回 `status`、`reason`、`date_count`、`asset_count`、
   `latest_date`；无有效数据时状态码为 `503`，原因为 `no_processed_data`。
 - `GET /api/config`：分数范围、默认过滤器、播放速度和状态枚举。
+- `GET /api/config` 的 `taxonomy` 额外返回一级、二级、三级和地区选项；每个选项包含
+  `code`、`label_en`、`label_zh`、`parent_codes`。
 - `GET /api/dates`：升序可用日期。
-- `GET /api/assets`：资产 symbol、名称和类别。
+- `GET /api/assets`：按完整资产身份返回 symbol、名称、数据集类别和分类字段，不再仅按 symbol 去重。
 - `GET /api/snapshot?date=YYYY-MM-DD`：单日宽表；未知日期返回 `404`。
 - `GET /api/playback?start=&end=`：日期和按日期分组的完整帧。
 
 单日宽表和 playback item 保留原有字段，并额外返回：
 
 - `is_gs_exempt`：布尔值，表示该行情记录的 symbol 是否在公司批准名单中；前端据此筛选已有数据，不把名单中无行情的 symbol 补进响应。
+- `primary_category`：一级分类稳定代码。
+- `secondary_category`：可空的单个二级分类代码。
+- `tertiary_categories`：最多三个三级分类代码。
+- `regions`：底层敞口地区代码列表；允许值为 `US`、`US_CA`（仅加拿大）、`LATAM`、`EUROPE`、`JP`、`KR`、
+  `CN`、`APAC`、`EM`，货币对可包含两个地区。全球或无法归入单一区域的资产返回空列表。
+  注册表按 `US`、`CN` 优先，其余区域随后排列。
 
 - `close_position_vs_60d`：原始“收盘价对比60日位置”，用于资产详情面板展示；历史 processed 数据缺失时为 `null`。
 
@@ -84,5 +109,6 @@ HY-IG 只对齐相同日期的 HY/IG OAS。
 - 配置文件路径、修改时间和大小。
 - 所有 processed CSV 的路径、修改时间和大小。
 - GS exempt 名单文件的路径、修改时间和大小；名单变化会重建 rows 和 playback frames。
+- 资产分类主表和分类注册表的路径、修改时间和大小；任一文件变化都会重建 rows 和 playback frames。
 
 相同签名复用解析结果；配置或数据签名变化后重新构建 rows 和 playback frames。

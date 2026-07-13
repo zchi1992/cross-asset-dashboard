@@ -1,0 +1,1225 @@
+{
+  "version": "2026-07-12",
+  "standards": {
+    "gics": {
+      "version": "2024-08",
+      "sector_count": 11,
+      "industry_group_count": 25,
+      "source_url": "https://www.spglobal.com/spdji/en/landing/topic/gics/"
+    },
+    "shenwan": {
+      "version": "2021",
+      "level_1_count": 31,
+      "level_2_count": 134,
+      "source_url": "https://wxweb.swsresearch.com/swsreport/2021_08/328340.pdf"
+    }
+  },
+  "primary_categories": [
+    {
+      "code": "equity",
+      "label_en": "Equity",
+      "label_zh": "股票",
+      "parent_codes": []
+    },
+    {
+      "code": "bond",
+      "label_en": "Bond",
+      "label_zh": "债券",
+      "parent_codes": []
+    },
+    {
+      "code": "fx",
+      "label_en": "FX",
+      "label_zh": "外汇",
+      "parent_codes": []
+    },
+    {
+      "code": "commodity",
+      "label_en": "Commodity",
+      "label_zh": "商品",
+      "parent_codes": []
+    },
+    {
+      "code": "alternative",
+      "label_en": "Alternative",
+      "label_zh": "另类资产",
+      "parent_codes": []
+    },
+    {
+      "code": "unclassified",
+      "label_en": "Unclassified",
+      "label_zh": "未分类",
+      "parent_codes": []
+    }
+  ],
+  "secondary_categories": [
+    {
+      "code": "bond.corporate",
+      "label_en": "Corporate",
+      "label_zh": "公司债",
+      "parent_codes": [
+        "bond"
+      ]
+    },
+    {
+      "code": "bond.sovereign",
+      "label_en": "Sovereign",
+      "label_zh": "主权债",
+      "parent_codes": [
+        "bond"
+      ]
+    },
+    {
+      "code": "bond.municipal",
+      "label_en": "Municipal",
+      "label_zh": "市政债",
+      "parent_codes": [
+        "bond"
+      ]
+    },
+    {
+      "code": "bond.aggregated",
+      "label_en": "Aggregated",
+      "label_zh": "综合债",
+      "parent_codes": [
+        "bond"
+      ]
+    },
+    {
+      "code": "equity.large_cap",
+      "label_en": "Large Cap",
+      "label_zh": "大盘",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.mid_cap",
+      "label_en": "Mid Cap",
+      "label_zh": "中盘",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.small_cap",
+      "label_en": "Small Cap",
+      "label_zh": "小盘",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.broad_market",
+      "label_en": "Broad Market",
+      "label_zh": "宽基",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.strategy",
+      "label_en": "Strategy",
+      "label_zh": "策略",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.thematic",
+      "label_en": "Thematic",
+      "label_zh": "主题",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "commodity.precious_metals",
+      "label_en": "Precious Metals",
+      "label_zh": "贵金属",
+      "parent_codes": [
+        "commodity"
+      ]
+    },
+    {
+      "code": "commodity.industrial_metals",
+      "label_en": "Industrial Metals",
+      "label_zh": "工业金属",
+      "parent_codes": [
+        "commodity"
+      ]
+    },
+    {
+      "code": "commodity.agriculture",
+      "label_en": "Agriculture",
+      "label_zh": "农产品",
+      "parent_codes": [
+        "commodity"
+      ]
+    },
+    {
+      "code": "commodity.energy_chemicals",
+      "label_en": "Energy & Chemicals",
+      "label_zh": "能源化工",
+      "parent_codes": [
+        "commodity"
+      ]
+    },
+    {
+      "code": "commodity.broad",
+      "label_en": "Broad Commodity",
+      "label_zh": "综合商品",
+      "parent_codes": [
+        "commodity"
+      ]
+    },
+    {
+      "code": "alternative.real_estate",
+      "label_en": "Real Estate",
+      "label_zh": "房地产",
+      "parent_codes": [
+        "alternative"
+      ]
+    },
+    {
+      "code": "alternative.crypto",
+      "label_en": "Crypto",
+      "label_zh": "加密货币",
+      "parent_codes": [
+        "alternative"
+      ]
+    },
+    {
+      "code": "equity.gics.10",
+      "label_en": "Energy",
+      "label_zh": "能源",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.15",
+      "label_en": "Materials",
+      "label_zh": "原材料",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.20",
+      "label_en": "Industrials",
+      "label_zh": "工业",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.25",
+      "label_en": "Consumer Discretionary",
+      "label_zh": "可选消费",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.30",
+      "label_en": "Consumer Staples",
+      "label_zh": "日常消费",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.35",
+      "label_en": "Health Care",
+      "label_zh": "医疗保健",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.40",
+      "label_en": "Financials",
+      "label_zh": "金融",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.45",
+      "label_en": "Information Technology",
+      "label_zh": "信息技术",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.50",
+      "label_en": "Communication Services",
+      "label_zh": "通信服务",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.55",
+      "label_en": "Utilities",
+      "label_zh": "公用事业",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.gics.60",
+      "label_en": "Real Estate",
+      "label_zh": "房地产",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.110000",
+      "label_en": "Agriculture, Forestry, Animal Husbandry & Fishery",
+      "label_zh": "农林牧渔",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.220000",
+      "label_en": "Basic Chemicals",
+      "label_zh": "基础化工",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.230000",
+      "label_en": "Steel",
+      "label_zh": "钢铁",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.240000",
+      "label_en": "Non-ferrous Metals",
+      "label_zh": "有色金属",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.270000",
+      "label_en": "Electronics",
+      "label_zh": "电子",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.280000",
+      "label_en": "Automobiles",
+      "label_zh": "汽车",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.330000",
+      "label_en": "Home Appliances",
+      "label_zh": "家用电器",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.340000",
+      "label_en": "Food & Beverage",
+      "label_zh": "食品饮料",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.350000",
+      "label_en": "Textiles & Apparel",
+      "label_zh": "纺织服饰",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.360000",
+      "label_en": "Light Manufacturing",
+      "label_zh": "轻工制造",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.370000",
+      "label_en": "Pharmaceuticals & Biotechnology",
+      "label_zh": "医药生物",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.410000",
+      "label_en": "Utilities",
+      "label_zh": "公用事业",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.420000",
+      "label_en": "Transportation",
+      "label_zh": "交通运输",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.430000",
+      "label_en": "Real Estate",
+      "label_zh": "房地产",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.450000",
+      "label_en": "Commerce & Retail",
+      "label_zh": "商贸零售",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.460000",
+      "label_en": "Social Services",
+      "label_zh": "社会服务",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.480000",
+      "label_en": "Banks",
+      "label_zh": "银行",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.490000",
+      "label_en": "Non-bank Financials",
+      "label_zh": "非银金融",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.510000",
+      "label_en": "Conglomerates",
+      "label_zh": "综合",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.610000",
+      "label_en": "Building Materials",
+      "label_zh": "建筑材料",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.620000",
+      "label_en": "Building Decoration",
+      "label_zh": "建筑装饰",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.630000",
+      "label_en": "Power Equipment",
+      "label_zh": "电力设备",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.640000",
+      "label_en": "Machinery",
+      "label_zh": "机械设备",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.650000",
+      "label_en": "Defense",
+      "label_zh": "国防军工",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.710000",
+      "label_en": "Computers",
+      "label_zh": "计算机",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.720000",
+      "label_en": "Media",
+      "label_zh": "传媒",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.730000",
+      "label_en": "Communications",
+      "label_zh": "通信",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.740000",
+      "label_en": "Coal",
+      "label_zh": "煤炭",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.750000",
+      "label_en": "Petroleum & Petrochemicals",
+      "label_zh": "石油石化",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.760000",
+      "label_en": "Environmental Protection",
+      "label_zh": "环保",
+      "parent_codes": [
+        "equity"
+      ]
+    },
+    {
+      "code": "equity.sw.770000",
+      "label_en": "Beauty Care",
+      "label_zh": "美容护理",
+      "parent_codes": [
+        "equity"
+      ]
+    }
+  ],
+  "tertiary_categories": [
+    {
+      "code": "style.growth",
+      "label_en": "Growth",
+      "label_zh": "成长",
+      "parent_codes": []
+    },
+    {
+      "code": "style.value",
+      "label_en": "Value",
+      "label_zh": "价值",
+      "parent_codes": []
+    },
+    {
+      "code": "style.dividend",
+      "label_en": "Dividend",
+      "label_zh": "红利",
+      "parent_codes": []
+    },
+    {
+      "code": "style.quality",
+      "label_en": "Quality",
+      "label_zh": "质量",
+      "parent_codes": []
+    },
+    {
+      "code": "style.momentum",
+      "label_en": "Momentum",
+      "label_zh": "动量",
+      "parent_codes": []
+    },
+    {
+      "code": "style.low_volatility",
+      "label_en": "Low Volatility",
+      "label_zh": "低波动",
+      "parent_codes": []
+    },
+    {
+      "code": "style.equal_weight",
+      "label_en": "Equal Weight",
+      "label_zh": "等权",
+      "parent_codes": []
+    },
+    {
+      "code": "style.factor",
+      "label_en": "Factor",
+      "label_zh": "因子",
+      "parent_codes": []
+    },
+    {
+      "code": "style.esg",
+      "label_en": "ESG",
+      "label_zh": "ESG",
+      "parent_codes": []
+    },
+    {
+      "code": "style.covered_call",
+      "label_en": "Covered Call",
+      "label_zh": "备兑看涨",
+      "parent_codes": []
+    },
+    {
+      "code": "style.leveraged_inverse",
+      "label_en": "Leveraged / Inverse",
+      "label_zh": "杠杆或反向",
+      "parent_codes": []
+    },
+    {
+      "code": "style.preferred",
+      "label_en": "Preferred",
+      "label_zh": "优先股",
+      "parent_codes": []
+    },
+    {
+      "code": "bond.money_market",
+      "label_en": "Money Market",
+      "label_zh": "货币市场",
+      "parent_codes": []
+    },
+    {
+      "code": "bond.inflation_linked",
+      "label_en": "Inflation Linked",
+      "label_zh": "通胀挂钩",
+      "parent_codes": []
+    },
+    {
+      "code": "bond.high_yield",
+      "label_en": "High Yield",
+      "label_zh": "高收益",
+      "parent_codes": []
+    },
+    {
+      "code": "bond.securitized",
+      "label_en": "Securitized",
+      "label_zh": "证券化债券",
+      "parent_codes": []
+    },
+    {
+      "code": "bond.floating_rate",
+      "label_en": "Floating Rate",
+      "label_zh": "浮息",
+      "parent_codes": []
+    },
+    {
+      "code": "commodity.gold",
+      "label_en": "Gold",
+      "label_zh": "黄金",
+      "parent_codes": [
+        "commodity.precious_metals"
+      ]
+    },
+    {
+      "code": "commodity.silver",
+      "label_en": "Silver",
+      "label_zh": "白银",
+      "parent_codes": [
+        "commodity.precious_metals"
+      ]
+    },
+    {
+      "code": "commodity.platinum_group",
+      "label_en": "Platinum Group",
+      "label_zh": "铂族金属",
+      "parent_codes": [
+        "commodity.precious_metals"
+      ]
+    },
+    {
+      "code": "commodity.copper",
+      "label_en": "Copper",
+      "label_zh": "铜",
+      "parent_codes": [
+        "commodity.industrial_metals"
+      ]
+    },
+    {
+      "code": "commodity.aluminium",
+      "label_en": "Aluminium",
+      "label_zh": "铝",
+      "parent_codes": [
+        "commodity.industrial_metals"
+      ]
+    },
+    {
+      "code": "commodity.steel",
+      "label_en": "Steel",
+      "label_zh": "钢铁",
+      "parent_codes": [
+        "commodity.industrial_metals"
+      ]
+    },
+    {
+      "code": "commodity.energy_metals",
+      "label_en": "Energy Metals",
+      "label_zh": "能源金属",
+      "parent_codes": [
+        "commodity.industrial_metals"
+      ]
+    },
+    {
+      "code": "commodity.grains",
+      "label_en": "Grains",
+      "label_zh": "谷物",
+      "parent_codes": [
+        "commodity.agriculture"
+      ]
+    },
+    {
+      "code": "commodity.softs",
+      "label_en": "Soft Commodities",
+      "label_zh": "软性商品",
+      "parent_codes": [
+        "commodity.agriculture"
+      ]
+    },
+    {
+      "code": "commodity.livestock",
+      "label_en": "Livestock",
+      "label_zh": "畜牧",
+      "parent_codes": [
+        "commodity.agriculture"
+      ]
+    },
+    {
+      "code": "commodity.crude_oil",
+      "label_en": "Crude Oil",
+      "label_zh": "原油",
+      "parent_codes": [
+        "commodity.energy_chemicals"
+      ]
+    },
+    {
+      "code": "commodity.natural_gas",
+      "label_en": "Natural Gas",
+      "label_zh": "天然气",
+      "parent_codes": [
+        "commodity.energy_chemicals"
+      ]
+    },
+    {
+      "code": "commodity.refined_products",
+      "label_en": "Refined Products",
+      "label_zh": "成品油",
+      "parent_codes": [
+        "commodity.energy_chemicals"
+      ]
+    },
+    {
+      "code": "commodity.chemicals",
+      "label_en": "Chemicals",
+      "label_zh": "化工品",
+      "parent_codes": [
+        "commodity.energy_chemicals"
+      ]
+    },
+    {
+      "code": "theme.ai_hardware",
+      "label_en": "AI Hardware",
+      "label_zh": "AI 硬件",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.clean_energy",
+      "label_en": "Clean Energy",
+      "label_zh": "清洁能源",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.cybersecurity",
+      "label_en": "Cybersecurity",
+      "label_zh": "网络安全",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.cloud",
+      "label_en": "Cloud Computing",
+      "label_zh": "云计算",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.robotics",
+      "label_en": "Robotics & Automation",
+      "label_zh": "机器人与自动化",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.aerospace_defense",
+      "label_en": "Aerospace & Defense",
+      "label_zh": "航空航天与国防",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.infrastructure",
+      "label_en": "Infrastructure",
+      "label_zh": "基础设施",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.water",
+      "label_en": "Water",
+      "label_zh": "水资源",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.shipping",
+      "label_en": "Shipping",
+      "label_zh": "航运",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.uranium",
+      "label_en": "Uranium",
+      "label_zh": "铀",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.battery",
+      "label_en": "Battery",
+      "label_zh": "电池",
+      "parent_codes": []
+    },
+    {
+      "code": "theme.biotech",
+      "label_en": "Biotechnology",
+      "label_zh": "生物科技",
+      "parent_codes": []
+    },
+    {
+      "code": "gics.1010",
+      "label_en": "Energy",
+      "label_zh": "能源",
+      "parent_codes": [
+        "equity.gics.10"
+      ]
+    },
+    {
+      "code": "gics.1510",
+      "label_en": "Materials",
+      "label_zh": "原材料",
+      "parent_codes": [
+        "equity.gics.15"
+      ]
+    },
+    {
+      "code": "gics.2010",
+      "label_en": "Capital Goods",
+      "label_zh": "资本品",
+      "parent_codes": [
+        "equity.gics.20"
+      ]
+    },
+    {
+      "code": "gics.2020",
+      "label_en": "Commercial & Professional Services",
+      "label_zh": "商业及专业服务",
+      "parent_codes": [
+        "equity.gics.20"
+      ]
+    },
+    {
+      "code": "gics.2030",
+      "label_en": "Transportation",
+      "label_zh": "运输",
+      "parent_codes": [
+        "equity.gics.20"
+      ]
+    },
+    {
+      "code": "gics.2510",
+      "label_en": "Automobiles & Components",
+      "label_zh": "汽车与零部件",
+      "parent_codes": [
+        "equity.gics.25"
+      ]
+    },
+    {
+      "code": "gics.2520",
+      "label_en": "Consumer Durables & Apparel",
+      "label_zh": "耐用消费品与服装",
+      "parent_codes": [
+        "equity.gics.25"
+      ]
+    },
+    {
+      "code": "gics.2530",
+      "label_en": "Consumer Services",
+      "label_zh": "消费者服务",
+      "parent_codes": [
+        "equity.gics.25"
+      ]
+    },
+    {
+      "code": "gics.2550",
+      "label_en": "Consumer Discretionary Distribution & Retail",
+      "label_zh": "可选消费经销与零售",
+      "parent_codes": [
+        "equity.gics.25"
+      ]
+    },
+    {
+      "code": "gics.3010",
+      "label_en": "Consumer Staples Distribution & Retail",
+      "label_zh": "日常消费经销与零售",
+      "parent_codes": [
+        "equity.gics.30"
+      ]
+    },
+    {
+      "code": "gics.3020",
+      "label_en": "Food, Beverage & Tobacco",
+      "label_zh": "食品饮料与烟草",
+      "parent_codes": [
+        "equity.gics.30"
+      ]
+    },
+    {
+      "code": "gics.3030",
+      "label_en": "Household & Personal Products",
+      "label_zh": "家庭与个人用品",
+      "parent_codes": [
+        "equity.gics.30"
+      ]
+    },
+    {
+      "code": "gics.3510",
+      "label_en": "Health Care Equipment & Services",
+      "label_zh": "医疗设备与服务",
+      "parent_codes": [
+        "equity.gics.35"
+      ]
+    },
+    {
+      "code": "gics.3520",
+      "label_en": "Pharmaceuticals, Biotechnology & Life Sciences",
+      "label_zh": "制药生物科技与生命科学",
+      "parent_codes": [
+        "equity.gics.35"
+      ]
+    },
+    {
+      "code": "gics.4010",
+      "label_en": "Banks",
+      "label_zh": "银行",
+      "parent_codes": [
+        "equity.gics.40"
+      ]
+    },
+    {
+      "code": "gics.4020",
+      "label_en": "Financial Services",
+      "label_zh": "金融服务",
+      "parent_codes": [
+        "equity.gics.40"
+      ]
+    },
+    {
+      "code": "gics.4030",
+      "label_en": "Insurance",
+      "label_zh": "保险",
+      "parent_codes": [
+        "equity.gics.40"
+      ]
+    },
+    {
+      "code": "gics.4510",
+      "label_en": "Software & Services",
+      "label_zh": "软件与服务",
+      "parent_codes": [
+        "equity.gics.45"
+      ]
+    },
+    {
+      "code": "gics.4520",
+      "label_en": "Technology Hardware & Equipment",
+      "label_zh": "科技硬件与设备",
+      "parent_codes": [
+        "equity.gics.45"
+      ]
+    },
+    {
+      "code": "gics.4530",
+      "label_en": "Semiconductors & Semiconductor Equipment",
+      "label_zh": "半导体与设备",
+      "parent_codes": [
+        "equity.gics.45"
+      ]
+    },
+    {
+      "code": "gics.5010",
+      "label_en": "Telecommunication Services",
+      "label_zh": "电信服务",
+      "parent_codes": [
+        "equity.gics.50"
+      ]
+    },
+    {
+      "code": "gics.5020",
+      "label_en": "Media & Entertainment",
+      "label_zh": "媒体与娱乐",
+      "parent_codes": [
+        "equity.gics.50"
+      ]
+    },
+    {
+      "code": "gics.5510",
+      "label_en": "Utilities",
+      "label_zh": "公用事业",
+      "parent_codes": [
+        "equity.gics.55"
+      ]
+    },
+    {
+      "code": "gics.6010",
+      "label_en": "Equity Real Estate Investment Trusts",
+      "label_zh": "权益房地产投资信托",
+      "parent_codes": [
+        "equity.gics.60"
+      ]
+    },
+    {
+      "code": "gics.6020",
+      "label_en": "Real Estate Management & Development",
+      "label_zh": "房地产管理与开发",
+      "parent_codes": [
+        "equity.gics.60"
+      ]
+    },
+    {
+      "code": "sw.240300",
+      "label_en": "Industrial Metals",
+      "label_zh": "工业金属",
+      "parent_codes": [
+        "equity.sw.240000"
+      ]
+    },
+    {
+      "code": "sw.240400",
+      "label_en": "Precious Metals",
+      "label_zh": "贵金属",
+      "parent_codes": [
+        "equity.sw.240000"
+      ]
+    },
+    {
+      "code": "sw.240600",
+      "label_en": "Energy Metals",
+      "label_zh": "能源金属",
+      "parent_codes": [
+        "equity.sw.240000"
+      ]
+    },
+    {
+      "code": "sw.270100",
+      "label_en": "Semiconductors",
+      "label_zh": "半导体",
+      "parent_codes": [
+        "equity.sw.270000"
+      ]
+    },
+    {
+      "code": "sw.270500",
+      "label_en": "Consumer Electronics",
+      "label_zh": "消费电子",
+      "parent_codes": [
+        "equity.sw.270000"
+      ]
+    },
+    {
+      "code": "sw.280200",
+      "label_en": "Auto Parts",
+      "label_zh": "汽车零部件",
+      "parent_codes": [
+        "equity.sw.280000"
+      ]
+    },
+    {
+      "code": "sw.370300",
+      "label_en": "Biological Products",
+      "label_zh": "生物制品",
+      "parent_codes": [
+        "equity.sw.370000"
+      ]
+    },
+    {
+      "code": "sw.370500",
+      "label_en": "Medical Devices",
+      "label_zh": "医疗器械",
+      "parent_codes": [
+        "equity.sw.370000"
+      ]
+    },
+    {
+      "code": "sw.630300",
+      "label_en": "Photovoltaic Equipment",
+      "label_zh": "光伏设备",
+      "parent_codes": [
+        "equity.sw.630000"
+      ]
+    },
+    {
+      "code": "sw.630400",
+      "label_en": "Wind Power Equipment",
+      "label_zh": "风电设备",
+      "parent_codes": [
+        "equity.sw.630000"
+      ]
+    },
+    {
+      "code": "sw.630600",
+      "label_en": "Battery",
+      "label_zh": "电池",
+      "parent_codes": [
+        "equity.sw.630000"
+      ]
+    },
+    {
+      "code": "sw.640600",
+      "label_en": "Automation Equipment",
+      "label_zh": "自动化设备",
+      "parent_codes": [
+        "equity.sw.640000"
+      ]
+    },
+    {
+      "code": "sw.650300",
+      "label_en": "Aviation Equipment",
+      "label_zh": "航空装备",
+      "parent_codes": [
+        "equity.sw.650000"
+      ]
+    },
+    {
+      "code": "sw.650600",
+      "label_en": "Defense Electronics",
+      "label_zh": "军工电子",
+      "parent_codes": [
+        "equity.sw.650000"
+      ]
+    },
+    {
+      "code": "sw.710100",
+      "label_en": "Computer Equipment",
+      "label_zh": "计算机设备",
+      "parent_codes": [
+        "equity.sw.710000"
+      ]
+    },
+    {
+      "code": "sw.710300",
+      "label_en": "Software Development",
+      "label_zh": "软件开发",
+      "parent_codes": [
+        "equity.sw.710000"
+      ]
+    },
+    {
+      "code": "sw.720300",
+      "label_en": "Gaming",
+      "label_zh": "游戏",
+      "parent_codes": [
+        "equity.sw.720000"
+      ]
+    },
+    {
+      "code": "sw.730100",
+      "label_en": "Communication Services",
+      "label_zh": "通信服务",
+      "parent_codes": [
+        "equity.sw.730000"
+      ]
+    },
+    {
+      "code": "sw.730200",
+      "label_en": "Communication Equipment",
+      "label_zh": "通信设备",
+      "parent_codes": [
+        "equity.sw.730000"
+      ]
+    }
+  ],
+  "regions": [
+    {
+      "code": "US",
+      "label_en": "US",
+      "label_zh": "美国",
+      "parent_codes": []
+    },
+    {
+      "code": "CN",
+      "label_en": "China",
+      "label_zh": "中国",
+      "parent_codes": []
+    },
+    {
+      "code": "US_CA",
+      "label_en": "Canada",
+      "label_zh": "加拿大",
+      "parent_codes": []
+    },
+    {
+      "code": "LATAM",
+      "label_en": "LatAm",
+      "label_zh": "拉丁美洲",
+      "parent_codes": []
+    },
+    {
+      "code": "EUROPE",
+      "label_en": "Europe",
+      "label_zh": "欧洲",
+      "parent_codes": []
+    },
+    {
+      "code": "JP",
+      "label_en": "Japan",
+      "label_zh": "日本",
+      "parent_codes": []
+    },
+    {
+      "code": "KR",
+      "label_en": "South Korea",
+      "label_zh": "韩国",
+      "parent_codes": []
+    },
+    {
+      "code": "APAC",
+      "label_en": "APAC",
+      "label_zh": "亚太",
+      "parent_codes": []
+    },
+    {
+      "code": "EM",
+      "label_en": "Emerging Markets",
+      "label_zh": "新兴市场",
+      "parent_codes": []
+    }
+  ]
+}

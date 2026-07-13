@@ -6,6 +6,7 @@ import {
   duplicateAssetBaseKeys,
   filterFramesByAssetFilter,
   filterItems,
+  CN_REGION_FILTER,
   GS_EXEMPT_FILTER,
   matchesSearch,
   trajectoryForAssetKey,
@@ -16,6 +17,10 @@ const item: SnapshotItem = {
   asset_name: "SPDR Gold Shares",
   asset_class: "core",
   is_gs_exempt: true,
+  primary_category: "commodity",
+  secondary_category: "commodity.precious_metals",
+  tertiary_categories: ["commodity.gold"],
+  regions: ["US_CA"],
   trend_score: 74,
   rs_score: 38,
   early_reversal: 36,
@@ -55,6 +60,37 @@ describe("filtering utilities", () => {
     expect(filterItems([item, unapproved], GS_EXEMPT_FILTER, ["Leveraging"], ["Lead"])).toEqual([item]);
     expect(filterFramesByAssetFilter(frames, GS_EXEMPT_FILTER)).toEqual({ "2026-06-28": [item] });
     expect(filterFramesByAssetFilter(frames, "")).toEqual(frames);
+  });
+
+  it("filters the China region across core and instruments", () => {
+    const chinaCore = { ...item, symbol: "CN-A", asset_class: "core", regions: ["CN"] };
+    const chinaInstrument = { ...item, symbol: "CN-B", asset_class: "instruments", regions: ["CN"] };
+    const usItem = { ...item, symbol: "US-A", regions: ["US_CA"] };
+    const frames = { "2026-06-28": [chinaCore, chinaInstrument, usItem] };
+
+    expect(filterFramesByAssetFilter(frames, CN_REGION_FILTER)).toEqual({
+      "2026-06-28": [chinaCore, chinaInstrument],
+    });
+  });
+
+  it("combines taxonomy dimensions with AND and values within a dimension with OR", () => {
+    const silver = { ...item, symbol: "SLV", tertiary_categories: ["commodity.silver"] };
+    const equity = {
+      ...item,
+      symbol: "SPY",
+      primary_category: "equity",
+      secondary_category: "equity.large_cap",
+      tertiary_categories: ["style.growth"],
+      regions: ["US_CA"],
+    };
+    const filters = {
+      primaryCategories: ["commodity"],
+      secondaryCategories: ["commodity.precious_metals"],
+      tertiaryCategories: ["commodity.gold", "commodity.silver"],
+      regions: ["US_CA"],
+    };
+
+    expect(filterItems([item, silver, equity], "core", ["Leveraging"], ["Lead"], filters)).toEqual([item, silver]);
   });
 
   it("returns the trailing 30 available frame points for a symbol", () => {
