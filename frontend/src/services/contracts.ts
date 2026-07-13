@@ -148,3 +148,80 @@ export type MacroHistoryResponse = {
   unit: string;
   points: { date: string; value: number }[];
 };
+
+export type PortfolioAccount = {
+  account_id_masked: string;
+  base_currency: string;
+  net_liquidation?: number | null;
+  maint_margin_req?: number | null;
+  sma?: number | null;
+  excess_liquidity?: number | null;
+  available_funds?: number | null;
+  buying_power?: number | null;
+  gross_position_value?: number | null;
+  cushion?: number | null;
+};
+
+export type PortfolioAssetLink = {
+  symbol: string;
+  name: string;
+  asset_class: string;
+};
+
+export type PortfolioPosition = {
+  conid: string;
+  symbol: string;
+  local_symbol: string;
+  sec_type: string;
+  last_trade_date_or_contract_month: string;
+  strike?: number | null;
+  right: string;
+  multiplier?: number | null;
+  exchange: string;
+  primary_exchange: string;
+  currency: string;
+  quantity: number;
+  market_price?: number | null;
+  market_value?: number | null;
+  average_cost?: number | null;
+  unrealized_pnl?: number | null;
+  realized_pnl?: number | null;
+  option_delta?: number | null;
+  option_gamma?: number | null;
+  option_theta?: number | null;
+  option_vega?: number | null;
+  portfolio_weight?: number | null;
+  stop_loss_price?: number | null;
+  stop_status: string;
+  planned_loss_at_stop?: number | null;
+  remaining_risk_to_stop?: number | null;
+  risk_eligible: boolean;
+  link_status: string;
+  linked_asset?: PortfolioAssetLink | null;
+};
+
+export type PortfolioRiskSummary = {
+  leverage_ratio?: number | null;
+  maintenance_margin_ratio?: number | null;
+  excess_liquidity_ratio?: number | null;
+  largest_position_concentration?: number | null;
+  planned_loss_at_stop: number;
+  remaining_risk_to_stop: number;
+  eligible_position_count: number;
+  covered_position_count: number;
+  eligible_market_value: number;
+  covered_market_value: number;
+  coverage_ratio?: number | null;
+};
+
+export type PortfolioResponse = {
+  status: "ready" | "stale" | "no_snapshot" | "error";
+  message?: string | null;
+  snapshot_date?: string | null;
+  captured_at?: string | null;
+  sync_source?: string | null;
+  source_file?: string | null;
+  account?: PortfolioAccount | null;
+  risk?: PortfolioRiskSummary | null;
+  positions: PortfolioPosition[];
+};

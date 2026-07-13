@@ -50,6 +50,13 @@
         "sloos_change_pp": 5
       }
     },
+    "portfolio": {
+      "host": "127.0.0.1",
+      "port": 7496,
+      "client_id": 17,
+      "timeout_seconds": 30,
+      "stale_after_hours": 30
+    },
     "market_map": {
       "dataset_types": [
         "core",

@@ -112,3 +112,24 @@ HY-IG 只对齐相同日期的 HY/IG OAS。
 - 资产分类主表和分类注册表的路径、修改时间和大小；任一文件变化都会重建 rows 和 playback frames。
 
 相同签名复用解析结果；配置或数据签名变化后重新构建 rows 和 playback frames。
+
+## IBKR portfolio snapshots
+
+持仓快照位于 `data/portfolio/portfolio_YYYYMMDD.csv`。每个持仓一行并重复账户摘要字段；
+空仓账户仍写一行，持仓字段为空。快照必须先完整写入临时文件，再以原子替换方式更新同日文件。
+
+元数据字段为 `snapshot_date`、`captured_at`、`sync_source`、`account_id_masked` 和
+`base_currency`。账户字段包括 `net_liquidation`、`maint_margin_req`、`sma`、
+`excess_liquidity`、`available_funds`、`buying_power`、`gross_position_value` 和
+`cushion`。持仓字段保留 IBKR conId、合约描述、数量、市价、市值、成本和盈亏，以及
+`option_delta`、`option_gamma`、`option_theta`、`option_vega` 四项 IBKR 模型 Greek。
+旧快照缺少 Greeks 字段时仍可读取，对应值为不可计算。
+`sync_source` 只允许 `manual`、`scheduled_2000` 或 `scheduled_2330`。
+
+- `GET /api/portfolio`：读取最新有效快照并合并本地 Stop Loss，状态为 `ready`、`stale`、
+  `no_snapshot` 或 `error`。
+- `POST /api/portfolio/sync`：连接 TWS、获取一次账户和完整持仓、原子覆盖当日快照。
+- `PUT /api/portfolio/positions/{conid}/stop-loss`：以正数设置止损，或以 `null` 清除。
+
+Stop Loss 位于忽略版本控制的 `state/ibkr_stop_losses.json`；期权、期货期权和组合合约
+不参与止损风险计算。接口只返回掩码账户号，不返回 `IBKR_ACCOUNT_ID`。

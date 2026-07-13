@@ -159,6 +159,30 @@ def get_assets(config_path: str | Path | None = None) -> list[AssetMetadata]:
     )
 
 
+def get_asset_identities(config_path: str | Path | None = None) -> list[AssetMetadata]:
+    identities: dict[tuple[str, str, str], AssetMetadata] = {}
+    for row in load_rows(config_path):
+        asset = AssetMetadata(
+            symbol=str(row["asset_id"]),
+            name=str(row["asset_name"]),
+            asset_class=str(row["asset_class"]),
+        )
+        identities[(asset.asset_class, asset.symbol, asset.name)] = asset
+    return sorted(identities.values(), key=lambda asset: (asset.asset_class, asset.symbol, asset.name))
+
+
+def get_portfolio_context(
+    config_path: str | Path | None = None,
+) -> tuple[Path, Path, dict[str, object]]:
+    dashboard_config = load_dashboard_config(resolve_config_path(config_path))
+    portfolio_config = dashboard_config.repo_config.raw.get("dashboard", {}).get("portfolio", {})
+    return (
+        dashboard_config.repo_config.storage_root,
+        dashboard_config.repo_config.state_root,
+        portfolio_config if isinstance(portfolio_config, dict) else {},
+    )
+
+
 def get_snapshot(date: str, config_path: str | Path | None = None) -> list[SnapshotItem]:
     return list(_load_frames(config_path)[1].get(date, []))
 

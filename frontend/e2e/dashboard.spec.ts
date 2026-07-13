@@ -4,10 +4,12 @@ test("loads fixture data and supports filters and playback controls", async ({ p
   await page.goto("/");
 
   const tabs = page.getByRole("tab");
-  await expect(tabs).toHaveCount(3);
+  await expect(tabs).toHaveCount(4);
   await expect(tabs.nth(0)).toHaveText("宏观地图");
   await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
   await expect(tabs.nth(1)).toHaveText("Market Map");
+  await expect(tabs.nth(2)).toHaveText("Opportunities");
+  await expect(tabs.nth(3)).toHaveText("持仓");
   await expect(page.getByRole("heading", { name: "宏观地图" })).toBeVisible();
   await expect(page.getByText("5/5", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: "美国 yield curve" })).toBeVisible();
@@ -185,4 +187,51 @@ test("renders an actionable backend error state", async ({ page }) => {
   await expect(
     page.getByText("Start it with scripts/run_market_map_dashboard.sh"),
   ).toBeVisible();
+});
+
+test("shows the portfolio snapshot, syncs, edits stop loss, and opens linked asset details", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "持仓" }).click();
+
+  const portfolio = page.getByTestId("portfolio-workspace");
+  await expect(portfolio).toBeVisible();
+  await expect(portfolio.getByText("净清算价值")).toBeVisible();
+  await expect(portfolio.getByText("USD 100,000")).toBeVisible();
+  await expect(portfolio.locator(".portfolio-table tbody tr")).toHaveCount(3);
+  await expect(portfolio.getByText("不适用").first()).toBeVisible();
+
+  const optionGroup = portfolio.getByRole("button", { name: "展开 AAA 期权" });
+  await expect(optionGroup).toBeVisible();
+  await expect(portfolio.getByText("期权（2）")).toBeVisible();
+  await optionGroup.click();
+  await expect(portfolio.locator(".portfolio-table tbody tr")).toHaveCount(5);
+  await expect(portfolio.getByText("AAA  260717C00120000")).toBeVisible();
+  await expect(portfolio.getByText("AAA  260717P00080000")).toBeVisible();
+  await portfolio.getByRole("button", { name: "市值", exact: true }).click();
+  await expect(portfolio.locator(".portfolio-table tbody tr").first()).toContainText("BBB");
+  await portfolio.getByRole("button", { name: "市值", exact: true }).click();
+  await expect(portfolio.locator(".portfolio-table tbody tr").first()).toContainText("AAA");
+
+  await portfolio.getByRole("tab", { name: "期权", exact: true }).click();
+  const greeksTable = portfolio.locator(".option-greeks-table");
+  await expect(greeksTable).toContainText("Delta");
+  await expect(greeksTable.getByRole("row", { name: /AAA/ })).toContainText("70");
+  await expect(greeksTable.getByRole("row", { name: /AAA/ })).toContainText("-10");
+  await portfolio.getByRole("button", { name: "展开 AAA Greeks" }).click();
+  await expect(greeksTable.locator("tbody tr")).toHaveCount(3);
+  await expect(greeksTable.getByRole("row", { name: /260717C00120000/ })).toContainText("100");
+  await expect(greeksTable.getByRole("row", { name: /260717P00080000/ })).toContainText("-30");
+  await portfolio.getByRole("tab", { name: "概览", exact: true }).click();
+
+  await portfolio.getByRole("button", { name: "同步", exact: true }).click();
+  await expect(portfolio.getByText("手工同步")).toBeVisible();
+
+  const stopLoss = portfolio.getByLabel("AAA 止损价");
+  await stopLoss.fill("85");
+  await stopLoss.press("Enter");
+  await expect(portfolio.getByText("USD 500").first()).toBeVisible();
+
+  await portfolio.getByRole("button", { name: "AAA Fixture Alpha" }).click();
+  await expect(page.getByRole("tab", { name: "Market Map" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".detail-panel").getByText("Fixture Alpha")).toBeVisible();
 });
