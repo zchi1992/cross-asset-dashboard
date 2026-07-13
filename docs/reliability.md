@@ -28,6 +28,10 @@
 - 文件修改时间或大小变化会创建新缓存项。
 - 大于 1000 bytes 的响应由 GZipMiddleware 压缩。
 - 缓存最多保留四个签名，避免本地长期进程无限增长。
+- 宏观文件和 source manifest 使用独立签名缓存；单一来源失败时保留 last-good 数据并将
+  `/api/macro/ready` 标记为 `degraded`，不清空其他来源，也不影响资产 readiness。
+- `scripts/run_macro_poll.sh` 是一次性、带锁的宏观刷新入口；launchd 每天本地时间
+  09:00 和 20:30 调用，stdout/stderr 写入 `logs/macro-poll.*.log`。
 
 ## 浏览器证据
 

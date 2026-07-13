@@ -6,6 +6,7 @@ from pathlib import Path
 
 from dashboard.config import load_dashboard_config
 from dashboard.data_loader import available_dates, load_market_map_rows
+from dashboard.macro_loader import build_macro_history, build_macro_overview, load_macro_dataset
 
 from .schemas import AssetMetadata, ConfigResponse, DefaultFilters, PlaybackSettings, ScoreRanges, SnapshotItem
 
@@ -181,6 +182,77 @@ def get_readiness(config_path: str | Path | None = None) -> dict[str, object]:
         "asset_count": len(assets),
         "latest_date": dates[-1],
     }
+
+
+def get_macro_readiness(config_path: str | Path | None = None) -> dict[str, object]:
+    overview = get_macro_overview(config_path=config_path)
+    curve_count = len(overview["curves"])
+    credit_count = len(overview["credit"])
+    sources = overview["sources"]
+    if not curve_count and not credit_count:
+        return {
+            "status": "not_ready",
+            "reason": "no_macro_data",
+            "curve_count": 0,
+            "credit_count": 0,
+            "sources": sources,
+        }
+    degraded = any(item.get("status") in {"error", "lagging", "unconfigured"} for item in sources)
+    return {
+        "status": "degraded" if degraded else "ready",
+        "reason": "partial_sources" if degraded else None,
+        "curve_count": curve_count,
+        "credit_count": credit_count,
+        "sources": sources,
+    }
+
+
+def load_macro_data(config_path: str | Path | None = None) -> dict:
+    resolved_path, signature = _macro_cache_context(config_path)
+    return _load_macro_data_cached(str(resolved_path), signature)
+
+
+@lru_cache(maxsize=4)
+def _load_macro_data_cached(config_path: str, _signature: tuple) -> dict:
+    dashboard_config = load_dashboard_config(config_path)
+    return load_macro_dataset(dashboard_config.storage_root, dashboard_config.macro)
+
+
+def get_macro_overview(as_of: str | None = None, config_path: str | Path | None = None) -> dict:
+    resolved_path = resolve_config_path(config_path)
+    dashboard_config = load_dashboard_config(resolved_path)
+    return build_macro_overview(load_macro_data(resolved_path), dashboard_config.macro, as_of=as_of)
+
+
+def get_macro_history(
+    series_id: str,
+    start: str | None = None,
+    end: str | None = None,
+    config_path: str | Path | None = None,
+) -> dict | None:
+    return build_macro_history(load_macro_data(config_path), series_id, start=start, end=end)
+
+
+def _macro_cache_context(config_path: str | Path | None = None) -> tuple[Path, tuple]:
+    resolved_path = resolve_config_path(config_path)
+    dashboard_config = load_dashboard_config(resolved_path)
+    processed_root = dashboard_config.storage_root / str(dashboard_config.macro.get("processed_path", "processed/macro"))
+    parts = [_file_signature(resolved_path)]
+    for filename in ("curve_points.csv", "credit.csv"):
+        path = processed_root / filename
+        parts.append(_optional_file_signature(path))
+    state_path = Path(str(dashboard_config.macro.get("source_state_path", "../state/macro_sources.json")))
+    if not state_path.is_absolute():
+        state_path = (dashboard_config.storage_root / state_path).resolve()
+    parts.append(_optional_file_signature(state_path))
+    return resolved_path, tuple(parts)
+
+
+def _optional_file_signature(path: Path) -> tuple[str, int, int]:
+    try:
+        return _file_signature(path)
+    except FileNotFoundError:
+        return (str(path), -1, -1)
 
 
 def _to_snapshot_item(row: dict) -> SnapshotItem:

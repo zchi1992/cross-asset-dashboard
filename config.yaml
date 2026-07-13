@@ -39,6 +39,17 @@
     ]
   },
   "dashboard": {
+    "macro": {
+      "enabled": true,
+      "processed_path": "processed/macro",
+      "source_state_path": "../state/macro_sources.json",
+      "thresholds": {
+        "curve_change_bp": 10,
+        "credit_spread_change_bp": 10,
+        "stress_index_change": 0.25,
+        "sloos_change_pp": 5
+      }
+    },
     "market_map": {
       "dataset_types": [
         "core",

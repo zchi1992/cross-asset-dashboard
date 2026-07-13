@@ -55,6 +55,24 @@ dashboard/API 展示字段。
 字段由 `backend/app/schemas.py` 定义，前端镜像位于
 `frontend/src/services/contracts.ts`。改变字段时必须同步两端并增加契约测试。
 
+## Macro processed data and API
+
+宏观地图输入与资产 processed series 隔离：
+
+- `data/processed/macro/curve_points.csv`：`date,region,region_name,tenor_years,value,unit,curve_type,source_id,source_name,source_url`。
+- `data/processed/macro/credit.csv`：`date,series_id,label,value,unit,frequency,source_id,source_name,source_url`。
+- `state/macro_sources.json`：每个来源的抓取状态、最后成功时间、最新观察日期和错误信息。
+
+曲线 factor 只在同一 `region + date` 同时存在 2Y/5Y/10Y 时生成；不跨日补期限。
+Level 为 10Y，Slope 为 `(10Y-2Y)×100bp`，Curvature 为 `(2×5Y-2Y-10Y)×100bp`。
+HY-IG 只对齐相同日期的 HY/IG OAS。
+
+- `GET /api/macro/ready`：宏观独立 readiness 和 source status。
+- `GET /api/macro/overview?as_of=`：G5 曲线、factor、变化、信用卡片及来源。
+- `GET /api/macro/history?series_id=&start=&end=`：稳定 series ID 的历史点。
+
+现有资产 API 不增加宏观字段，宏观数据缺失或失败不改变 `/api/ready`。
+
 ## Cache invalidation
 
 后端缓存键包含：

@@ -1,0 +1,9 @@
+[
+  {"source_id":"us_treasury","source_name":"US Treasury","status":"fresh","last_success_at":"2026-06-28T20:30:00+08:00","latest_observation_at":"2026-06-28","message":null},
+  {"source_id":"ecb","source_name":"ECB","status":"fresh","last_success_at":"2026-06-28T20:30:00+08:00","latest_observation_at":"2026-06-28","message":null},
+  {"source_id":"chinabond","source_name":"财政部 / 中债","status":"fresh","last_success_at":"2026-06-28T20:30:00+08:00","latest_observation_at":"2026-06-28","message":null},
+  {"source_id":"japan_mof","source_name":"Japan MOF","status":"fresh","last_success_at":"2026-06-28T09:00:00+08:00","latest_observation_at":"2026-06-28","message":null},
+  {"source_id":"boe","source_name":"Bank of England","status":"fresh","last_success_at":"2026-06-28T20:30:00+08:00","latest_observation_at":"2026-06-28","message":null},
+  {"source_id":"fred","source_name":"FRED","status":"fresh","last_success_at":"2026-06-28T09:00:00+08:00","latest_observation_at":"2026-06-28","message":null},
+  {"source_id":"ofr","source_name":"Office of Financial Research","status":"fresh","last_success_at":"2026-06-28T09:00:00+08:00","latest_observation_at":"2026-06-28","message":null}
+]

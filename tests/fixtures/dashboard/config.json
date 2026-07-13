@@ -1,6 +1,9 @@
 {
   "storage_root": ".",
   "dashboard": {
-    "market_map": {}
+    "market_map": {},
+    "macro": {
+      "source_state_path": "macro_sources.json"
+    }
   }
 }

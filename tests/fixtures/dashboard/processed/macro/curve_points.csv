@@ -1,0 +1,41 @@
+date,region,region_name,tenor_years,value,unit,curve_type,source_id,source_name,source_url
+2026-06-24,US,美国,2,4.00,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-24,US,美国,5,4.10,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-24,US,美国,10,4.40,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-24,US,美国,30,4.90,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-28,US,美国,2,3.90,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-28,US,美国,5,4.05,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-28,US,美国,10,4.50,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-28,US,美国,30,5.00,%,par government curve,us_treasury,US Treasury,https://home.treasury.gov/
+2026-06-24,EU,欧元区,2,2.30,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-24,EU,欧元区,5,2.50,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-24,EU,欧元区,10,2.80,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-24,EU,欧元区,30,3.20,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-28,EU,欧元区,2,2.25,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-28,EU,欧元区,5,2.52,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-28,EU,欧元区,10,2.90,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-28,EU,欧元区,30,3.30,%,AAA zero-coupon spot curve,ecb,ECB,https://data.ecb.europa.eu/
+2026-06-24,CN,中国,2,1.30,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-24,CN,中国,5,1.45,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-24,CN,中国,10,1.75,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-24,CN,中国,30,2.25,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-28,CN,中国,2,1.28,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-28,CN,中国,5,1.46,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-28,CN,中国,10,1.80,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-28,CN,中国,30,2.30,%,government yield curve,chinabond,财政部 / 中债,https://yield.chinabond.com.cn/
+2026-06-24,JP,日本,2,0.80,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-24,JP,日本,5,1.10,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-24,JP,日本,10,1.60,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-24,JP,日本,30,2.80,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-28,JP,日本,2,0.85,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-28,JP,日本,5,1.15,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-28,JP,日本,10,1.70,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-28,JP,日本,30,2.90,%,constant-maturity government curve,japan_mof,Japan MOF,https://www.mof.go.jp/
+2026-06-24,GB,英国,2,3.80,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-24,GB,英国,5,4.00,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-24,GB,英国,10,4.30,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-24,GB,英国,30,4.80,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-28,GB,英国,2,3.75,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-28,GB,英国,5,4.02,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-28,GB,英国,10,4.40,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
+2026-06-28,GB,英国,30,4.90,%,nominal government spot curve,boe,Bank of England,https://www.bankofengland.co.uk/
