@@ -12,16 +12,20 @@ from dashboard.taxonomy import (
     load_taxonomy_registry,
     taxonomy_metadata_for,
 )
-from scripts.generate_asset_taxonomy import classify_regions
+from scripts.generate_asset_taxonomy import Asset, classify, classify_regions
 
 
 def test_ex_china_fund_is_not_classified_as_china() -> None:
     assert classify_regions("XCEM", "columbia em core ex-china etf", None) == ["EM"]
 
 
-@pytest.mark.parametrize("symbol", ["159601", "510300", "512000", "560050", "588000"])
+@pytest.mark.parametrize("symbol", ["159601", "510300", "512000", "513000", "518880", "560050", "563000", "588000"])
 def test_mainland_listed_fund_prefix_is_china_region(symbol: str) -> None:
     assert classify_regions(symbol, "some fund", None) == ["CN"]
+
+
+def test_chinese_product_name_is_china_region() -> None:
+    assert classify_regions("UNKNOWN", "华夏黄金etf", None) == ["CN"]
 
 
 def test_english_etf_without_geographic_cue_defaults_to_us() -> None:
@@ -31,6 +35,22 @@ def test_english_etf_without_geographic_cue_defaults_to_us() -> None:
 
 def test_canadian_fund_keeps_canada_region_code() -> None:
     assert classify_regions("EWC", "ishares msci canada index fund", None) == ["US_CA"]
+
+
+def test_exact_exchange_identity_distinguishes_colliding_futures_symbols() -> None:
+    assert classify_regions("RB1!", "rbob gasoline futures", None) == ["US"]
+    assert classify_regions("RB1!", "steel rebar futures", None) == ["CN"]
+
+
+def test_yahoo_verified_us_listing_and_global_crypto_have_sources() -> None:
+    us_fund = classify(Asset("instruments", "GLD", "SPDR Gold Shares"), None)
+    crypto = classify(Asset("core", "BNBUSDT", "Binance Coin / TetherUS"), None)
+
+    assert us_fund.regions == ("US",)
+    assert us_fund.basis == "yahoo_finance"
+    assert us_fund.source_url == "https://finance.yahoo.com/quote/GLD/"
+    assert crypto.regions == ("GLOBAL",)
+    assert crypto.source_url == "https://finance.yahoo.com/markets/crypto/all/"
 
 
 def test_catalog_matches_exact_asset_identity_and_preserves_symbol_collisions(tmp_path: Path) -> None:

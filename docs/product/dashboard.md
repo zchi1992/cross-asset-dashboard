@@ -27,9 +27,9 @@ Market Map 用日期切片展示跨资产的趋势分、相对强度和资金状
 - Market Map 另提供一级类别、二级类别、三级类别和地区四个多选筛选器；同一维度内取并集、
   不同维度与其他筛选条件取交集。二级选项随一级选择收窄，三级选项随一级和二级选择收窄，
   父级改变后失效的子级选择自动清除。地区独立筛选，空选择表示全部。
-- 地区按金融市场区域归并为 `US`、`Canada`、`LatAm`、`Europe`、`JP`、`KR`、`CN`、
-  `APAC` 和 `Emerging Markets`；筛选器固定将 `US`、`CN` 放在最前。全球或无法归入
-  单一区域的资产不强行贴地区标签，仍保留在 All 视图中。
+- 地区按上市地或主要交易市场归并为 `US`、`Canada`、`LatAm`、`Europe`、`JP`、`KR`、`CN`、
+  `APAC`、`Emerging Markets` 和 `Global`；筛选器固定将 `US`、`CN` 放在最前。中文名称和
+  中国上市基金代码归 `CN`，Yahoo Finance 可核验的美国基金归 `US`，跨地区现货加密资产归 `Global`。
 - 一级类别为股票、债券、外汇、商品和另类资产；缺少分类的新资产保留在全部视图中并标记为
   `Unclassified`，不会因此丢失行情记录。
 - Funding State 和 Relative Strength State 支持多选。

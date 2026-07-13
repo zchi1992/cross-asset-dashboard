@@ -14,7 +14,7 @@ make taxonomy-check
 - `make smoke`：启动真实 uvicorn 进程，以 fixture 验证 readiness 和核心 API。
 - `make e2e`：构建前端、启动 fixture dashboard，并运行 Chromium Playwright。
 - `make docs-check`：只检查文档、链接和标准 Make target。
-- `make taxonomy-check`：只校验版本化分类表的结构、代码和父子关系，不读取本机 `data/`。
+- `make taxonomy-check`：只校验版本化分类表的结构、代码、父子关系和地区非空，不读取本机 `data/`。
 
 ## 测试分层
 

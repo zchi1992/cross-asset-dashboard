@@ -31,12 +31,13 @@ def main() -> None:
         "catalog_unclassified_count": sum(
             metadata["primary_category"] == "unclassified" for metadata in catalog.values()
         ),
+        "catalog_missing_region_count": sum(not metadata["regions"] for metadata in catalog.values()),
         "missing_count": 0,
         "extra_count": 0,
         "missing": [],
         "extra": [],
     }
-    failed = bool(result["catalog_unclassified_count"])
+    failed = bool(result["catalog_unclassified_count"] or result["catalog_missing_region_count"])
 
     if not args.catalog_only:
         config = load_dashboard_config(args.config)

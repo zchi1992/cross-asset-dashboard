@@ -203,15 +203,16 @@ REGION_LABELS = {
     "CN": ("China", "中国"),
     "APAC": ("APAC", "亚太"),
     "EM": ("Emerging Markets", "新兴市场"),
+    "GLOBAL": ("Global", "全球"),
 }
 
-REGION_ORDER = ["US", "CN", "US_CA", "LATAM", "EUROPE", "JP", "KR", "APAC", "EM"]
+REGION_ORDER = ["US", "CN", "US_CA", "LATAM", "EUROPE", "JP", "KR", "APAC", "EM", "GLOBAL"]
 
 CURRENCY_REGIONS = {
     "USD": "US", "CAD": "US_CA", "CNY": "CN", "CNH": "CN", "JPY": "JP",
     "EUR": "EUROPE", "GBP": "EUROPE", "CHF": "EUROPE", "BRL": "LATAM", "MXN": "LATAM",
     "AUD": "APAC", "NZD": "APAC", "HKD": "APAC", "SGD": "APAC", "INR": "APAC",
-    "KRW": "KR", "ZAR": "EM",
+    "KRW": "KR", "ZAR": "EM", "NOK": "EUROPE", "SEK": "EUROPE", "THB": "APAC", "TRY": "EM",
 }
 
 GS_REGION_MAP = {
@@ -226,6 +227,135 @@ OFFICIAL_SOURCE_URLS = {
     "KMLM": "https://kraneshares.com/etf/kmlm/",
     "IVOL": "https://kraneshares.com/etf/ivol/",
 }
+
+YAHOO_US_SYMBOLS = {
+    "AGQ", "BAR", "BOIL", "FNGD", "FNGU", "FXE", "GLD", "GLDM", "GSG", "IAU", "KOLD",
+    "PSQ", "QID", "QLD", "SCO", "SLV", "SQQQ", "TQQQ", "TRIP", "UCO", "UPRO", "ZSL",
+}
+
+CHINA_EXCHANGE_IDENTITIES = {
+    ("AD1!", "cast aluminium alloy futures"),
+    ("AG1!", "silver futures"),
+    ("AL1!", "aluminum futures"),
+    ("AO1!", "aluminum oxide futures"),
+    ("AP1!", "fresh apple futures"),
+    ("AU1!", "gold futures"),
+    ("BR1!", "butadiene rubber futures"),
+    ("BU1!", "bitumen futures"),
+    ("CF1!", "cotton futures"),
+    ("CJ1!", "dried jujube futures"),
+    ("CU1!", "copper cathode futures"),
+    ("CY1!", "cotton yarn futures"),
+    ("FG1!", "flat glass futures"),
+    ("FU1!", "fuel oil futures"),
+    ("H30083", "csi300 inversed index"),
+    ("HC1!", "hot rolled coils futures"),
+    ("IH1!", "sse 50 index futures"),
+    ("MA1!", "methanol futures"),
+    ("NI1!", "nickel futures"),
+    ("OI1!", "rapeseed oil futures"),
+    ("PB1!", "lead futures"),
+    ("PF1!", "polyester staple fiber futures"),
+    ("PK1!", "peanut kernel futures"),
+    ("PL1!", "propylene futures"),
+    ("PR1!", "polyethylene terephthalate resin for bottles futures"),
+    ("PX1!", "p-xylene futures"),
+    ("RB1!", "steel rebar futures"),
+    ("RM1!", "rapeseed meal futures"),
+    ("RS1!", "rapeseed futures"),
+    ("RU1!", "natural rubber futures"),
+    ("SA1!", "soda ash futures"),
+    ("SF1!", "ferrosilicon futures"),
+    ("SH1!", "sodium hydroxide futures"),
+    ("SM1!", "manganese silicon futures"),
+    ("SN1!", "tin futures"),
+    ("SP1!", "bleached softwood kraft pulp futures"),
+    ("SR1!", "white sugar futures"),
+    ("SS1!", "stainless steel futures"),
+    ("T1!", "10-year cgb futures"),
+    ("TA1!", "purified terephthalic acid (pta) futures"),
+    ("TF1!", "5-year cgb futures"),
+    ("TL1!", "30-year cgb futures"),
+    ("TS1!", "2-year cgb futures"),
+    ("UR1!", "urea futures"),
+    ("WR1!", "wire rod futures"),
+    ("ZC1!", "thermal coal futures"),
+    ("ZN1!", "zinc futures"),
+}
+
+US_EXCHANGE_IDENTITIES = {
+    ("10Y1!", "10-year yield futures"),
+    ("AW1!", "bloomberg commodity index futures"),
+    ("CC1!", "cocoa futures"),
+    ("CL1!", "crude oil futures"),
+    ("CT1!", "cotton no. 2 futures"),
+    ("DX1!", "us dollar index® futures"),
+    ("EMD1!", "e-mini s&p midcap 400 futures"),
+    ("GC1!", "gold futures"),
+    ("GF1!", "feeder cattle futures"),
+    ("HE1!", "lean hog futures"),
+    ("HG1!", "copper futures"),
+    ("HO1!", "ny harbor ulsd futures"),
+    ("KC1!", "coffee c futures"),
+    ("KE1!", "kc hrw wheat futures"),
+    ("LBR1!", "lumber futures"),
+    ("LE1!", "live cattle futures"),
+    ("NG1!", "henry hub natural gas futures"),
+    ("OJ1!", "frozen concentrate orange juice a futures"),
+    ("PA1!", "palladium futures"),
+    ("PL1!", "platinum futures"),
+    ("QG1!", "e-mini natural gas futures"),
+    ("RB1!", "rbob gasoline futures"),
+    ("SB1!", "sugar no. 11 futures"),
+    ("SI1!", "silver futures"),
+    ("SR31!", "three-month sofr futures"),
+    ("UX1!", "uxc uranium u3o8 futures"),
+    ("VIX", "cboe volatility index"),
+    ("VVIX", "cboe vix volatility index"),
+    ("VX1!", "cboe volatility index (vix) futures"),
+    ("XRP1!", "xrp futures"),
+    ("ZC1!", "corn futures"),
+    ("ZF1!", "5-year t-note futures"),
+    ("ZL1!", "soybean oil futures"),
+    ("ZM1!", "soybean meal futures"),
+    ("ZN1!", "10-year t-note futures"),
+    ("ZO1!", "oat futures"),
+    ("ZQ1!", "30 day federal funds futures"),
+    ("ZR1!", "rough rice futures"),
+    ("ZS1!", "soybean futures"),
+    ("ZT1!", "2-year t-note futures"),
+    ("ZW1!", "chicago srw wheat futures"),
+}
+
+EUROPE_EXCHANGE_IDENTITIES = {
+    ("AH1!", "aluminium high grade futures"),
+    ("BRN1!", "brent crude futures"),
+    ("CA1!", "grade a copper futures"),
+    ("ECF1!", "european union allowance (eua) futures"),
+    ("RC1!", "robusta coffee futures"),
+    ("SX5E", "stoxx 50"),
+    ("TTF1!", "dutch ttf natural gas calendar month futures"),
+    ("UKX", "uk 100 index"),
+    ("ZS1!", "special high grade zinc futures"),
+}
+
+CANADA_EXCHANGE_IDENTITIES = {("RS1!", "canola futures")}
+APAC_EXCHANGE_IDENTITIES = {("JKM1!", "lng japan/korea marker (platts) futures")}
+GLOBAL_IDENTITIES = {
+    ("BDI", "baltic dry index"),
+    ("BNBUSDT", "binance coin / tetherus"),
+    ("BTCUSD", "bitcoin / u.s. dollar"),
+    ("DOGEUSDT", "dogecoin / tetherus"),
+    ("ETHUSD", "ethereum / us dollar"),
+    ("LINKUSDT", "chainlink / tetherus"),
+    ("SOLUSD", "sol / usd"),
+    ("SUIUSDT", "sui / tetherus"),
+    ("TRXUSDT", "tron / tetherus"),
+}
+
+YAHOO_FUTURES_URL = "https://finance.yahoo.com/research-hub/screener/futures/"
+TRADINGVIEW_FUTURES_URL = "https://www.tradingview.com/markets/futures/quotes-all/"
+YAHOO_CRYPTO_URL = "https://finance.yahoo.com/markets/crypto/all/"
 
 
 @dataclass(frozen=True)
@@ -304,8 +434,10 @@ def load_gs_rows(storage_root: Path) -> dict[str, dict[str, str]]:
 def classify(asset: Asset, gs: dict[str, str] | None) -> Classification:
     name = asset.name.casefold()
     symbol = asset.symbol.upper()
-    regions = classify_regions(symbol, name, gs)
-    basis = "gs_exempt" if gs else "instrument_name"
+    evidence = exact_region_evidence(symbol, name)
+    regions = list(evidence[0]) if evidence else classify_regions(symbol, name, gs)
+    basis = evidence[1] if evidence else ("gs_exempt" if gs else "instrument_name")
+    source_url = evidence[2] if evidence else ""
 
     primary = classify_primary(symbol, name, gs)
     if primary == "bond":
@@ -314,17 +446,22 @@ def classify(asset: Asset, gs: dict[str, str] | None) -> Classification:
         secondary, tertiary = None, []
     elif primary == "commodity":
         secondary, tertiary = classify_commodity(name, gs)
-        regions = []
     elif primary == "alternative":
         secondary, tertiary = classify_alternative(name, gs)
-        if secondary == "alternative.crypto":
-            regions = []
     else:
         secondary, tertiary = classify_equity(name, regions, gs)
 
-    source_url = OFFICIAL_SOURCE_URLS.get(symbol, "")
-    if source_url:
+    official_source_url = OFFICIAL_SOURCE_URLS.get(symbol, "")
+    if official_source_url:
         basis = "official_source"
+        source_url = official_source_url
+    elif symbol in YAHOO_US_SYMBOLS:
+        regions = ["US"]
+        basis = "yahoo_finance"
+        source_url = f"https://finance.yahoo.com/quote/{symbol}/"
+    elif regions == ["US"] and re.search(r"\b(?:etf|fund)\b", name) and name.isascii():
+        basis = "yahoo_finance"
+        source_url = f"https://finance.yahoo.com/quote/{symbol}/"
     return Classification(
         primary,
         secondary,
@@ -551,17 +688,22 @@ def classify_sector(text: str, regions: list[str]) -> tuple[str, str | None] | N
 
 
 def classify_regions(symbol: str, name: str, gs: dict[str, str] | None) -> list[str]:
+    evidence = exact_region_evidence(symbol, name)
+    if evidence:
+        return list(evidence[0])
     gs_region = (gs or {}).get("地区", "")
     if gs_region in GS_REGION_MAP and GS_REGION_MAP[gs_region]:
         return list(GS_REGION_MAP[gs_region])
     compact = re.sub(r"[^A-Z]", "", symbol)
     if len(compact) == 6 and compact[:3] in CURRENCY_REGIONS and compact[3:] in CURRENCY_REGIONS:
         return _dedupe([CURRENCY_REGIONS[compact[:3]], CURRENCY_REGIONS[compact[3:]]])
-    # Mainland-listed fund symbols are six digits and these prefixes cover the
-    # Shanghai/Shenzhen ETF families in the current asset universe.  The
-    # underlying exposure may be overseas, but the fund itself is a China
-    # product, so use CN for the region filter.
-    if re.fullmatch(r"(?:159|510|512|560|588)\d{3}", symbol):
+    # Mainland-listed fund symbols are six digits. These families cover the
+    # Shanghai/Shenzhen ETFs and listed funds in the current asset universe.
+    if re.fullmatch(r"(?:15\d|51\d|56\d|588|589)\d{3}", symbol):
+        return ["CN"]
+    # Chinese product names in this catalog are mainland-listed instruments,
+    # even when their underlying exposure is an overseas index.
+    if re.search(r"[\u3400-\u9fff]", name):
         return ["CN"]
     if _contains(name, "ex-china", "ex china"):
         return ["EM"] if _contains(name, "em ", "emerging market") else []
@@ -600,6 +742,23 @@ def classify_regions(symbol: str, name: str, gs: dict[str, str] | None) -> list[
     if _contains(name, "international", "eafe", "ex-us", "ex us", "global", "world", "all-country"):
         return []
     return []
+
+
+def exact_region_evidence(symbol: str, name: str) -> tuple[tuple[str, ...], str, str] | None:
+    identity = (symbol.upper(), name.casefold())
+    if identity in CHINA_EXCHANGE_IDENTITIES:
+        return ("CN",), "exchange_reference", TRADINGVIEW_FUTURES_URL
+    if identity in US_EXCHANGE_IDENTITIES:
+        return ("US",), "yahoo_finance", YAHOO_FUTURES_URL
+    if identity in EUROPE_EXCHANGE_IDENTITIES:
+        return ("EUROPE",), "exchange_reference", TRADINGVIEW_FUTURES_URL
+    if identity in CANADA_EXCHANGE_IDENTITIES:
+        return ("US_CA",), "exchange_reference", TRADINGVIEW_FUTURES_URL
+    if identity in APAC_EXCHANGE_IDENTITIES:
+        return ("APAC",), "exchange_reference", TRADINGVIEW_FUTURES_URL
+    if identity in GLOBAL_IDENTITIES:
+        return ("GLOBAL",), "yahoo_finance", YAHOO_CRYPTO_URL
+    return None
 
 
 def _is_fx(symbol: str, name: str) -> bool:
@@ -647,7 +806,7 @@ def write_registry(path: Path, classifications: Iterable[tuple[Asset, Classifica
         label_en, label_zh = REGION_LABELS.get(code, (code, code))
         regions.append(_option(code, label_en, label_zh, []))
     payload = {
-        "version": "2026-07-12",
+        "version": "2026-07-13",
         "standards": {
             "gics": {
                 "version": "2024-08",
