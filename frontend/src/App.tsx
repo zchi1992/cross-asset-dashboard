@@ -840,6 +840,7 @@ const SearchControl = memo(function SearchControl({
 function formatAssetClass(value: string) {
   if (value === GS_EXEMPT_FILTER) return "GS Exempt";
   if (value === CN_REGION_FILTER) return "中国";
+  if (value === "mainland_continuous") return "内地主连";
   return value
     .split(/[_-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

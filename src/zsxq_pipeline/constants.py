@@ -22,6 +22,13 @@ METRIC_NAME_MAP = {
     "此前杠杆资金状态涨幅": "previous_leverage_state_return",
     "杠杆资金数值": "leverage_value",
     "杠杆资金相比前日变动": "leverage_value_change_d1",
+    "当前动能状态持续时间": "current_momentum_state_duration",
+    "当前动能状态": "current_momentum_state",
+    "当前动能状态累积涨跌幅": "current_momentum_state_return",
+    "此前动能状态": "previous_momentum_state",
+    "此前动能状态累积涨跌幅": "previous_momentum_state_return",
+    "动能数值": "momentum_value",
+    "动能数值相比前日变动": "momentum_value_change_d1",
 }
 
 BASE_COLUMNS = ("代码", "标的名称")

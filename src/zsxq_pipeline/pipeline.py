@@ -169,7 +169,13 @@ class IngestionPipeline:
         return result
 
     def refresh_processed_series(self) -> int:
-        return len(build_processed_series_with_trend_scores(self.config.storage_root))
+        dataset_types = self.config.raw["dashboard"]["market_map"]["dataset_types"]
+        return len(
+            build_processed_series_with_trend_scores(
+                self.config.storage_root,
+                dataset_types=list(dataset_types),
+            )
+        )
 
     def validate_daily_outputs(self, as_of_date: str) -> ValidationResult:
         raw_rows = [

@@ -12,7 +12,8 @@
   "filename_filter": {
     "include_patterns": [
       "核心数据集",
-      "押注工具"
+      "押注工具",
+      "内地主连"
     ],
     "exclude_patterns": [],
     "match_mode": "contains",
@@ -24,6 +25,9 @@
     ],
     "instruments": [
       "押注工具"
+    ],
+    "mainland_continuous": [
+      "内地主连"
     ]
   },
   "zsxq": {
@@ -60,7 +64,8 @@
     "market_map": {
       "dataset_types": [
         "core",
-        "instruments"
+        "instruments",
+        "mainland_continuous"
       ],
       "taxonomy_path": "metadata/asset_taxonomy.csv",
       "fields": {
@@ -104,7 +109,8 @@
       },
       "symbols": {
         "core": "circle",
-        "instruments": "diamond"
+        "instruments": "diamond",
+        "mainland_continuous": "square"
       }
     }
   }

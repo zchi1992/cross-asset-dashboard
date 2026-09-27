@@ -8,6 +8,7 @@ from unittest.mock import patch
 from src.zsxq_pipeline.config import load_config
 from src.zsxq_pipeline.cli import _run_poll_once
 from src.zsxq_pipeline.pipeline import IngestionPipeline, PipelineResult, bootstrap_directories
+from src.zsxq_pipeline.xlsx_parser import parse_metrics_from_workbook
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,6 +46,18 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(any(processed_core_dir.iterdir()))
         self.assertTrue(any(processed_instruments_dir.iterdir()))
 
+    def test_reparse_mainland_continuous_uses_existing_processing_pipeline(self) -> None:
+        source = ROOT / "examples" / "26-05-27 数据总表（趋势识别＋相对比价＋资金监控）（核心数据集）.xlsx"
+        mainland_file = self.workdir / "26-07-21 数据总表（趋势识别＋相对比价＋资金监控＋动能）（内地主连）.xlsx"
+        mainland_file.write_bytes(source.read_bytes())
+
+        result = self.pipeline.reparse_path(mainland_file)
+
+        self.assertEqual(result.parsed, 1)
+        self.assertGreater(result.processed, 0)
+        self.assertTrue(any((self.workdir / "data" / "series" / "mainland_continuous").iterdir()))
+        self.assertTrue(any((self.workdir / "data" / "processed" / "series" / "mainland_continuous").iterdir()))
+
     def test_series_output_uses_trimmed_schema_and_english_metric_names(self) -> None:
         core_file = ROOT / "examples" / "26-05-27 数据总表（趋势识别＋相对比价＋资金监控）（核心数据集）.xlsx"
         self.pipeline.reparse_path(core_file)
@@ -59,6 +72,40 @@ class PipelineTests(unittest.TestCase):
             ["date", "dataset_type", "asset_code", "asset_name", "metric_name", "metric_value"],
         )
         self.assertEqual(first_row[4], "daily_trend")
+
+    def test_parser_accepts_momentum_columns_added_to_daily_workbook(self) -> None:
+        headers = [
+            "代码",
+            "标的名称",
+            "当前动能状态持续时间",
+            "当前动能状态",
+            "当前动能状态累积涨跌幅",
+            "此前动能状态",
+            "此前动能状态累积涨跌幅",
+            "动能数值",
+            "动能数值相比前日变动",
+        ]
+        row = ["AAA", "Asset A", "3", "正", "1.2", "中性", "-0.4", "0.8", "0.1"]
+
+        with patch("src.zsxq_pipeline.xlsx_parser.read_first_sheet", return_value=("sheet", [headers, row])):
+            records = parse_metrics_from_workbook(
+                "unused.xlsx",
+                dataset_type="core",
+                as_of_date="2026-07-20",
+            )
+
+        self.assertEqual(
+            [record["metric_name"] for record in records],
+            [
+                "current_momentum_state_duration",
+                "current_momentum_state",
+                "current_momentum_state_return",
+                "previous_momentum_state",
+                "previous_momentum_state_return",
+                "momentum_value",
+                "momentum_value_change_d1",
+            ],
+        )
 
     def test_collision_assets_get_separate_series_files(self) -> None:
         core_file = ROOT / "examples" / "26-05-27 数据总表（趋势识别＋相对比价＋资金监控）（核心数据集）.xlsx"

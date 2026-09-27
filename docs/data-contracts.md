@@ -6,6 +6,10 @@ Dashboard 输入位于：
 
 - `data/processed/series/core/*.csv`
 - `data/processed/series/instruments/*.csv`
+- `data/processed/series/mainland_continuous/*.csv`
+
+`mainland_continuous` 表示内地主连数据集。它沿用 `core` 和 `instruments` 的解析、派生信号与
+API 宽表逻辑，仅作为独立 `dataset_type` 保留，以支持前端按 Asset Class 单独筛选。
 
 公司批准名单默认读取 `data/gs_exempt_list/gs_exempt_list.xlsx` 的 `Ticker` 列；
 固定测试样例可使用同目录同名 CSV。代码按去除首尾空白并转大写后的 ticker 精确匹配，

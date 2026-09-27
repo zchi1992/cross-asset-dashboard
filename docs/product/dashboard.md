@@ -23,7 +23,8 @@ Market Map 用日期切片展示跨资产的趋势分、相对强度和资金状
   `2×5Y-2Y-10Y` curvature；历史区间支持 1M/3M/1Y/3Y/5Y。
 - 信用区展示 HY OAS、IG OAS、HY-IG、NFCI、OFR FSI 和 SLOOS。状态标签是机械诊断，
   不构成交易建议。宏观地图不显示资产 playback，切换页签后保留宏观选择状态。
-- Asset Class 选择单一类别；`GS Exempt` 跨 `core` 和 `instruments` 筛出公司批准名单中且当前日期有完整数据的标的。
+- Asset Class 选择单一类别；`mainland_continuous` 在界面显示为“内地主连”，并沿用其他数据集类别的
+  Market Map 与 Opportunities 处理逻辑；`GS Exempt` 跨全部数据集类别筛出公司批准名单中且当前日期有完整数据的标的。
 - Market Map 另提供一级类别、二级类别、三级类别和地区四个多选筛选器；同一维度内取并集、
   不同维度与其他筛选条件取交集。二级选项随一级选择收窄，三级选项随一级和二级选择收窄，
   父级改变后失效的子级选择自动清除。地区独立筛选，空选择表示全部。
@@ -39,7 +40,7 @@ Market Map 用日期切片展示跨资产的趋势分、相对强度和资金状
   强势做多标签使用红色、候选做多使用橙色；强势做空使用深绿色、候选做空使用浅绿色。
 - Opportunities tab 不套用 Market Map 的 Search、Funding State 或 Relative Strength State；
   也不套用资产分类或地区筛选；自己的 Asset Class 默认为 `All Assets`，并支持 `core`、
-  `instruments`、`中国` 和 `GS Exempt`。选择 `中国` 时跨 `core/instruments` 保留 `regions`
+  `instruments`、`mainland_continuous`、`中国` 和 `GS Exempt`。选择 `中国` 时跨全部数据集保留 `regions`
   包含 `CN` 的资产。
 - Opportunity 排名变化在当前 Asset Class 资产范围内计算；切换到 `GS Exempt` 后，当前排名和历史排名都只比较公司名单中的有效标的。
 - 切换到 `中国` 后，当前机会排名和历史排名变化都只在中国地区资产范围内计算。
@@ -61,7 +62,7 @@ Market Map 用日期切片展示跨资产的趋势分、相对强度和资金状
 - Opportunities tab 同页展示强势/候选做多和强势/候选做空结果。每组先按规则筛出全部机会并显示总数，
   表格只渲染排名前 10 的行；做多和做空分别占一行。点击或用键盘选中任一行后，右侧显示与
   Market Map 相同且可调整宽度的资产详情面板。
-- 交易机会页按 `symbol + asset_name` 识别同一标的；`core` 和 `instruments` 同时出现的
+- 交易机会页按 `symbol + asset_name` 识别同一标的；不同数据集类别同时出现的
   重复标的只保留排序最靠前的一条。
 - Reset 恢复后端给出的默认过滤器、清空资产分类和地区筛选并清除选择。
 - “持仓”页显示账户摘要、风险指标和完整持仓，并提供“同步”按钮。同步期间按钮禁用；失败时
